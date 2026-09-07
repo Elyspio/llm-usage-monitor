@@ -13,11 +13,11 @@
 		"usage:codex": "tsx examples/codex.ts"
 	},
 	"devDependencies": {
-		"@types/node": "^22.0.0",
-		"oxfmt": "^0.66.0",
+		"@types/node": "^26.5.0",
+		"oxfmt": "^0.67.0",
 		"oxlint": "^1.81.0",
-		"tsx": "^4.0.0",
-		"typescript": "^5.0.0"
+		"tsx": "^4.23.13",
+		"typescript": "^7.0.2"
 	},
 	"engines": {
 		"node": ">=22"
