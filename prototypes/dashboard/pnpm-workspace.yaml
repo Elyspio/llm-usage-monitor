@@ -1,0 +1,4 @@
+# PROTOTYPE jetable : ce fichier fait de prototypes/dashboard un workspace pnpm autonome,
+# sinon pnpm remonterait au pnpm-workspace.yaml de la racine du dépôt.
+packages:
+  - '.'
