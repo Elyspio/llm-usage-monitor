@@ -4,4 +4,8 @@
 		<ProjectReference Include="..\LlmUsageMonitor.Abstractions\LlmUsageMonitor.Abstractions.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<InternalsVisibleTo Include="LlmUsageMonitor.Adapters.Tests" />
+	</ItemGroup>
+
 </Project>

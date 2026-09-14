@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<ItemGroup>
+		<ProjectReference Include="..\LlmUsageMonitor.Abstractions\LlmUsageMonitor.Abstractions.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Hangfire.AspNetCore" Version="1.8.25" />
+		<PackageReference Include="Hangfire.Mongo" Version="1.16.2" />
+	</ItemGroup>
+
+</Project>
