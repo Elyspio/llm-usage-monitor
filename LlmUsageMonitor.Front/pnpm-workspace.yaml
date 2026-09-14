@@ -1,0 +1,21 @@
+allowBuilds:
+    esbuild: false
+    msw: false
+catalog:
+    vite: npm:@voidzero-dev/vite-plus-core@0.3.1
+    vite-plus: 0.3.1
+minimumReleaseAgeExclude:
+    - "@elyspio/vite-eslint-config@6.0.0"
+overrides:
+    vite@*: "catalog:"
+# vp resolves oxfmt / oxlint from the project first: without these links, Node would walk up to the repository root
+# and pick the versions of the root TypeScript tooling instead of the ones bundled with vite-plus.
+publicHoistPattern:
+    - oxfmt
+    - oxlint
+    - oxlint-tsgolint
+peerDependencyRules:
+    allowAny:
+        - vite
+    allowedVersions:
+        vite: "*"

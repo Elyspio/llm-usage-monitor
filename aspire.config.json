@@ -1,0 +1,5 @@
+{
+	"appHost": {
+		"path": "LlmUsageMonitor.AppHost/LlmUsageMonitor.AppHost.csproj"
+	}
+}
