@@ -8,3 +8,7 @@ obj/
 .vs/
 *.user
 dist/
+deploy/out/
+deploy/*.tar.gz
+.claude
+.idea

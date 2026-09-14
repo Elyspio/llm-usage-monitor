@@ -44,6 +44,9 @@ public static class HangfireDashboardAuthentication
 				options.ClientId = oidc.Value.ClientId;
 				options.ResponseType = OpenIdConnectResponseType.Code;
 				options.UsePkce = true;
+				// .NET uses pushed authorization requests when the provider advertises them; Keycloak rejects them for this
+				// secretless public client, so the classic redirect is kept.
+				options.PushedAuthorizationBehavior = PushedAuthorizationBehavior.Disable;
 				options.CallbackPath = "/signin-oidc";
 				options.RequireHttpsMetadata = !environment.IsDevelopment();
 				options.MapInboundClaims = false;

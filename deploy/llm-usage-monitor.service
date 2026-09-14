@@ -1,0 +1,27 @@
+[Unit]
+Description=LLM Usage Monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=llm-monitor
+Group=llm-monitor
+WorkingDirectory=/opt/llm-usage-monitor
+ExecStart=/opt/llm-usage-monitor/LlmUsageMonitor.WebApi
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://0.0.0.0:5000
+Environment=LLM_USAGE_MONITOR_SETTINGS=/etc/llm-usage-monitor/appsettings.Production.json
+# The claude and codex CLIs are installed and signed in under the service account.
+Environment=PATH=/var/lib/llm-monitor/.local/bin:/usr/local/bin:/usr/bin:/bin
+Restart=on-failure
+RestartSec=10
+
+NoNewPrivileges=true
+ProtectSystem=strict
+PrivateTmp=true
+# The home holds the CLI credentials (refreshed in place) and the self-updating CLI binaries.
+ReadWritePaths=/var/lib/llm-monitor
+
+[Install]
+WantedBy=multi-user.target

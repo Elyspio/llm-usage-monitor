@@ -12,6 +12,8 @@ const apiPaths = ["/api", "/hangfire", "/signin-oidc", "/swagger", "/openapi"];
 
 export default defineConfig({
 	...config,
+	// The OpenAPI document is written by the WebApi build and committed as is.
+	fmt: { ...config.fmt, ignorePatterns: [...config.fmt.ignorePatterns, "openapi/**"] },
 	server: {
 		...config.server,
 		proxy: Object.fromEntries(apiPaths.map((path) => [path, { target: apiUrl, secure: false }])),

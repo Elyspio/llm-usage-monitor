@@ -1,0 +1,12 @@
+.git
+.idea
+.claude
+**/bin
+**/obj
+**/node_modules
+**/dist
+deploy/out
+deploy/*.tar.gz
+src
+examples
+node_modules

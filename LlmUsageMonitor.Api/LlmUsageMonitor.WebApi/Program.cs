@@ -13,18 +13,24 @@ using LlmUsageMonitor.Adapters.Ntfy;
 using LlmUsageMonitor.Authorization;
 using LlmUsageMonitor.Core;
 using LlmUsageMonitor.Filters;
+using LlmUsageMonitor.Hosting;
 using LlmUsageMonitor.OpenApi;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.AddProductionHosting();
 
 var telemetryEnabled = builder.Configuration.IsTelemetryEnabled(out var telemetryOptions);
 if (telemetryEnabled)
 {
-	new AppOpenTelemetryBuilder<Program>(telemetryOptions!, builder.Configuration).Build(builder.Services);
+	new AppOpenTelemetryBuilder<Program>(telemetryOptions!, builder.Configuration)
+	{
+		Tracing = (tracing, _) => tracing.AddHangfireInstrumentation(),
+	}.Build(builder.Services);
 	builder.Services.AddOpenTelemetryJsonConfiguration(builder.Configuration);
 }
 
@@ -78,11 +84,16 @@ builder.Services.AddAuthorizationBuilder()
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
+
 if (telemetryEnabled)
 {
 	app.UseOpenTelemetryJsonConfiguration();
 }
 
+// "/" serves index.html; the other client routes go through the SPA fallback (ProductionHosting.MapSpa).
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -104,6 +115,8 @@ if (HangfireAdapterModule.IsEnabled(app.Configuration))
 	app.MapHangfireDashboard("/hangfire", new DashboardOptions { Authorization = [], DashboardTitle = "LLM Usage Monitor · jobs", AppPath = "/" })
 		.RequireAuthorization(HangfireDashboardAuthentication.PolicyName);
 }
+
+app.MapSpa();
 
 app.Run();
 

@@ -54,4 +54,8 @@ Les adapters CLI sont testés sur des fixtures capturées et anonymisées (aucun
 
 ## Déploiement
 
-Build self-contained `linux-x64` dans Docker sur le poste, puis scp vers `ely-llm-wake-up.elylan` (`/opt/llm-usage-monitor/`, écrasement en place) et `systemctl restart llm-usage-monitor`. Config de prod : `/etc/llm-usage-monitor/appsettings.Production.json`, jamais commitée.
+```sh
+./deploy/deploy.ps1
+```
+
+Build self-contained `linux-x64` dans Docker sur le poste (`deploy/Dockerfile`), scp vers `ely-llm-wake-up.elylan`, extraction dans `/opt/llm-usage-monitor/` (écrasement en place) puis redémarrage de `llm-usage-monitor.service`. Config de prod : `/etc/llm-usage-monitor/appsettings.Production.json` (modèle `deploy/appsettings.Production.example.json`, jamais commitée), chargée via `LLM_USAGE_MONITOR_SETTINGS`. En prod l'API sert aussi la SPA (`wwwroot`) et `/conf.js`. Mise en service et retour arrière : `deploy/README.md`.
