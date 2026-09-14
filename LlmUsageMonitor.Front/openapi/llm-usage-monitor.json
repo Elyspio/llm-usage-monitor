@@ -1,0 +1,79 @@
+{
+	"openapi": "3.1.1",
+	"info": {
+		"title": "LlmUsageMonitor.WebApi | v1",
+		"version": "1.0.0"
+	},
+	"paths": {
+		"/api/dashboard": {
+			"get": {
+				"tags": ["Dashboard"],
+				"operationId": "GetDashboard",
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/DashboardSnapshot"
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+	"components": {
+		"schemas": {
+			"DashboardSnapshot": {
+				"required": ["providers"],
+				"type": "object",
+				"properties": {
+					"providers": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ProviderDashboard"
+						}
+					}
+				}
+			},
+			"Provider": {
+				"enum": ["claude", "codex"]
+			},
+			"ProviderDashboard": {
+				"required": ["provider"],
+				"type": "object",
+				"properties": {
+					"provider": {
+						"$ref": "#/components/schemas/Provider"
+					}
+				}
+			}
+		},
+		"securitySchemes": {
+			"keycloak": {
+				"type": "oauth2",
+				"flows": {
+					"authorizationCode": {
+						"authorizationUrl": "https://auth.elyspio.fr/realms/internal/protocol/openid-connect/auth",
+						"tokenUrl": "https://auth.elyspio.fr/realms/internal/protocol/openid-connect/token",
+						"scopes": {
+							"openid": "OpenID Connect"
+						}
+					}
+				}
+			}
+		}
+	},
+	"security": [
+		{
+			"keycloak": ["openid"]
+		}
+	],
+	"tags": [
+		{
+			"name": "Dashboard"
+		}
+	]
+}

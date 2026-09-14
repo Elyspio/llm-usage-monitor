@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<ItemGroup>
+		<ProjectReference Include="..\LlmUsageMonitor.Abstractions\LlmUsageMonitor.Abstractions.csproj" />
+	</ItemGroup>
+
+</Project>

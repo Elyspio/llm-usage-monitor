@@ -1,0 +1,18 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.5.3">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<UserSecretsId>3f6c2b1e-8d4a-4c7e-9a51-2e7b0d6f4c93</UserSecretsId>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\LlmUsageMonitor.Api\LlmUsageMonitor.WebApi\LlmUsageMonitor.WebApi.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Aspire.Hosting.JavaScript" Version="13.5.3" />
+		<PackageReference Include="Aspire.Hosting.Keycloak" Version="13.5.3-preview.1.26425.3" />
+		<PackageReference Include="Aspire.Hosting.MongoDB" Version="13.5.3" />
+	</ItemGroup>
+
+</Project>

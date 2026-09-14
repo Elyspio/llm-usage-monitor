@@ -1,0 +1,7 @@
+{
+	"extends": "@elyspio/vite-eslint-config/tsconfig.json",
+	"compilerOptions": {
+		"types": ["node", "vite-plus/client"]
+	},
+	"include": ["src", "tests", "scripts", "vite.config.ts"]
+}
