@@ -6,13 +6,375 @@ export type ClientOptions = {
 
 export type DashboardSnapshot = {
     providers: Array<ProviderDashboard>;
+    recentTriggerRuns: Array<TriggerRun>;
+};
+
+export type NotificationEvents = {
+    triggerFailed: boolean;
+    authExpired: boolean;
+    readFailed: boolean;
+    reset: boolean;
+    triggerSucceeded: boolean;
+    recovered: boolean;
+};
+
+export type NotificationKind = 'triggerFailed' | 'authExpired' | 'readFailed' | 'reset' | 'triggerSucceeded' | 'recovered';
+
+export type NotificationSendFailure = {
+    at: string;
+    message: string;
+};
+
+export type NotificationSettingsUpdate = {
+    url: string;
+    topic: null | string;
+    token: null | string;
+    events: NotificationEvents;
+    readFailureThreshold: number;
+};
+
+export type NotificationSettingsView = {
+    url: string;
+    topic: null | string;
+    tokenDefined: boolean;
+    events: NotificationEvents;
+    readFailureThreshold: number;
+    lastSendFailure: null | NotificationSendFailure;
+};
+
+export type PollingSettings = {
+    claudeIntervalMinutes: number;
+    codexIntervalMinutes: number;
+};
+
+export type ProblemDetails = {
+    type?: null | string;
+    title?: null | string;
+    status?: null | number;
+    detail?: null | string;
+    instance?: null | string;
 };
 
 export type Provider = 'claude' | 'codex';
 
 export type ProviderDashboard = {
     provider: Provider;
+    lastReading: null | UsageReading;
+    triggerWindowId: null | string;
+    autoTriggerEnabled: boolean;
+    pollIntervalMinutes: number;
+    nextAutoTriggerAt: null | string;
+    runningTrigger: null | TriggerRun;
+    health: ProviderHealth;
 };
+
+export type ProviderFailure = {
+    code: string;
+    message: string;
+    at: string;
+};
+
+export type ProviderHealth = {
+    lastSuccessAt: null | string;
+    lastFailure: null | ProviderFailure;
+    consecutiveFailures: number;
+    backoffUntil: null | string;
+    activeAlerts: Array<NotificationKind>;
+    tokenExpiresAt: null | string;
+    refreshTokenExpiresAt: null | string;
+};
+
+export type ProviderTriggerSettings = {
+    autoEnabled: boolean;
+    model: string;
+};
+
+export type TriggerRun = {
+    id: string;
+    provider: Provider;
+    manual: boolean;
+    cycleKey: null | string;
+    model: string;
+    status: TriggerStatus;
+    startedAt: string;
+    endedAt: null | string;
+    errorCode: null | string;
+    error: null | string;
+    durationMs?: null | number;
+};
+
+export type TriggerSettings = {
+    claude: ProviderTriggerSettings;
+    codex: ProviderTriggerSettings;
+};
+
+export type TriggerStatus = 'running' | 'succeeded' | 'failed';
+
+export type UsageHistory = {
+    from: string;
+    to: string;
+    series: Array<UsageSeries>;
+    triggerRuns: Array<TriggerRun>;
+};
+
+export type UsagePoint = {
+    fetchedAt: string;
+    usedPercent: number;
+    resetsAt: null | string;
+    remainingPercent?: number;
+};
+
+export type UsageReading = {
+    fetchedAt: string;
+    windows: Array<UsageWindow>;
+};
+
+export type UsageSeries = {
+    provider: Provider;
+    windowId: string;
+    points: Array<UsagePoint>;
+};
+
+export type UsageWindow = {
+    id: string;
+    usedPercent: number;
+    resetsAt: null | string;
+    windowDurationMinutes: null | number;
+    remainingPercent?: number;
+};
+
+export type ValidationProblemDetails = {
+    type?: null | string;
+    title?: null | string;
+    status?: null | number;
+    detail?: null | string;
+    instance?: null | string;
+    errors?: {
+        [key: string]: Array<string>;
+    };
+};
+
+export type GetHistoryData = {
+    body?: never;
+    path?: never;
+    query?: {
+        provider?: Provider;
+        windowId?: string;
+        range?: string;
+    };
+    url: '/api/history';
+};
+
+export type GetHistoryResponses = {
+    /**
+     * OK
+     */
+    200: UsageHistory;
+};
+
+export type GetHistoryResponse = GetHistoryResponses[keyof GetHistoryResponses];
+
+export type TriggerProviderData = {
+    body?: never;
+    path: {
+        provider: Provider;
+    };
+    query?: never;
+    url: '/api/providers/{provider}/trigger';
+};
+
+export type TriggerProviderErrors = {
+    /**
+     * Conflict
+     */
+    409: ProblemDetails;
+};
+
+export type TriggerProviderError = TriggerProviderErrors[keyof TriggerProviderErrors];
+
+export type TriggerProviderResponses = {
+    /**
+     * Accepted
+     */
+    202: TriggerRun;
+};
+
+export type TriggerProviderResponse = TriggerProviderResponses[keyof TriggerProviderResponses];
+
+export type GetTriggerRunData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/trigger-runs/{id}';
+};
+
+export type GetTriggerRunErrors = {
+    /**
+     * Not Found
+     */
+    404: ProblemDetails;
+};
+
+export type GetTriggerRunError = GetTriggerRunErrors[keyof GetTriggerRunErrors];
+
+export type GetTriggerRunResponses = {
+    /**
+     * OK
+     */
+    200: TriggerRun;
+};
+
+export type GetTriggerRunResponse = GetTriggerRunResponses[keyof GetTriggerRunResponses];
+
+export type GetPollingSettingsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/settings/polling';
+};
+
+export type GetPollingSettingsResponses = {
+    /**
+     * OK
+     */
+    200: PollingSettings;
+};
+
+export type GetPollingSettingsResponse = GetPollingSettingsResponses[keyof GetPollingSettingsResponses];
+
+export type UpdatePollingSettingsData = {
+    body: PollingSettings;
+    path?: never;
+    query?: never;
+    url: '/api/settings/polling';
+};
+
+export type UpdatePollingSettingsErrors = {
+    /**
+     * Bad Request
+     */
+    400: ValidationProblemDetails;
+};
+
+export type UpdatePollingSettingsError = UpdatePollingSettingsErrors[keyof UpdatePollingSettingsErrors];
+
+export type UpdatePollingSettingsResponses = {
+    /**
+     * OK
+     */
+    200: PollingSettings;
+};
+
+export type UpdatePollingSettingsResponse = UpdatePollingSettingsResponses[keyof UpdatePollingSettingsResponses];
+
+export type GetTriggerSettingsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/settings/triggers';
+};
+
+export type GetTriggerSettingsResponses = {
+    /**
+     * OK
+     */
+    200: TriggerSettings;
+};
+
+export type GetTriggerSettingsResponse = GetTriggerSettingsResponses[keyof GetTriggerSettingsResponses];
+
+export type UpdateTriggerSettingsData = {
+    body: TriggerSettings;
+    path?: never;
+    query?: never;
+    url: '/api/settings/triggers';
+};
+
+export type UpdateTriggerSettingsErrors = {
+    /**
+     * Bad Request
+     */
+    400: ValidationProblemDetails;
+};
+
+export type UpdateTriggerSettingsError = UpdateTriggerSettingsErrors[keyof UpdateTriggerSettingsErrors];
+
+export type UpdateTriggerSettingsResponses = {
+    /**
+     * OK
+     */
+    200: TriggerSettings;
+};
+
+export type UpdateTriggerSettingsResponse = UpdateTriggerSettingsResponses[keyof UpdateTriggerSettingsResponses];
+
+export type GetNotificationSettingsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/settings/notifications';
+};
+
+export type GetNotificationSettingsResponses = {
+    /**
+     * OK
+     */
+    200: NotificationSettingsView;
+};
+
+export type GetNotificationSettingsResponse = GetNotificationSettingsResponses[keyof GetNotificationSettingsResponses];
+
+export type UpdateNotificationSettingsData = {
+    body: NotificationSettingsUpdate;
+    path?: never;
+    query?: never;
+    url: '/api/settings/notifications';
+};
+
+export type UpdateNotificationSettingsErrors = {
+    /**
+     * Bad Request
+     */
+    400: ValidationProblemDetails;
+};
+
+export type UpdateNotificationSettingsError = UpdateNotificationSettingsErrors[keyof UpdateNotificationSettingsErrors];
+
+export type UpdateNotificationSettingsResponses = {
+    /**
+     * OK
+     */
+    200: NotificationSettingsView;
+};
+
+export type UpdateNotificationSettingsResponse = UpdateNotificationSettingsResponses[keyof UpdateNotificationSettingsResponses];
+
+export type SendTestNotificationData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/settings/notifications/test';
+};
+
+export type SendTestNotificationErrors = {
+    /**
+     * Bad Gateway
+     */
+    502: ProblemDetails;
+};
+
+export type SendTestNotificationError = SendTestNotificationErrors[keyof SendTestNotificationErrors];
+
+export type SendTestNotificationResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type SendTestNotificationResponse = SendTestNotificationResponses[keyof SendTestNotificationResponses];
 
 export type GetDashboardData = {
     body?: never;

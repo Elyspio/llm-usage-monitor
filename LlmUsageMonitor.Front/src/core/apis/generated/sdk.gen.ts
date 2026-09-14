@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetDashboardData, GetDashboardResponses } from './types.gen';
+import type { GetDashboardData, GetDashboardResponses, GetHistoryData, GetHistoryResponses, GetNotificationSettingsData, GetNotificationSettingsResponses, GetPollingSettingsData, GetPollingSettingsResponses, GetTriggerRunData, GetTriggerRunErrors, GetTriggerRunResponses, GetTriggerSettingsData, GetTriggerSettingsResponses, SendTestNotificationData, SendTestNotificationErrors, SendTestNotificationResponses, TriggerProviderData, TriggerProviderErrors, TriggerProviderResponses, UpdateNotificationSettingsData, UpdateNotificationSettingsErrors, UpdateNotificationSettingsResponses, UpdatePollingSettingsData, UpdatePollingSettingsErrors, UpdatePollingSettingsResponses, UpdateTriggerSettingsData, UpdateTriggerSettingsErrors, UpdateTriggerSettingsResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -17,6 +17,78 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
      */
     meta?: keyof ClientMeta extends never ? Record<string, unknown> : ClientMeta;
 };
+
+export const getHistory = <ThrowOnError extends boolean = false>(options?: Options<GetHistoryData, ThrowOnError>): RequestResult<GetHistoryResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetHistoryResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/history',
+    ...options
+});
+
+export const triggerProvider = <ThrowOnError extends boolean = false>(options: Options<TriggerProviderData, ThrowOnError>): RequestResult<TriggerProviderResponses, TriggerProviderErrors, ThrowOnError> => (options.client ?? client).post<TriggerProviderResponses, TriggerProviderErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/providers/{provider}/trigger',
+    ...options
+});
+
+export const getTriggerRun = <ThrowOnError extends boolean = false>(options: Options<GetTriggerRunData, ThrowOnError>): RequestResult<GetTriggerRunResponses, GetTriggerRunErrors, ThrowOnError> => (options.client ?? client).get<GetTriggerRunResponses, GetTriggerRunErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/trigger-runs/{id}',
+    ...options
+});
+
+export const getPollingSettings = <ThrowOnError extends boolean = false>(options?: Options<GetPollingSettingsData, ThrowOnError>): RequestResult<GetPollingSettingsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetPollingSettingsResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/settings/polling',
+    ...options
+});
+
+export const updatePollingSettings = <ThrowOnError extends boolean = false>(options: Options<UpdatePollingSettingsData, ThrowOnError>): RequestResult<UpdatePollingSettingsResponses, UpdatePollingSettingsErrors, ThrowOnError> => (options.client ?? client).put<UpdatePollingSettingsResponses, UpdatePollingSettingsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/settings/polling',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const getTriggerSettings = <ThrowOnError extends boolean = false>(options?: Options<GetTriggerSettingsData, ThrowOnError>): RequestResult<GetTriggerSettingsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetTriggerSettingsResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/settings/triggers',
+    ...options
+});
+
+export const updateTriggerSettings = <ThrowOnError extends boolean = false>(options: Options<UpdateTriggerSettingsData, ThrowOnError>): RequestResult<UpdateTriggerSettingsResponses, UpdateTriggerSettingsErrors, ThrowOnError> => (options.client ?? client).put<UpdateTriggerSettingsResponses, UpdateTriggerSettingsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/settings/triggers',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const getNotificationSettings = <ThrowOnError extends boolean = false>(options?: Options<GetNotificationSettingsData, ThrowOnError>): RequestResult<GetNotificationSettingsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetNotificationSettingsResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/settings/notifications',
+    ...options
+});
+
+export const updateNotificationSettings = <ThrowOnError extends boolean = false>(options: Options<UpdateNotificationSettingsData, ThrowOnError>): RequestResult<UpdateNotificationSettingsResponses, UpdateNotificationSettingsErrors, ThrowOnError> => (options.client ?? client).put<UpdateNotificationSettingsResponses, UpdateNotificationSettingsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/settings/notifications',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const sendTestNotification = <ThrowOnError extends boolean = false>(options?: Options<SendTestNotificationData, ThrowOnError>): RequestResult<SendTestNotificationResponses, SendTestNotificationErrors, ThrowOnError> => (options?.client ?? client).post<SendTestNotificationResponses, SendTestNotificationErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/settings/notifications/test',
+    ...options
+});
 
 export const getDashboard = <ThrowOnError extends boolean = false>(options?: Options<GetDashboardData, ThrowOnError>): RequestResult<GetDashboardResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetDashboardResponses, unknown, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
