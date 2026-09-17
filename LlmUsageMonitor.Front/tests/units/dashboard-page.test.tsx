@@ -38,6 +38,8 @@ describe("DashboardPage", () => {
 		expect(within(timeline).getByRole("progressbar", { name: "Claude Session 5 h consommé" }).getAttribute("value")).toBe("40");
 		expect(await screen.findByRole("region", { name: "Codex" })).toBeTruthy();
 		expect(screen.getByText("Déclenchement automatique désactivé dans les réglages.")).toBeTruthy();
+		expect(screen.queryByRole("region", { name: "Historique" })).toBeNull();
+		expect(screen.queryByRole("region", { name: "Journal des déclenchements" })).toBeNull();
 	});
 
 	it("keeps the last valid values greyed out with the French error and the raw detail", async () => {

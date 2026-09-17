@@ -1,4 +1,5 @@
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
+import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import TuneIcon from "@mui/icons-material/Tune";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { Box, Button, Stack, Typography } from "@mui/material";
@@ -67,12 +68,29 @@ export const AppLayout = () => {
 					direction={{ xs: "row", md: "column" }}
 					spacing={1}
 					sx={{
-						"& .MuiButton-root": { justifyContent: "flex-start", color: "text.secondary", fontSize: "0.95rem", py: 1.5 },
+						"& .MuiButton-root": {
+							justifyContent: "flex-start",
+							color: "text.secondary",
+							fontSize: { xs: "0.8rem", sm: "0.95rem" },
+							py: 1.5,
+							px: { xs: 1, md: 2 },
+							minWidth: 0,
+							flex: { xs: 1, md: "initial" },
+						},
+						"& .MuiButton-startIcon": { ml: 0, mr: { xs: 0.75, md: 1 } },
 						"& .active": { bgcolor: "#15352d", color: "text.primary" },
 					}}
 				>
 					<Button component={NavLink} to={routes.dashboard} end startIcon={<DashboardOutlinedIcon />}>
-						Tableau de bord
+						<Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+							Tableau de bord
+						</Box>
+						<Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
+							Tableau
+						</Box>
+					</Button>
+					<Button component={NavLink} to={routes.history} startIcon={<HistoryOutlinedIcon />}>
+						Historique
 					</Button>
 					<Button component={NavLink} to={routes.settings} startIcon={<TuneIcon />}>
 						Réglages

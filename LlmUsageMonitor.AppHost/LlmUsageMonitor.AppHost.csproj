@@ -1,4 +1,4 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.5.3">
+<Project Sdk="Aspire.AppHost.Sdk/13.5.4">
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
@@ -6,13 +6,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\LlmUsageMonitor.Api\LlmUsageMonitor.WebApi\LlmUsageMonitor.WebApi.csproj"/>
+        <ProjectReference Include="..\LlmUsageMonitor.Api\LlmUsageMonitor.WebApi\LlmUsageMonitor.WebApi.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Aspire.Hosting.JavaScript" Version="13.5.3"/>
-        <PackageReference Include="Aspire.Hosting.Keycloak" Version="13.5.3-preview.1.26425.3"/>
-        <PackageReference Include="Aspire.Hosting.MongoDB" Version="13.5.3"/>
+        <PackageReference Include="Aspire.Hosting.JavaScript" Version="13.5.4" />
+        <PackageReference Include="Aspire.Hosting.Keycloak" Version="13.5.4-preview.1.26464.4" />
+        <PackageReference Include="Aspire.Hosting.MongoDB" Version="13.5.4" />
     </ItemGroup>
 
 </Project>

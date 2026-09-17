@@ -47,7 +47,7 @@ export const SettingsPage = () => {
 	return (
 		<Stack spacing={3} sx={{ maxWidth: 1100 }}>
 			<Typography variant="overline" color="text.secondary">
-				02 / Configuration
+				03 / Configuration
 			</Typography>
 			<Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
 				Réglages

@@ -1,4 +1,4 @@
-import { Chip, CircularProgress, Paper, Stack, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
+import { Alert, Chip, CircularProgress, Paper, Stack, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import { ChartsReferenceLine } from "@mui/x-charts/ChartsReferenceLine";
 import { LineChart } from "@mui/x-charts/LineChart";
 import { useQuery } from "@tanstack/react-query";
@@ -11,19 +11,26 @@ import { fmtDayLabel, fmtHour } from "@/core/format";
 type Range = "24h" | "7d";
 
 type Series = { key: string; label: string; color: string; data: (number | null)[] };
+const claudeSessionColor = "#f4a261";
 
-/** One point per reading; series share a merged time axis, with gaps where a series has no reading. */
+/** Series share a merged time axis and keep their last valid value until the next reading. */
 export function toChart(history: UsageHistory, durations: Record<string, number | null>): { times: Date[]; series: Series[] } {
-	const times = [...new Set(history.series.flatMap((series) => series.points.map((point) => Date.parse(point.fetchedAt))))].sort((a, b) => a - b);
-	const index = new Map(times.map((time, position) => [time, position]));
+	const rangeEnd = Date.parse(history.to);
+	const times = [
+		...new Set([...history.series.flatMap((series) => series.points.map((point) => Date.parse(point.fetchedAt))), ...(Number.isFinite(rangeEnd) ? [rangeEnd] : [])]),
+	].sort((a, b) => a - b);
 	const series = history.series.map((item) => {
-		const data: (number | null)[] = times.map(() => null);
-		for (const point of item.points) data[index.get(Date.parse(point.fetchedAt))!] = Math.max(0, 100 - point.usedPercent);
+		const values = new Map(item.points.map((point) => [Date.parse(point.fetchedAt), Math.max(0, 100 - point.usedPercent)]));
+		let lastValue: number | null = null;
+		const data = times.map((time) => {
+			lastValue = values.get(time) ?? lastValue;
+			return lastValue;
+		});
 		const key = `${item.provider}:${item.windowId}`;
 		return {
 			key,
 			label: `${providerLabel[item.provider]} · ${windowLabel({ id: item.windowId, windowDurationMinutes: durations[key] ?? null })}`,
-			color: providerColor[item.provider],
+			color: item.provider === "claude" && item.windowId === "five_hour" ? claudeSessionColor : providerColor[item.provider],
 			data,
 		};
 	});
@@ -33,7 +40,7 @@ export function toChart(history: UsageHistory, durations: Record<string, number 
 export const HistoryCard = ({ durations, now }: { durations: Record<string, number | null>; now: number }) => {
 	const [range, setRange] = useState<Range>("24h");
 	const [hidden, setHidden] = useState<string[]>([]);
-	const { data, isPending } = useQuery({ ...getHistoryOptions({ query: { range } }), refetchInterval: 60_000 });
+	const { data, isPending, isError } = useQuery({ ...getHistoryOptions({ query: { range } }), refetchInterval: 60_000 });
 	const chart = useMemo(() => (data ? toChart(data, durations) : null), [data, durations]);
 	const visible = chart?.series.filter((series) => !hidden.includes(series.key)) ?? [];
 	const toggle = (key: string) => setHidden((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
@@ -49,7 +56,9 @@ export const HistoryCard = ({ durations, now }: { durations: Record<string, numb
 					<ToggleButton value="7d">7 j</ToggleButton>
 				</ToggleButtonGroup>
 			</Stack>
-			{isPending || !chart ? (
+			{isError ? (
+				<Alert severity="error">Impossible de charger l'historique.</Alert>
+			) : isPending || !chart ? (
 				<CircularProgress />
 			) : chart.series.length === 0 ? (
 				<Typography sx={{ color: "text.secondary", py: 8, textAlign: "center" }}>Aucune lecture sur la période.</Typography>
@@ -91,7 +100,7 @@ export const HistoryCard = ({ durations, now }: { durations: Record<string, numb
 						))}
 					</LineChart>
 					<Typography variant="caption" sx={{ color: "text.secondary" }}>
-						Trous : aucune lecture valide. Lignes verticales : déclenchements (pointillés : manuels, rouge : échec).
+						La dernière valeur connue est prolongée entre les lectures. Lignes verticales : déclenchements (pointillés : manuels, rouge : échec).
 					</Typography>
 				</>
 			)}
