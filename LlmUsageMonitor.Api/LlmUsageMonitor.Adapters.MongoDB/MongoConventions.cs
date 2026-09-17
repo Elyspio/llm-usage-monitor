@@ -22,22 +22,37 @@ internal static class MongoConventions
 	/// </summary>
 	public static void Register()
 	{
-		if (Interlocked.Exchange(ref _registered, 1) == 1) return;
+		if (Interlocked.Exchange(ref _registered, 1) == 1)
+		{
+			return;
+		}
 
 		var pack = new ConventionPack
 		{
 			new CamelCaseElementNameConvention(),
 			new EnumRepresentationConvention(BsonType.String),
-			new IgnoreExtraElementsConvention(true),
+			new IgnoreExtraElementsConvention(true)
 		};
 		ConventionRegistry.Register("llm-usage-monitor", pack, type => type.Namespace?.StartsWith("LlmUsageMonitor", StringComparison.Ordinal) == true);
 	}
 
-	public static DateTimeOffset ToOffset(this DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
+	public static DateTimeOffset ToOffset(this DateTime value)
+	{
+		return new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
+	}
 
-	public static DateTimeOffset? ToOffset(this DateTime? value) => value?.ToOffset();
+	public static DateTimeOffset? ToOffset(this DateTime? value)
+	{
+		return value?.ToOffset();
+	}
 
-	public static DateTime ToUtc(this DateTimeOffset value) => value.UtcDateTime;
+	public static DateTime ToUtc(this DateTimeOffset value)
+	{
+		return value.UtcDateTime;
+	}
 
-	public static DateTime? ToUtc(this DateTimeOffset? value) => value?.UtcDateTime;
+	public static DateTime? ToUtc(this DateTimeOffset? value)
+	{
+		return value?.UtcDateTime;
+	}
 }

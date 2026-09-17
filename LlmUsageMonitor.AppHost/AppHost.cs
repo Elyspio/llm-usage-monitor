@@ -19,8 +19,11 @@ static int SelectAvailablePort(int minimum, int maximum, ISet<int> reservedPorts
 
 	for (var offset = 0; offset < count; offset++)
 	{
-		var candidate = minimum + ((start + offset) % count);
-		if (reservedPorts.Add(candidate)) return candidate;
+		var candidate = minimum + (start + offset) % count;
+		if (reservedPorts.Add(candidate))
+		{
+			return candidate;
+		}
 	}
 
 	throw new InvalidOperationException($"No available TCP port found between {minimum} and {maximum}.");

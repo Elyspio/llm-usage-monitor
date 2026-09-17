@@ -29,11 +29,14 @@ internal sealed class ClaudePromptRunner(IOptions<ClaudeOptions> options) : IPro
 			"--safe-mode",
 			"--strict-mcp-config",
 			"--permission-mode", "dontAsk",
-			"--max-turns", "1",
+			"--max-turns", "1"
 		];
 
 		var result = await CliProcess.Run(settings.Executable, arguments, settings.ResolveWorkingDirectory(), TimeSpan.FromSeconds(settings.PromptTimeoutSeconds), cancellationToken);
-		if (Classify(result) is { } failure) throw failure;
+		if (Classify(result) is { } failure)
+		{
+			throw failure;
+		}
 	}
 
 	/// <summary>
@@ -42,20 +45,30 @@ internal sealed class ClaudePromptRunner(IOptions<ClaudeOptions> options) : IPro
 	internal static ProviderException? Classify(CliResult result)
 	{
 		var (isError, status, text) = ReadOutput(result.StandardOutput);
-		if (result.ExitCode == 0 && isError == false) return null;
+		if (result.ExitCode == 0 && isError == false)
+		{
+			return null;
+		}
 
 		var message = string.IsNullOrWhiteSpace(text) ? result.StandardError.Trim() : text;
-		if (message.Length > 500) message = message[..500];
-		if (string.IsNullOrWhiteSpace(message)) message = $"claude exited with code {result.ExitCode}.";
+		if (message.Length > 500)
+		{
+			message = message[..500];
+		}
+
+		if (string.IsNullOrWhiteSpace(message))
+		{
+			message = $"claude exited with code {result.ExitCode}.";
+		}
 
 		var code = true switch
 		{
 			_ when status is 401 or 403 || Contains(message, "Login expired") || Contains(message, "Not logged in") || Contains(message, "OAuth token") => ProviderErrorCodes.AuthExpired,
 			_ when Contains(message, "hit your") && Contains(message, "limit") => ProviderErrorCodes.UsageLimit,
 			_ when status == 429 || Contains(message, "429") => ProviderErrorCodes.RateLimited,
-			_ => ProviderErrorCodes.TriggerFailed,
+			_ => ProviderErrorCodes.TriggerFailed
 		};
-		return new ProviderException(code, message);
+		return new(code, message);
 	}
 
 	private static (bool? IsError, int? Status, string Text) ReadOutput(string output)
@@ -76,5 +89,8 @@ internal sealed class ClaudePromptRunner(IOptions<ClaudeOptions> options) : IPro
 		}
 	}
 
-	private static bool Contains(string text, string value) => text.Contains(value, StringComparison.OrdinalIgnoreCase);
+	private static bool Contains(string text, string value)
+	{
+		return text.Contains(value, StringComparison.OrdinalIgnoreCase);
+	}
 }

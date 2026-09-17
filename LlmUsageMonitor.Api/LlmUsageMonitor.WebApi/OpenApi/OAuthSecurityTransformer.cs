@@ -16,22 +16,22 @@ public sealed class OAuthSecurityTransformer(IOptions<OidcConfig> oidc) : IOpenA
 	{
 		var authority = oidc.Value.Authority.TrimEnd('/');
 
-		document.Components ??= new OpenApiComponents();
+		document.Components ??= new();
 		document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
 		document.Components.SecuritySchemes[SchemeId] = new OpenApiSecurityScheme
 		{
 			Type = SecuritySchemeType.OAuth2,
-			Flows = new OpenApiOAuthFlows
+			Flows = new()
 			{
-				AuthorizationCode = new OpenApiOAuthFlow
+				AuthorizationCode = new()
 				{
-					AuthorizationUrl = new Uri($"{authority}/protocol/openid-connect/auth"),
-					TokenUrl = new Uri($"{authority}/protocol/openid-connect/token"),
-					Scopes = new Dictionary<string, string> { ["openid"] = "OpenID Connect" },
-				},
-			},
+					AuthorizationUrl = new($"{authority}/protocol/openid-connect/auth"),
+					TokenUrl = new($"{authority}/protocol/openid-connect/token"),
+					Scopes = new Dictionary<string, string> { ["openid"] = "OpenID Connect" }
+				}
+			}
 		};
-		document.Security = [new OpenApiSecurityRequirement { [new OpenApiSecuritySchemeReference(SchemeId, document)] = ["openid"] }];
+		document.Security = [new() { [new(SchemeId, document)] = ["openid"] }];
 
 		return Task.CompletedTask;
 	}

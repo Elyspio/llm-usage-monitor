@@ -42,14 +42,14 @@ public sealed class HangfireAdapterModule : IModule
 			.UseFilter(new AutomaticRetryAttribute { Attempts = 0 })
 			.UseMongoStorage(storageUrl, new MongoStorageOptions
 			{
-				MigrationOptions = new MongoMigrationOptions
+				MigrationOptions = new()
 				{
 					MigrationStrategy = new MigrateMongoMigrationStrategy(),
-					BackupStrategy = new NoneMongoBackupStrategy(),
+					BackupStrategy = new NoneMongoBackupStrategy()
 				},
 				// The Aspire MongoDB container is a standalone server, without the replica set change streams need.
 				CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.TailNotificationsCollection,
-				Prefix = CollectionPrefix,
+				Prefix = CollectionPrefix
 			}));
 		services.AddHangfireServer(options => options.WorkerCount = 4);
 
@@ -57,7 +57,10 @@ public sealed class HangfireAdapterModule : IModule
 		services.AddSingleton<IJobScheduler, HangfireJobScheduler>();
 	}
 
-	public static bool IsEnabled(IConfiguration configuration) => configuration.GetValue("Hangfire:Enabled", true) && !OpenApiGeneration.IsRunning;
+	public static bool IsEnabled(IConfiguration configuration)
+	{
+		return configuration.GetValue("Hangfire:Enabled", true) && !OpenApiGeneration.IsRunning;
+	}
 }
 
 /// <summary>
@@ -65,9 +68,15 @@ public sealed class HangfireAdapterModule : IModule
 /// </summary>
 internal sealed class LoggingJobScheduler(ILogger<LoggingJobScheduler> logger) : IJobScheduler
 {
-	public void SetPollInterval(Provider provider, int minutes) => logger.LogInformation("Hangfire disabled: poll of {Provider} every {Minutes} min not scheduled", provider, minutes);
+	public void SetPollInterval(Provider provider, int minutes)
+	{
+		logger.LogInformation("Hangfire disabled: poll of {Provider} every {Minutes} min not scheduled", provider, minutes);
+	}
 
-	public void EnqueuePoll(Provider provider) => logger.LogInformation("Hangfire disabled: poll of {Provider} not queued", provider);
+	public void EnqueuePoll(Provider provider)
+	{
+		logger.LogInformation("Hangfire disabled: poll of {Provider} not queued", provider);
+	}
 
 	public string SchedulePostResetCheck(Provider provider, DateTimeOffset runAt)
 	{
@@ -81,7 +90,10 @@ internal sealed class LoggingJobScheduler(ILogger<LoggingJobScheduler> logger) :
 		return "disabled";
 	}
 
-	public void EnqueueTrigger(string runId) => logger.LogInformation("Hangfire disabled: trigger {RunId} not queued", runId);
+	public void EnqueueTrigger(string runId)
+	{
+		logger.LogInformation("Hangfire disabled: trigger {RunId} not queued", runId);
+	}
 
 	public void Delete(string jobId)
 	{

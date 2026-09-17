@@ -24,7 +24,7 @@ public sealed class DashboardService(
 			var running = await runs.GetRunning(provider, cancellationToken);
 			var nextCheck = state.PendingResetCheck is { } pending && pending.RunAt > now ? pending.RunAt : (DateTimeOffset?)null;
 
-			providers.Add(new ProviderDashboard(
+			providers.Add(new(
 				provider,
 				state.LastReading,
 				state.LastReading?.TriggerWindow?.Id,
@@ -32,7 +32,7 @@ public sealed class DashboardService(
 				settings.Polling.For(provider),
 				nextCheck,
 				running,
-				new ProviderHealth(
+				new(
 					state.LastSuccessAt,
 					state.LastFailure,
 					state.ConsecutiveFailures,
@@ -42,7 +42,7 @@ public sealed class DashboardService(
 					state.RefreshTokenExpiresAt)));
 		}
 
-		return new DashboardSnapshot(providers, await runs.GetRecent(RecentTriggerCount, cancellationToken));
+		return new(providers, await runs.GetRecent(RecentTriggerCount, cancellationToken));
 	}
 }
 
@@ -54,6 +54,6 @@ public sealed class HistoryService(IUsageSnapshotRepository snapshots, ITriggerR
 		var from = to - range;
 		var series = await snapshots.GetHistory(provider, windowId, from, to, cancellationToken);
 		var triggerRuns = await runs.GetBetween(provider, from, to, cancellationToken);
-		return new UsageHistory(from, to, series, triggerRuns);
+		return new(from, to, series, triggerRuns);
 	}
 }

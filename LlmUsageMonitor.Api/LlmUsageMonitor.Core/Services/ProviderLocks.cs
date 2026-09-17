@@ -23,7 +23,10 @@ public sealed class ProviderLocks : IProviderLocks
 		return new Releaser(semaphore);
 	}
 
-	public bool IsBusy(Provider provider) => _locks[provider].CurrentCount == 0;
+	public bool IsBusy(Provider provider)
+	{
+		return _locks[provider].CurrentCount == 0;
+	}
 
 	private sealed class Releaser(SemaphoreSlim semaphore) : IDisposable
 	{
@@ -31,7 +34,10 @@ public sealed class ProviderLocks : IProviderLocks
 
 		public void Dispose()
 		{
-			if (Interlocked.Exchange(ref _released, 1) == 0) semaphore.Release();
+			if (Interlocked.Exchange(ref _released, 1) == 0)
+			{
+				semaphore.Release();
+			}
 		}
 	}
 }

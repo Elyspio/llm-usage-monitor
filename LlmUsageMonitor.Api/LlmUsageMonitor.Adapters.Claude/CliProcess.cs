@@ -23,7 +23,7 @@ internal static class CliProcess
 			CreateNoWindow = true,
 			WorkingDirectory = workingDirectory,
 			StandardOutputEncoding = Encoding.UTF8,
-			StandardErrorEncoding = Encoding.UTF8,
+			StandardErrorEncoding = Encoding.UTF8
 		};
 		foreach (var argument in arguments) info.ArgumentList.Add(argument);
 
@@ -51,12 +51,16 @@ internal static class CliProcess
 			}
 			catch (OperationCanceledException)
 			{
-				process.Kill(entireProcessTree: true);
-				if (cancellationToken.IsCancellationRequested) throw;
+				process.Kill(true);
+				if (cancellationToken.IsCancellationRequested)
+				{
+					throw;
+				}
+
 				throw new ProviderException(ProviderErrorCodes.Timeout, $"{executable} did not finish within {timeout.TotalSeconds:0} s.");
 			}
 
-			return new CliResult(process.ExitCode, await standardOutput, await standardError);
+			return new(process.ExitCode, await standardOutput, await standardError);
 		}
 	}
 }

@@ -12,5 +12,8 @@ namespace LlmUsageMonitor.Controllers;
 public sealed class DashboardController(IDashboardService dashboard) : ControllerBase
 {
 	[HttpGet(Name = "GetDashboard")]
-	public Task<DashboardSnapshot> Get(CancellationToken cancellationToken) => dashboard.GetDashboard(cancellationToken);
+	public Task<DashboardSnapshot> Get(CancellationToken cancellationToken)
+	{
+		return dashboard.GetDashboard(cancellationToken);
+	}
 }

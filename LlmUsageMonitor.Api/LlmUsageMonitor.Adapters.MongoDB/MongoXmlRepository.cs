@@ -11,14 +11,20 @@ internal sealed class MongoXmlRepository(IMongoDatabase database) : IXmlReposito
 {
 	private readonly IMongoCollection<DataProtectionKeyDocument> _keys = database.GetCollection<DataProtectionKeyDocument>(Collections.DataProtectionKeys);
 
-	public IReadOnlyCollection<XElement> GetAllElements() => _keys.Find(FilterDefinition<DataProtectionKeyDocument>.Empty)
-		.ToList()
-		.Select(key => XElement.Parse(key.Xml))
-		.ToList();
-
-	public void StoreElement(XElement element, string friendlyName) => _keys.InsertOne(new DataProtectionKeyDocument
+	public IReadOnlyCollection<XElement> GetAllElements()
 	{
-		FriendlyName = friendlyName,
-		Xml = element.ToString(SaveOptions.DisableFormatting),
-	});
+		return _keys.Find(FilterDefinition<DataProtectionKeyDocument>.Empty)
+			.ToList()
+			.Select(key => XElement.Parse(key.Xml))
+			.ToList();
+	}
+
+	public void StoreElement(XElement element, string friendlyName)
+	{
+		_keys.InsertOne(new()
+		{
+			FriendlyName = friendlyName,
+			Xml = element.ToString(SaveOptions.DisableFormatting)
+		});
+	}
 }

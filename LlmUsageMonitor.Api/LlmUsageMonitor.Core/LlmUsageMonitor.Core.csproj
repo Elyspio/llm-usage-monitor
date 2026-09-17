@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-	<ItemGroup>
-		<ProjectReference Include="..\LlmUsageMonitor.Abstractions\LlmUsageMonitor.Abstractions.csproj" />
-	</ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\LlmUsageMonitor.Abstractions\LlmUsageMonitor.Abstractions.csproj"/>
+    </ItemGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Scrutor" Version="7.0.0" />
-	</ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Scrutor" Version="7.0.0"/>
+    </ItemGroup>
 
 </Project>

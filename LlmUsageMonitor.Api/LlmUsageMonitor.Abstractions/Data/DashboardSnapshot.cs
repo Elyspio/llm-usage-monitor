@@ -6,7 +6,7 @@ namespace LlmUsageMonitor.Abstractions.Data;
 public enum Provider
 {
 	Claude,
-	Codex,
+	Codex
 }
 
 /// <summary>

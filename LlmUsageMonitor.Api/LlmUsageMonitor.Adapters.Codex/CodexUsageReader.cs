@@ -65,18 +65,19 @@ public static class CodexUsageParser
 
 		var windows = new List<UsageWindow>();
 		foreach (var (bucketId, snapshot) in buckets)
+		foreach (var slot in (string[])["primary", "secondary"])
 		{
-			foreach (var slot in (string[])["primary", "secondary"])
+			if (!snapshot.TryGetProperty(slot, out var window) || window.ValueKind != JsonValueKind.Object)
 			{
-				if (!snapshot.TryGetProperty(slot, out var window) || window.ValueKind != JsonValueKind.Object) continue;
-
-				var id = $"{bucketId}/{slot}";
-				windows.Add(UsageWindowFactory.Create(
-					id,
-					window.TryGetProperty("usedPercent", out var used) ? UsageWindowFactory.ReadNumber(used) : null,
-					window.TryGetProperty("resetsAt", out var resetsAt) ? UsageWindowFactory.ParseReset(resetsAt, id) : null,
-					window.TryGetProperty("windowDurationMins", out var duration) ? UsageWindowFactory.ReadNumber(duration) : null));
+				continue;
 			}
+
+			var id = $"{bucketId}/{slot}";
+			windows.Add(UsageWindowFactory.Create(
+				id,
+				window.TryGetProperty("usedPercent", out var used) ? UsageWindowFactory.ReadNumber(used) : null,
+				window.TryGetProperty("resetsAt", out var resetsAt) ? UsageWindowFactory.ParseReset(resetsAt, id) : null,
+				window.TryGetProperty("windowDurationMins", out var duration) ? UsageWindowFactory.ReadNumber(duration) : null));
 		}
 
 		return windows;

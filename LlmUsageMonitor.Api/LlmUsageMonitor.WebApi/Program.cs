@@ -18,18 +18,19 @@ using LlmUsageMonitor.OpenApi;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddProductionHosting();
+
+builder.Logging.AddSimpleConsole(x => x.SingleLine = true);
 
 var telemetryEnabled = builder.Configuration.IsTelemetryEnabled(out var telemetryOptions);
 if (telemetryEnabled)
 {
 	new AppOpenTelemetryBuilder<Program>(telemetryOptions!, builder.Configuration)
 	{
-		Tracing = (tracing, _) => tracing.AddHangfireInstrumentation(),
+		Tracing = (tracing, _) => tracing.AddHangfireInstrumentation()
 	}.Build(builder.Services);
 	builder.Services.AddOpenTelemetryJsonConfiguration(builder.Configuration);
 }
@@ -65,19 +66,21 @@ builder.Services.AddOpenApi(options => options.AddDocumentTransformer<OAuthSecur
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 	.AddJwtBearer()
 	.AddHangfireDashboardSignIn();
+
 builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
 	.Configure<IOptions<OidcConfig>, IHostEnvironment>((options, oidc, environment) =>
 	{
 		options.Authority = oidc.Value.Authority;
 		// The development Keycloak started by Aspire may listen on HTTP only.
 		options.RequireHttpsMetadata = !environment.IsDevelopment();
-		options.TokenValidationParameters = new TokenValidationParameters
+		options.TokenValidationParameters = new()
 		{
+			ValidateAudience = false,
 			ValidIssuer = oidc.Value.Authority,
-			ValidAudience = oidc.Value.ClientId,
-			ClockSkew = TimeSpan.FromSeconds(30),
+			ClockSkew = TimeSpan.FromSeconds(30)
 		};
 	});
+
 builder.Services.AddAuthorizationBuilder()
 	.AddAdminPolicy()
 	.AddHangfireDashboardPolicy();
@@ -94,6 +97,9 @@ if (telemetryEnabled)
 // "/" serves index.html; the other client routes go through the SPA fallback (ProductionHosting.MapSpa).
 app.UseDefaultFiles();
 app.UseStaticFiles();
+// Explicit, and after the static files: routing is otherwise inserted at the top of the pipeline, the SPA fallback matches
+// every asset path, and the static file middleware steps aside for the endpoint already selected.
+app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -110,9 +116,9 @@ app.UseSwaggerUI(options =>
 app.MapControllers();
 
 if (HangfireAdapterModule.IsEnabled(app.Configuration))
-{
 	// Signed in with the cookie + OIDC scheme: the SPA bearer token does not follow the dashboard navigation.
-	app.MapHangfireDashboard("/hangfire", new DashboardOptions { Authorization = [], DashboardTitle = "LLM Usage Monitor · jobs", AppPath = "/" })
+{
+	app.MapHangfireDashboard("/hangfire", new() { Authorization = [], DashboardTitle = "LLM Usage Monitor · jobs", AppPath = "/" })
 		.RequireAuthorization(HangfireDashboardAuthentication.PolicyName);
 }
 

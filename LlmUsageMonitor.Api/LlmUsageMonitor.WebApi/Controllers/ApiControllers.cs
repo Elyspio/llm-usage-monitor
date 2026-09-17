@@ -20,7 +20,7 @@ public sealed class HistoryController(IHistoryService history) : ControllerBase
 		{
 			"24h" => TimeSpan.FromHours(24),
 			"7d" => TimeSpan.FromDays(7),
-			_ => throw new RequestValidationException(new Dictionary<string, string[]> { ["range"] = ["Valeurs possibles : 24h, 7d."] }),
+			_ => throw new RequestValidationException(new Dictionary<string, string[]> { ["range"] = ["Valeurs possibles : 24h, 7d."] })
 		};
 		return history.Get(provider, windowId, span, cancellationToken);
 	}
@@ -50,7 +50,10 @@ public sealed class TriggerRunsController(ITriggerService triggers) : Controller
 	[HttpGet("{id}", Name = "GetTriggerRun")]
 	[ProducesResponseType<TriggerRun>(StatusCodes.Status200OK)]
 	[ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-	public Task<TriggerRun> Get(string id, CancellationToken cancellationToken) => triggers.Get(id, cancellationToken);
+	public Task<TriggerRun> Get(string id, CancellationToken cancellationToken)
+	{
+		return triggers.Get(id, cancellationToken);
+	}
 }
 
 [ApiController]
@@ -59,29 +62,46 @@ public sealed class TriggerRunsController(ITriggerService triggers) : Controller
 public sealed class SettingsController(ISettingsService settings, INotificationService notifications) : ControllerBase
 {
 	[HttpGet("polling", Name = "GetPollingSettings")]
-	public async Task<PollingSettings> GetPolling(CancellationToken cancellationToken) => (await settings.Get(cancellationToken)).Polling;
+	public async Task<PollingSettings> GetPolling(CancellationToken cancellationToken)
+	{
+		return (await settings.Get(cancellationToken)).Polling;
+	}
 
 	[HttpPut("polling", Name = "UpdatePollingSettings")]
 	[ProducesResponseType<PollingSettings>(StatusCodes.Status200OK)]
 	[ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
-	public Task<PollingSettings> UpdatePolling(PollingSettings polling, CancellationToken cancellationToken) => settings.UpdatePolling(polling, cancellationToken);
+	public Task<PollingSettings> UpdatePolling(PollingSettings polling, CancellationToken cancellationToken)
+	{
+		return settings.UpdatePolling(polling, cancellationToken);
+	}
 
 	[HttpGet("triggers", Name = "GetTriggerSettings")]
-	public async Task<TriggerSettings> GetTriggers(CancellationToken cancellationToken) => (await settings.Get(cancellationToken)).Triggers;
+	public async Task<TriggerSettings> GetTriggers(CancellationToken cancellationToken)
+	{
+		return (await settings.Get(cancellationToken)).Triggers;
+	}
 
 	[HttpPut("triggers", Name = "UpdateTriggerSettings")]
 	[ProducesResponseType<TriggerSettings>(StatusCodes.Status200OK)]
 	[ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
-	public Task<TriggerSettings> UpdateTriggers(TriggerSettings triggers, CancellationToken cancellationToken) => settings.UpdateTriggers(triggers, cancellationToken);
+	public Task<TriggerSettings> UpdateTriggers(TriggerSettings triggers, CancellationToken cancellationToken)
+	{
+		return settings.UpdateTriggers(triggers, cancellationToken);
+	}
 
 	[HttpGet("notifications", Name = "GetNotificationSettings")]
-	public Task<NotificationSettingsView> GetNotifications(CancellationToken cancellationToken) => settings.GetNotifications(cancellationToken);
+	public Task<NotificationSettingsView> GetNotifications(CancellationToken cancellationToken)
+	{
+		return settings.GetNotifications(cancellationToken);
+	}
 
 	[HttpPut("notifications", Name = "UpdateNotificationSettings")]
 	[ProducesResponseType<NotificationSettingsView>(StatusCodes.Status200OK)]
 	[ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
-	public Task<NotificationSettingsView> UpdateNotifications(NotificationSettingsUpdate update, CancellationToken cancellationToken) =>
-		settings.UpdateNotifications(update, cancellationToken);
+	public Task<NotificationSettingsView> UpdateNotifications(NotificationSettingsUpdate update, CancellationToken cancellationToken)
+	{
+		return settings.UpdateNotifications(update, cancellationToken);
+	}
 
 	[HttpPost("notifications/test", Name = "SendTestNotification")]
 	[ProducesResponseType(StatusCodes.Status204NoContent)]

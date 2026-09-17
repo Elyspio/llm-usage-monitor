@@ -17,10 +17,10 @@ internal sealed class MongoStorageInitializer(IMongoDatabase database) : IStorag
 
 		if (!existing.Contains(Collections.UsageSnapshots))
 		{
-			await database.CreateCollectionAsync(Collections.UsageSnapshots, new CreateCollectionOptions
+			await database.CreateCollectionAsync(Collections.UsageSnapshots, new()
 			{
-				TimeSeriesOptions = new TimeSeriesOptions("fetchedAt", "meta", TimeSeriesGranularity.Minutes),
-				ExpireAfter = SnapshotRetention,
+				TimeSeriesOptions = new("fetchedAt", "meta", TimeSeriesGranularity.Minutes),
+				ExpireAfter = SnapshotRetention
 			}, cancellationToken);
 		}
 
@@ -32,15 +32,15 @@ internal sealed class MongoStorageInitializer(IMongoDatabase database) : IStorag
 		await runs.Indexes.CreateManyAsync(
 		[
 			// At most one automatic trigger per provider and cycle: a duplicate insert fails.
-			new CreateIndexModel<TriggerRunDocument>(
+			new(
 				Builders<TriggerRunDocument>.IndexKeys.Ascending(run => run.Provider).Ascending(run => run.CycleKey),
 				new CreateIndexOptions<TriggerRunDocument>
 				{
 					Name = "automatic_cycle_guard",
 					Unique = true,
-					PartialFilterExpression = Builders<TriggerRunDocument>.Filter.Eq(run => run.Manual, false),
+					PartialFilterExpression = Builders<TriggerRunDocument>.Filter.Eq(run => run.Manual, false)
 				}),
-			new CreateIndexModel<TriggerRunDocument>(Builders<TriggerRunDocument>.IndexKeys.Descending(run => run.StartedAt)),
+			new(Builders<TriggerRunDocument>.IndexKeys.Descending(run => run.StartedAt))
 		], cancellationToken);
 	}
 }

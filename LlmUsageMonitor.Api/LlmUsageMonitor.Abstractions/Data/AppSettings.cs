@@ -5,10 +5,13 @@ namespace LlmUsageMonitor.Abstractions.Data;
 /// </summary>
 public sealed record AppSettings(PollingSettings Polling, TriggerSettings Triggers, NotificationSettings Notifications)
 {
-	public static AppSettings CreateDefault(bool autoTriggerEnabled) => new(
-		new PollingSettings(3, 3),
-		new TriggerSettings(new ProviderTriggerSettings(autoTriggerEnabled, "haiku"), new ProviderTriggerSettings(autoTriggerEnabled, "gpt-5.6-luna")),
-		new NotificationSettings("https://ntfy.sh", null, null, NotificationEvents.Default, 3, null));
+	public static AppSettings CreateDefault(bool autoTriggerEnabled)
+	{
+		return new(
+			new(3, 3),
+			new(new(autoTriggerEnabled, "haiku"), new(autoTriggerEnabled, "gpt-5.6-luna")),
+			new("https://ntfy.sh", null, null, NotificationEvents.Default, 3, null));
+	}
 }
 
 public sealed record PollingSettings(int ClaudeIntervalMinutes, int CodexIntervalMinutes)
@@ -16,12 +19,18 @@ public sealed record PollingSettings(int ClaudeIntervalMinutes, int CodexInterva
 	public const int MinIntervalMinutes = 1;
 	public const int MaxIntervalMinutes = 60;
 
-	public int For(Provider provider) => provider == Provider.Claude ? ClaudeIntervalMinutes : CodexIntervalMinutes;
+	public int For(Provider provider)
+	{
+		return provider == Provider.Claude ? ClaudeIntervalMinutes : CodexIntervalMinutes;
+	}
 }
 
 public sealed record TriggerSettings(ProviderTriggerSettings Claude, ProviderTriggerSettings Codex)
 {
-	public ProviderTriggerSettings For(Provider provider) => provider == Provider.Claude ? Claude : Codex;
+	public ProviderTriggerSettings For(Provider provider)
+	{
+		return provider == Provider.Claude ? Claude : Codex;
+	}
 }
 
 /// <param name="AutoEnabled">Whether the trigger starts on its own after a reset; readings and manual triggers are unaffected.</param>
@@ -50,16 +59,19 @@ public sealed record NotificationEvents(bool TriggerFailed, bool AuthExpired, bo
 {
 	public static NotificationEvents Default => new(true, true, true, false, true, true);
 
-	public bool IsEnabled(NotificationKind kind) => kind switch
+	public bool IsEnabled(NotificationKind kind)
 	{
-		NotificationKind.TriggerFailed => TriggerFailed,
-		NotificationKind.AuthExpired => AuthExpired,
-		NotificationKind.ReadFailed => ReadFailed,
-		NotificationKind.Reset => Reset,
-		NotificationKind.TriggerSucceeded => TriggerSucceeded,
-		NotificationKind.Recovered => Recovered,
-		_ => false,
-	};
+		return kind switch
+		{
+			NotificationKind.TriggerFailed => TriggerFailed,
+			NotificationKind.AuthExpired => AuthExpired,
+			NotificationKind.ReadFailed => ReadFailed,
+			NotificationKind.Reset => Reset,
+			NotificationKind.TriggerSucceeded => TriggerSucceeded,
+			NotificationKind.Recovered => Recovered,
+			_ => false
+		};
+	}
 }
 
 public sealed record NotificationSendFailure(DateTimeOffset At, string Message);
@@ -71,7 +83,7 @@ public enum NotificationKind
 	ReadFailed,
 	Reset,
 	TriggerSucceeded,
-	Recovered,
+	Recovered
 }
 
 /// <summary>

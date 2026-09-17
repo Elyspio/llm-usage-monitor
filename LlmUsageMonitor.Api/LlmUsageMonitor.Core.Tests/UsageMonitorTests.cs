@@ -81,7 +81,7 @@ public sealed class UsageMonitorTests
 	public async Task A_failed_automatic_trigger_is_notified_and_never_retried()
 	{
 		var harness = new TestHarness();
-		harness.CodexRunner.Failure = new ProviderException(ProviderErrorCodes.UsageLimit, "You've hit your limit");
+		harness.CodexRunner.Failure = new(ProviderErrorCodes.UsageLimit, "You've hit your limit");
 		harness.CodexReader.Respond = () => [Window("codex/primary", 40, Start.AddMinutes(10))];
 		await harness.Monitor.Poll(Provider.Codex, Token);
 		harness.Time.SetUtcNow(Start.AddMinutes(11));
@@ -111,7 +111,7 @@ public sealed class UsageMonitorTests
 	[Fact]
 	public async Task With_the_automatic_trigger_disabled_nothing_is_scheduled_nor_triggered()
 	{
-		var harness = new TestHarness(autoTriggerEnabled: false);
+		var harness = new TestHarness(false);
 		harness.CodexReader.Respond = () => [Window("codex/primary", 40, Start.AddMinutes(10))];
 		await harness.Monitor.Poll(Provider.Codex, Token);
 		harness.Time.SetUtcNow(Start.AddMinutes(11));

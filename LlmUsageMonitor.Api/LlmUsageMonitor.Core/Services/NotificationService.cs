@@ -25,7 +25,10 @@ public sealed class NotificationService(
 	public async Task Notify(NotificationKind kind, Provider provider, string detail, CancellationToken cancellationToken)
 	{
 		var settings = (await settingsService.Get(cancellationToken)).Notifications;
-		if (string.IsNullOrWhiteSpace(settings.Topic) || !settings.Events.IsEnabled(kind)) return;
+		if (string.IsNullOrWhiteSpace(settings.Topic) || !settings.Events.IsEnabled(kind))
+		{
+			return;
+		}
 
 		try
 		{
@@ -83,9 +86,9 @@ public sealed class NotificationService(
 			NotificationKind.ReadFailed => ($"{name} : lectures en échec", NotificationPriority.High, "warning"),
 			NotificationKind.Reset => ($"{name} : reset détecté", NotificationPriority.Default, "arrows_counterclockwise"),
 			NotificationKind.TriggerSucceeded => ($"{name} : nouveau cycle ouvert", NotificationPriority.Default, "white_check_mark"),
-			_ => ($"{name} : rétabli", NotificationPriority.Default, "green_heart"),
+			_ => ($"{name} : rétabli", NotificationPriority.Default, "green_heart")
 		};
-		return new NotificationMessage(title, detail, priority, [tag], appConfig.Value.PublicUrl);
+		return new(title, detail, priority, [tag], appConfig.Value.PublicUrl);
 	}
 }
 
@@ -93,7 +96,13 @@ public sealed class DataProtectionSecretProtector(IDataProtectionProvider provid
 {
 	private readonly IDataProtector _protector = provider.CreateProtector("llm-usage-monitor.settings.secrets");
 
-	public string Protect(string value) => _protector.Protect(value);
+	public string Protect(string value)
+	{
+		return _protector.Protect(value);
+	}
 
-	public string Unprotect(string value) => _protector.Unprotect(value);
+	public string Unprotect(string value)
+	{
+		return _protector.Unprotect(value);
+	}
 }

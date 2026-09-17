@@ -30,6 +30,9 @@ public sealed class CoreModule : IModule
 		);
 
 		// The build-time OpenAPI generation starts the host: it must not reach MongoDB nor schedule jobs.
-		if (!OpenApiGeneration.IsRunning) services.AddHostedService<AppInitializer>();
+		if (!OpenApiGeneration.IsRunning)
+		{
+			services.AddHostedService<AppInitializer>();
+		}
 	}
 }

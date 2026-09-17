@@ -20,7 +20,7 @@ public static class ProductionHosting
 	{
 		if (Environment.GetEnvironmentVariable(SettingsFileVariable) is { Length: > 0 } settingsFile)
 		{
-			builder.Configuration.AddJsonFile(settingsFile, optional: false, reloadOnChange: true);
+			builder.Configuration.AddJsonFile(settingsFile, false, true);
 		}
 
 		// HAProxy terminates TLS: only the declared proxies may set the scheme and client address (OIDC redirects must stay https).
@@ -29,11 +29,9 @@ public static class ProductionHosting
 		{
 			options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
 			foreach (var proxy in knownProxies)
-			{
 				options.KnownProxies.Add(IPAddress.TryParse(proxy, out var address)
 					? address
 					: throw new InvalidOperationException($"ForwardedHeaders:KnownProxies contains an invalid IP address: '{proxy}'."));
-			}
 		});
 
 		return builder;
@@ -62,12 +60,12 @@ public static class ProductionHosting
 		var authority = JsonSerializer.Serialize(oidc.Authority);
 		var clientId = JsonSerializer.Serialize(oidc.ClientId);
 		return $$"""
-			window["llm-usage-monitor"] = {
-				config: {
-					endpoints: { apiUrl: window.location.origin },
-					oauth: { authority: {{authority}}, clientId: {{clientId}}, callbackUrl: `${window.location.origin}/auth/callback` },
-				},
-			};
-			""";
+		         window["llm-usage-monitor"] = {
+		         	config: {
+		         		endpoints: { apiUrl: window.location.origin },
+		         		oauth: { authority: {{authority}}, clientId: {{clientId}}, callbackUrl: `${window.location.origin}/auth/callback` },
+		         	},
+		         };
+		         """;
 	}
 }

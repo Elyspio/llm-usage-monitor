@@ -15,7 +15,7 @@ public sealed class ClaudeAdapterModule : IModule
 	public void Load(IServiceCollection services, IConfiguration configuration)
 	{
 		services.Configure<ClaudeOptions>(configuration.GetSection(ClaudeOptions.Section));
-		services.AddHttpClient(HttpClientName, client => client.BaseAddress = new Uri("https://api.anthropic.com/"))
+		services.AddHttpClient(HttpClientName, client => client.BaseAddress = new("https://api.anthropic.com/"))
 			.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 
 		services.AddSingleton<IClaudeSession, ClaudeSession>();
@@ -45,7 +45,10 @@ public sealed class ClaudeOptions
 
 	internal string ResolveCredentialsPath()
 	{
-		if (!string.IsNullOrWhiteSpace(CredentialsPath)) return CredentialsPath;
+		if (!string.IsNullOrWhiteSpace(CredentialsPath))
+		{
+			return CredentialsPath;
+		}
 
 		var configDirectory = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
 		if (string.IsNullOrWhiteSpace(configDirectory))

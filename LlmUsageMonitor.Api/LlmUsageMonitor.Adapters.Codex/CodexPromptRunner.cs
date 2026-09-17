@@ -30,7 +30,7 @@ internal sealed class CodexPromptRunner(IOptions<CodexOptions> options) : IPromp
 				cwd = settings.ResolveWorkingDirectory(),
 				model,
 				sandbox = "read-only",
-				approvalPolicy = "never",
+				approvalPolicy = "never"
 			}, timeout.Token);
 			var threadId = thread.GetProperty("thread").GetProperty("id").GetString();
 
@@ -38,12 +38,15 @@ internal sealed class CodexPromptRunner(IOptions<CodexOptions> options) : IPromp
 			{
 				threadId,
 				input = new object[] { new { type = "text", text = Prompt, text_elements = Array.Empty<object>() } },
-				effort = settings.Effort,
+				effort = settings.Effort
 			}, timeout.Token);
 
 			await foreach (var notification in server.Notifications.ReadAllAsync(timeout.Token))
 			{
-				if (!IsForThread(notification.Params, threadId)) continue;
+				if (!IsForThread(notification.Params, threadId))
+				{
+					continue;
+				}
 
 				if (notification.Method == "error"
 				    && notification.Params.TryGetProperty("willRetry", out var willRetry) && willRetry.ValueKind == JsonValueKind.False
@@ -55,10 +58,14 @@ internal sealed class CodexPromptRunner(IOptions<CodexOptions> options) : IPromp
 				if (notification.Method == "turn/completed")
 				{
 					var turn = notification.Params.GetProperty("turn");
-					if (turn.GetProperty("status").GetString() == "completed") return;
+					if (turn.GetProperty("status").GetString() == "completed")
+					{
+						return;
+					}
+
 					throw turn.TryGetProperty("error", out var turnError) && turnError.ValueKind == JsonValueKind.Object
 						? MapTurnError(turnError)
-						: new ProviderException(ProviderErrorCodes.TriggerFailed, $"Codex turn ended with status {turn.GetProperty("status").GetString()}.");
+						: new(ProviderErrorCodes.TriggerFailed, $"Codex turn ended with status {turn.GetProperty("status").GetString()}.");
 				}
 			}
 
@@ -74,10 +81,12 @@ internal sealed class CodexPromptRunner(IOptions<CodexOptions> options) : IPromp
 		}
 	}
 
-	private static bool IsForThread(JsonElement parameters, string? threadId) =>
-		parameters.ValueKind == JsonValueKind.Object
-		&& parameters.TryGetProperty("threadId", out var id)
-		&& id.GetString() == threadId;
+	private static bool IsForThread(JsonElement parameters, string? threadId)
+	{
+		return parameters.ValueKind == JsonValueKind.Object
+		       && parameters.TryGetProperty("threadId", out var id)
+		       && id.GetString() == threadId;
+	}
 
 	/// <summary>
 	///     Maps a <c>TurnError</c>: <c>codexErrorInfo</c> is either a string or an object keyed by the error kind.
@@ -85,20 +94,22 @@ internal sealed class CodexPromptRunner(IOptions<CodexOptions> options) : IPromp
 	internal static ProviderException MapTurnError(JsonElement error)
 	{
 		var message = error.TryGetProperty("message", out var text) ? text.GetString() ?? "Codex turn failed." : "Codex turn failed.";
-		var kind = error.TryGetProperty("codexErrorInfo", out var info) ? info.ValueKind switch
-		{
-			JsonValueKind.String => info.GetString(),
-			JsonValueKind.Object => info.EnumerateObject().Select(property => property.Name).FirstOrDefault(),
-			_ => null,
-		} : null;
+		var kind = error.TryGetProperty("codexErrorInfo", out var info)
+			? info.ValueKind switch
+			{
+				JsonValueKind.String => info.GetString(),
+				JsonValueKind.Object => info.EnumerateObject().Select(property => property.Name).FirstOrDefault(),
+				_ => null
+			}
+			: null;
 
 		var code = kind switch
 		{
 			"unauthorized" => ProviderErrorCodes.AuthExpired,
 			"usageLimitExceeded" => ProviderErrorCodes.UsageLimit,
 			"rateLimitExceeded" => ProviderErrorCodes.RateLimited,
-			_ => ProviderErrorCodes.TriggerFailed,
+			_ => ProviderErrorCodes.TriggerFailed
 		};
-		return new ProviderException(code, message);
+		return new(code, message);
 	}
 }

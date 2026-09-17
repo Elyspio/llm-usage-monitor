@@ -25,7 +25,10 @@ public sealed class AppInitializer(
 		var settings = await settingsService.Get(cancellationToken);
 
 		var interrupted = await runs.FailRunning(time.GetUtcNow(), ProviderErrorCodes.Interrupted, "Interrupted by a service restart.", cancellationToken);
-		if (interrupted > 0) logger.LogWarning("{Count} trigger runs were interrupted by the previous process", interrupted);
+		if (interrupted > 0)
+		{
+			logger.LogWarning("{Count} trigger runs were interrupted by the previous process", interrupted);
+		}
 
 		foreach (var provider in Enum.GetValues<Provider>())
 		{
@@ -34,5 +37,8 @@ public sealed class AppInitializer(
 		}
 	}
 
-	public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+	public Task StopAsync(CancellationToken cancellationToken)
+	{
+		return Task.CompletedTask;
+	}
 }

@@ -44,7 +44,7 @@ public sealed record NotificationMessage(string Title, string Body, Notification
 public enum NotificationPriority
 {
 	Default,
-	High,
+	High
 }
 
 public interface INotificationSender
