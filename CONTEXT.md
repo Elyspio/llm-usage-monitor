@@ -40,8 +40,28 @@ _Avoid_: prompt, réveil, wake-up, run
 Période entre deux resets de la fenêtre déclencheuse, identifiée par l'heure de reset qui l'ouvre ; au plus un déclenchement automatique par provider et par cycle.
 _Avoid_: période, fenêtre (une fenêtre est un quota, pas une occurrence)
 
+**Verrou**:
+Exclusion mutuelle par provider : une seule lecture, un seul déclenchement ou keep-alive à la fois, parce qu'un seul process CLI peut tourner par provider.
+_Avoid_: lock, mutex, sémaphore
+
 ### Supervision
 
 **Santé**:
 État courant d'un provider : dernière lecture réussie, dernier échec, et, par type d'erreur, s'il est sain ou KO.
 _Avoid_: statut, health check
+
+**Keep-alive**:
+Commande CLI gratuite lancée dans les cinq minutes qui précèdent l'expiration du token Claude, seule fenêtre où le CLI le rafraîchit ; le service n'utilise jamais le refresh token lui-même.
+_Avoid_: refresh, renouvellement, ping
+
+**Backoff**:
+Pause des lectures d'un provider après une réponse 429 : 15, puis 30, puis 60 minutes. Un 429 n'est pas une lecture en échec.
+_Avoid_: retry, throttling, rate limit
+
+**Alerte**:
+Notification envoyée une fois par série d'échecs — déclenchement KO, login expiré, lectures en échec au-delà du seuil — suivie d'un « rétabli » au retour à la santé. Un déclenchement manuel n'alerte jamais.
+_Avoid_: erreur, incident, warning
+
+**Réglages**:
+Paramètres de comportement édités depuis l'app et stockés en base : période de lecture par provider (1 à 60 min), déclenchement automatique et modèle du prompt par provider, ntfy. L'infrastructure reste dans les fichiers de configuration.
+_Avoid_: configuration, settings, options

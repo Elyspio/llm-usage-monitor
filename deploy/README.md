@@ -2,6 +2,8 @@
 
 Cible : `ely-llm-wake-up.elylan` (Debian 13, CT 106), service systemd, derrière HAProxy qui termine le TLS de `https://monitor.llm.elyspio.fr` et transmet en HTTP sur le port 5000. Décisions : « Topologie de déploiement sur le LXC » (#14).
 
+**Mise en service faite le 17 septembre 2026** : le service tourne, le cron est désactivé. La section « Mise en service » ci-dessous reste la procédure de référence pour reconstruire le LXC ; au quotidien, seule « Mises à jour » sert.
+
 ## Fichiers
 
 - `Dockerfile` : build de l'artefact sur le poste (SPA dans `wwwroot`, API self-contained `linux-x64` en fichier unique, sans ICU).
@@ -28,7 +30,12 @@ Prérequis hors de ce repo, voir « Infra prod » (#21) : client Keycloak de pro
    ./deploy/deploy.ps1 -UploadSettings deploy/appsettings.Production.json
    ```
    Le fichier local n'est pas commité (`.gitignore`) ; il arrive en `600 llm-monitor` dans `/etc/llm-usage-monitor/`. Sans `-UploadSettings`, `deploy.ps1` refuse de déployer si le fichier manque sur l'hôte. L'unité systemd, elle, est réinstallée à chaque déploiement.
-3. Vérifications : connexion sur `https://monitor.llm.elyspio.fr`, lectures des deux providers sur le dashboard, un déclenchement manuel, traces du service `llm-usage-monitor` dans Jaeger, notification de test depuis Réglages.
+3. Bascule du cron, une fois l'application déployée et avant de la laisser déclencher :
+   ```sh
+   mv /etc/cron.hourly/llm-wake-up /etc/cron.hourly/llm-wake-up.disabled
+   ```
+4. Vérifications : connexion sur `https://monitor.llm.elyspio.fr`, lectures des deux providers sur le dashboard, un déclenchement manuel, traces du service `llm-usage-monitor` dans Jaeger, notification de test depuis Réglages.
+5. Après deux semaines de fonctionnement stable : supprimer `/etc/cron.hourly/llm-wake-up.disabled` et les logins `claude` / `codex` de `root` (le service n'utilise que ceux de `llm-monitor`).
 
 Le déclenchement automatique est actif par défaut en prod (`App:AutoTriggerEnabledByDefault`) ; il se coupe par provider dans Réglages.
 
@@ -38,7 +45,18 @@ Le déclenchement automatique est actif par défaut en prod (`App:AutoTriggerEna
 ./deploy/deploy.ps1
 ```
 
-Build et tests verts en local avant (voir `AGENTS.md`). Retour arrière : redéployer la version précédente (`git checkout <tag>` puis `./deploy/deploy.ps1`).
+Build et tests verts en local avant (voir `AGENTS.md`).
+
+Retour arrière d'une version : redéployer la précédente (`git checkout <commit>` puis `./deploy/deploy.ps1`).
+
+Retour arrière complet, vers le cron :
+
+```sh
+systemctl disable --now llm-usage-monitor
+mv /etc/cron.hourly/llm-wake-up.disabled /etc/cron.hourly/llm-wake-up
+```
+
+Le cron tourne sous `root`, avec les logins CLI de `root` : ils doivent donc exister tant que ce retour arrière reste une option.
 
 
 ## Notes
