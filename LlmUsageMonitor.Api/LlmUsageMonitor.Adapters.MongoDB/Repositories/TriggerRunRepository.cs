@@ -12,7 +12,7 @@ internal sealed class TriggerRunRepository(IMongoDatabase database) : ITriggerRu
 
 	public async Task<TriggerRun?> TryStartAutomatic(Provider provider, string cycleKey, string model, DateTimeOffset startedAt, CancellationToken cancellationToken)
 	{
-		var document = NewRun(provider, manual: false, cycleKey, model, startedAt);
+		var document = NewRun(provider, false, cycleKey, model, startedAt);
 		try
 		{
 			await _runs.InsertOneAsync(document, cancellationToken: cancellationToken);
@@ -27,7 +27,7 @@ internal sealed class TriggerRunRepository(IMongoDatabase database) : ITriggerRu
 
 	public async Task<TriggerRun> StartManual(Provider provider, string model, DateTimeOffset startedAt, CancellationToken cancellationToken)
 	{
-		var document = NewRun(provider, manual: true, cycleKey: null, model, startedAt);
+		var document = NewRun(provider, true, null, model, startedAt);
 		await _runs.InsertOneAsync(document, cancellationToken: cancellationToken);
 		return document.ToDomain();
 	}
@@ -42,14 +42,18 @@ internal sealed class TriggerRunRepository(IMongoDatabase database) : ITriggerRu
 		var document = await _runs.FindOneAndUpdateAsync(
 			run => run.Id == Parse(id),
 			update,
-			new FindOneAndUpdateOptions<TriggerRunDocument> { ReturnDocument = ReturnDocument.After },
+			new() { ReturnDocument = ReturnDocument.After },
 			cancellationToken);
 		return document?.ToDomain() ?? throw new ResourceNotFoundException($"Trigger run {id} does not exist.");
 	}
 
 	public async Task<TriggerRun?> Get(string id, CancellationToken cancellationToken)
 	{
-		if (!ObjectId.TryParse(id, out var objectId)) return null;
+		if (!ObjectId.TryParse(id, out var objectId))
+		{
+			return null;
+		}
+
 		var document = await _runs.Find(run => run.Id == objectId).FirstOrDefaultAsync(cancellationToken);
 		return document?.ToDomain();
 	}
@@ -75,7 +79,10 @@ internal sealed class TriggerRunRepository(IMongoDatabase database) : ITriggerRu
 	{
 		var filter = Builders<TriggerRunDocument>.Filter;
 		var query = filter.Gte(run => run.StartedAt, from.ToUtc()) & filter.Lte(run => run.StartedAt, to.ToUtc());
-		if (provider is { } p) query &= filter.Eq(run => run.Provider, p);
+		if (provider is { } p)
+		{
+			query &= filter.Eq(run => run.Provider, p);
+		}
 
 		var documents = await _runs.Find(query).SortBy(run => run.StartedAt).ToListAsync(cancellationToken);
 		return documents.Select(document => document.ToDomain()).ToList();
@@ -92,18 +99,24 @@ internal sealed class TriggerRunRepository(IMongoDatabase database) : ITriggerRu
 		return result.ModifiedCount;
 	}
 
-	private static TriggerRunDocument NewRun(Provider provider, bool manual, string? cycleKey, string model, DateTimeOffset startedAt) => new()
+	private static TriggerRunDocument NewRun(Provider provider, bool manual, string? cycleKey, string model, DateTimeOffset startedAt)
 	{
-		Id = ObjectId.GenerateNewId(),
-		Provider = provider,
-		Manual = manual,
-		CycleKey = cycleKey,
-		Model = model,
-		Status = TriggerStatus.Running,
-		StartedAt = startedAt.ToUtc(),
-	};
+		return new()
+		{
+			Id = ObjectId.GenerateNewId(),
+			Provider = provider,
+			Manual = manual,
+			CycleKey = cycleKey,
+			Model = model,
+			Status = TriggerStatus.Running,
+			StartedAt = startedAt.ToUtc()
+		};
+	}
 
-	private static ObjectId Parse(string id) => ObjectId.TryParse(id, out var objectId)
-		? objectId
-		: throw new ResourceNotFoundException($"Trigger run {id} does not exist.");
+	private static ObjectId Parse(string id)
+	{
+		return ObjectId.TryParse(id, out var objectId)
+			? objectId
+			: throw new ResourceNotFoundException($"Trigger run {id} does not exist.");
+	}
 }

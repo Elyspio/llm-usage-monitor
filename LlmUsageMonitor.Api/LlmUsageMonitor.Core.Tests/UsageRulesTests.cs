@@ -8,7 +8,7 @@ namespace LlmUsageMonitor.Core.Tests;
 
 public sealed class UsageRulesTests
 {
-	private static readonly DateTimeOffset Now = TestHarness.Start;
+	private static readonly DateTimeOffset Now = Start;
 
 	[Fact]
 	public void A_drop_of_the_used_share_is_a_reset()
@@ -24,15 +24,15 @@ public sealed class UsageRulesTests
 	[Fact]
 	public void No_previous_reading_means_no_reset()
 	{
-		UsageRules.DetectResets(null, new UsageReading(Now, [Window("five_hour", 0, null)])).ShouldBeEmpty();
+		UsageRules.DetectResets(null, new(Now, [Window("five_hour", 0, null)])).ShouldBeEmpty();
 	}
 
 	[Fact]
 	public void Cycle_is_the_expired_reset_time_truncated_to_the_minute()
 	{
-		var state = new ProviderState(Provider.Claude) { LastReading = new UsageReading(Now.AddMinutes(-3), [Window("five_hour", 40, new DateTimeOffset(2026, 9, 14, 11, 59, 59, 626, TimeSpan.Zero))]) };
+		var state = new ProviderState(Provider.Claude) { LastReading = new(Now.AddMinutes(-3), [Window("five_hour", 40, new DateTimeOffset(2026, 9, 14, 11, 59, 59, 626, TimeSpan.Zero))]) };
 
-		var key = UsageRules.CycleKey(state, new UsageReading(Now, [Window("five_hour", 0, null)]), null, Now);
+		var key = UsageRules.CycleKey(state, new(Now, [Window("five_hour", 0, null)]), null, Now);
 
 		key.ShouldBe("resets:2026-09-14T11:59Z");
 	}
@@ -42,14 +42,14 @@ public sealed class UsageRulesTests
 	{
 		var state = new ProviderState(Provider.Claude);
 
-		UsageRules.CycleKey(state, new UsageReading(Now, [Window("five_hour", 0, Now.AddHours(5))]), null, Now).ShouldBeNull();
-		UsageRules.CycleKey(state, new UsageReading(Now, [Window("five_hour", 3, null)]), null, Now).ShouldBeNull();
+		UsageRules.CycleKey(state, new(Now, [Window("five_hour", 0, Now.AddHours(5))]), null, Now).ShouldBeNull();
+		UsageRules.CycleKey(state, new(Now, [Window("five_hour", 3, null)]), null, Now).ShouldBeNull();
 	}
 
 	[Fact]
 	public void Without_reset_time_nor_reset_no_cycle_is_known()
 	{
-		UsageRules.CycleKey(new ProviderState(Provider.Codex), new UsageReading(Now, [Window("codex/primary", 0, null)]), null, Now).ShouldBeNull();
+		UsageRules.CycleKey(new(Provider.Codex), new(Now, [Window("codex/primary", 0, null)]), null, Now).ShouldBeNull();
 	}
 
 	[Fact]
@@ -57,7 +57,7 @@ public sealed class UsageRulesTests
 	{
 		var reset = new ResetEvent("abc", Provider.Codex, "codex/primary", Now.AddMinutes(-3), 30, 0, null);
 
-		UsageRules.CycleKey(new ProviderState(Provider.Codex), new UsageReading(Now, [Window("codex/primary", 0, null)]), reset, Now).ShouldBe("reset:abc");
+		UsageRules.CycleKey(new(Provider.Codex), new(Now, [Window("codex/primary", 0, null)]), reset, Now).ShouldBe("reset:abc");
 	}
 
 	[Fact]
@@ -66,7 +66,7 @@ public sealed class UsageRulesTests
 		var state = new ProviderState(Provider.Claude) { CurrentCycleKey = "resets:2026-09-14T11:00Z" };
 		var reset = new ResetEvent("later", Provider.Claude, "five_hour", Now, 30, 0, null);
 
-		UsageRules.CycleKey(state, new UsageReading(Now, [Window("five_hour", 0, null)]), reset, Now).ShouldBe("resets:2026-09-14T11:00Z");
+		UsageRules.CycleKey(state, new(Now, [Window("five_hour", 0, null)]), reset, Now).ShouldBe("resets:2026-09-14T11:00Z");
 	}
 
 	[Fact]

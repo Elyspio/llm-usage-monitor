@@ -14,11 +14,12 @@ using MongoDB.Driver;
 namespace LlmUsageMonitor.Adapters.Hangfire;
 
 /// <summary>
-///     Hangfire runs inside the API process, with its own database on the application MongoDB server.
+///     Hangfire runs inside the API process, in the application database: its collections are prefixed, so a single Mongo
+///     user with <c>readWrite</c> on that database covers the whole application.
 /// </summary>
 public sealed class HangfireAdapterModule : IModule
 {
-	public const string DatabaseName = "hangfire";
+	public const string CollectionPrefix = "hangfire";
 
 	public void Load(IServiceCollection services, IConfiguration configuration)
 	{
@@ -30,7 +31,8 @@ public sealed class HangfireAdapterModule : IModule
 		}
 
 		var connectionString = configuration.GetConnectionString("MongoDB") ?? throw new InvalidOperationException("ConnectionStrings:MongoDB is required.");
-		var hangfireUrl = new MongoUrlBuilder(connectionString) { DatabaseName = DatabaseName }.ToString();
+		// The connection string of the Aspire resource carries no database name, which Hangfire.Mongo requires.
+		var storageUrl = new MongoUrlBuilder(connectionString) { DatabaseName = MongoUrl.Create(connectionString).DatabaseName ?? StorageDefaults.DatabaseName }.ToString();
 
 		services.AddHangfire(config => config
 			.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
@@ -38,16 +40,16 @@ public sealed class HangfireAdapterModule : IModule
 			.UseRecommendedSerializerSettings()
 			// Each job decides on its own retries: a failed trigger is never replayed.
 			.UseFilter(new AutomaticRetryAttribute { Attempts = 0 })
-			.UseMongoStorage(hangfireUrl, new MongoStorageOptions
+			.UseMongoStorage(storageUrl, new MongoStorageOptions
 			{
-				MigrationOptions = new MongoMigrationOptions
+				MigrationOptions = new()
 				{
 					MigrationStrategy = new MigrateMongoMigrationStrategy(),
-					BackupStrategy = new NoneMongoBackupStrategy(),
+					BackupStrategy = new NoneMongoBackupStrategy()
 				},
 				// The Aspire MongoDB container is a standalone server, without the replica set change streams need.
 				CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.TailNotificationsCollection,
-				Prefix = "hangfire",
+				Prefix = CollectionPrefix
 			}));
 		services.AddHangfireServer(options => options.WorkerCount = 4);
 
@@ -55,7 +57,10 @@ public sealed class HangfireAdapterModule : IModule
 		services.AddSingleton<IJobScheduler, HangfireJobScheduler>();
 	}
 
-	public static bool IsEnabled(IConfiguration configuration) => configuration.GetValue("Hangfire:Enabled", true) && !OpenApiGeneration.IsRunning;
+	public static bool IsEnabled(IConfiguration configuration)
+	{
+		return configuration.GetValue("Hangfire:Enabled", true) && !OpenApiGeneration.IsRunning;
+	}
 }
 
 /// <summary>
@@ -63,9 +68,15 @@ public sealed class HangfireAdapterModule : IModule
 /// </summary>
 internal sealed class LoggingJobScheduler(ILogger<LoggingJobScheduler> logger) : IJobScheduler
 {
-	public void SetPollInterval(Provider provider, int minutes) => logger.LogInformation("Hangfire disabled: poll of {Provider} every {Minutes} min not scheduled", provider, minutes);
+	public void SetPollInterval(Provider provider, int minutes)
+	{
+		logger.LogInformation("Hangfire disabled: poll of {Provider} every {Minutes} min not scheduled", provider, minutes);
+	}
 
-	public void EnqueuePoll(Provider provider) => logger.LogInformation("Hangfire disabled: poll of {Provider} not queued", provider);
+	public void EnqueuePoll(Provider provider)
+	{
+		logger.LogInformation("Hangfire disabled: poll of {Provider} not queued", provider);
+	}
 
 	public string SchedulePostResetCheck(Provider provider, DateTimeOffset runAt)
 	{
@@ -79,7 +90,10 @@ internal sealed class LoggingJobScheduler(ILogger<LoggingJobScheduler> logger) :
 		return "disabled";
 	}
 
-	public void EnqueueTrigger(string runId) => logger.LogInformation("Hangfire disabled: trigger {RunId} not queued", runId);
+	public void EnqueueTrigger(string runId)
+	{
+		logger.LogInformation("Hangfire disabled: trigger {RunId} not queued", runId);
+	}
 
 	public void Delete(string jobId)
 	{

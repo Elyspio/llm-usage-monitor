@@ -13,10 +13,10 @@ internal sealed class UsageSnapshotRepository(IMongoDatabase database) : IUsageS
 		var documents = reading.Windows.Select(window => new UsageSnapshotDocument
 		{
 			FetchedAt = reading.FetchedAt.ToUtc(),
-			Meta = new SnapshotMeta { Provider = provider, WindowId = window.Id },
+			Meta = new() { Provider = provider, WindowId = window.Id },
 			UsedPercent = window.UsedPercent,
 			ResetsAt = window.ResetsAt.ToUtc(),
-			WindowDurationMinutes = window.WindowDurationMinutes,
+			WindowDurationMinutes = window.WindowDurationMinutes
 		});
 
 		return _snapshots.InsertManyAsync(documents, cancellationToken: cancellationToken);
@@ -26,8 +26,15 @@ internal sealed class UsageSnapshotRepository(IMongoDatabase database) : IUsageS
 	{
 		var filter = Builders<UsageSnapshotDocument>.Filter;
 		var query = filter.Gte(snapshot => snapshot.FetchedAt, from.ToUtc()) & filter.Lte(snapshot => snapshot.FetchedAt, to.ToUtc());
-		if (provider is { } p) query &= filter.Eq(snapshot => snapshot.Meta.Provider, p);
-		if (windowId is not null) query &= filter.Eq(snapshot => snapshot.Meta.WindowId, windowId);
+		if (provider is { } p)
+		{
+			query &= filter.Eq(snapshot => snapshot.Meta.Provider, p);
+		}
+
+		if (windowId is { })
+		{
+			query &= filter.Eq(snapshot => snapshot.Meta.WindowId, windowId);
+		}
 
 		var snapshots = await _snapshots.Find(query).SortBy(snapshot => snapshot.FetchedAt).ToListAsync(cancellationToken);
 
@@ -46,7 +53,8 @@ internal sealed class ResetRepository(IMongoDatabase database) : IResetRepositor
 {
 	private readonly IMongoCollection<ResetDocument> _resets = database.GetCollection<ResetDocument>(Collections.Resets);
 
-	public async Task<ResetEvent> Add(Provider provider, string windowId, DateTimeOffset detectedAt, double usedBefore, double usedAfter, DateTimeOffset? previousResetsAt, CancellationToken cancellationToken)
+	public async Task<ResetEvent> Add(Provider provider, string windowId, DateTimeOffset detectedAt, double usedBefore, double usedAfter, DateTimeOffset? previousResetsAt,
+		CancellationToken cancellationToken)
 	{
 		var document = new ResetDocument
 		{
@@ -55,7 +63,7 @@ internal sealed class ResetRepository(IMongoDatabase database) : IResetRepositor
 			DetectedAt = detectedAt.ToUtc(),
 			UsedPercentBefore = usedBefore,
 			UsedPercentAfter = usedAfter,
-			PreviousResetsAt = previousResetsAt.ToUtc(),
+			PreviousResetsAt = previousResetsAt.ToUtc()
 		};
 		await _resets.InsertOneAsync(document, cancellationToken: cancellationToken);
 		return document.ToDomain();

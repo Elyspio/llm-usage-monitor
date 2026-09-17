@@ -1,4 +1,3 @@
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using LlmUsageMonitor.Abstractions.Injections;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
@@ -31,12 +30,12 @@ internal sealed class NtfySender(HttpClient http) : INotificationSender
 				message = message.Body,
 				priority = message.Priority == NotificationPriority.High ? 4 : 3,
 				tags = message.Tags,
-				click = message.ClickUrl,
-			}),
+				click = message.ClickUrl
+			})
 		};
 		if (!string.IsNullOrEmpty(token))
 		{
-			request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+			request.Headers.Authorization = new("Bearer", token);
 		}
 
 		using var response = await http.SendAsync(request, cancellationToken);

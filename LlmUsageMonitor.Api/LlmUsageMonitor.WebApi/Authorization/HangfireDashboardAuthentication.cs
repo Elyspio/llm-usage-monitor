@@ -44,6 +44,9 @@ public static class HangfireDashboardAuthentication
 				options.ClientId = oidc.Value.ClientId;
 				options.ResponseType = OpenIdConnectResponseType.Code;
 				options.UsePkce = true;
+				// .NET uses pushed authorization requests when the provider advertises them; Keycloak rejects them for this
+				// secretless public client, so the classic redirect is kept.
+				options.PushedAuthorizationBehavior = PushedAuthorizationBehavior.Disable;
 				options.CallbackPath = "/signin-oidc";
 				options.RequireHttpsMetadata = !environment.IsDevelopment();
 				options.MapInboundClaims = false;
@@ -56,7 +59,10 @@ public static class HangfireDashboardAuthentication
 					if (context.TokenEndpointResponse?.AccessToken is { } accessToken && context.Principal?.Identity is ClaimsIdentity identity)
 					{
 						var resourceAccess = new JsonWebToken(accessToken).Claims.FirstOrDefault(claim => claim.Type == "resource_access");
-						if (resourceAccess is not null) identity.AddClaim(new Claim(resourceAccess.Type, resourceAccess.Value, resourceAccess.ValueType));
+						if (resourceAccess is { })
+						{
+							identity.AddClaim(new(resourceAccess.Type, resourceAccess.Value, resourceAccess.ValueType));
+						}
 					}
 
 					return Task.CompletedTask;
@@ -66,8 +72,11 @@ public static class HangfireDashboardAuthentication
 		return builder;
 	}
 
-	public static AuthorizationBuilder AddHangfireDashboardPolicy(this AuthorizationBuilder builder) => builder.AddPolicy(PolicyName, policy => policy
-		.AddAuthenticationSchemes(CookieScheme)
-		.RequireAuthenticatedUser()
-		.AddRequirements(new AdminRoleRequirement()));
+	public static AuthorizationBuilder AddHangfireDashboardPolicy(this AuthorizationBuilder builder)
+	{
+		return builder.AddPolicy(PolicyName, policy => policy
+			.AddAuthenticationSchemes(CookieScheme)
+			.RequireAuthenticatedUser()
+			.AddRequirements(new AdminRoleRequirement()));
+	}
 }

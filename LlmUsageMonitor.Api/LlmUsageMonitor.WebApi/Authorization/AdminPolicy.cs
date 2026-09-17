@@ -27,7 +27,6 @@ public static class AdminPolicy
 	public static bool HasClientRole(ClaimsPrincipal user, string clientId, string role)
 	{
 		foreach (var claim in user.FindAll("resource_access"))
-		{
 			try
 			{
 				using var document = JsonDocument.Parse(claim.Value);
@@ -44,7 +43,6 @@ public static class AdminPolicy
 			{
 				// A malformed claim grants nothing; the other resource_access claims are still checked.
 			}
-		}
 
 		return false;
 	}

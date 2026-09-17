@@ -29,7 +29,7 @@ public sealed class ClaudeKeepAlive(
 		var token = await session.ReadToken(cancellationToken);
 		if (token.ExpiresAt is not { } expiresAt || expiresAt - time.GetUtcNow() >= RefreshWindow)
 		{
-			return new ClaudeTokenState(token.ExpiresAt, token.RefreshTokenExpiresAt);
+			return new(token.ExpiresAt, token.RefreshTokenExpiresAt);
 		}
 
 		// One retry: the refresh may lose a race with another CLI process that holds the refresh lock.
@@ -45,7 +45,7 @@ public sealed class ClaudeKeepAlive(
 			throw new ProviderException(ProviderErrorCodes.AuthExpired, "The Claude CLI could not refresh its login. Run `claude auth login` on the service host.");
 		}
 
-		return new ClaudeTokenState(token.ExpiresAt, token.RefreshTokenExpiresAt);
+		return new(token.ExpiresAt, token.RefreshTokenExpiresAt);
 	}
 
 	public async Task Run(CancellationToken cancellationToken)
@@ -69,15 +69,28 @@ public sealed class ClaudeKeepAlive(
 	public ProviderState ScheduleNext(ProviderState state, ClaudeTokenState token)
 	{
 		state = state with { TokenExpiresAt = token.ExpiresAt, RefreshTokenExpiresAt = token.RefreshTokenExpiresAt };
-		if (token.ExpiresAt is not { } expiresAt) return state;
+		if (token.ExpiresAt is not { } expiresAt)
+		{
+			return state;
+		}
 
 		var now = time.GetUtcNow();
 		var runAt = expiresAt - ScheduleLead;
-		if (runAt <= now) runAt = now.AddMinutes(1);
+		if (runAt <= now)
+		{
+			runAt = now.AddMinutes(1);
+		}
 
-		if (state.KeepAlive is { } current && Math.Abs((current.RunAt - runAt).TotalSeconds) < 60) return state;
-		if (state.KeepAlive is { } previous) scheduler.Delete(previous.JobId);
+		if (state.KeepAlive is { } current && Math.Abs((current.RunAt - runAt).TotalSeconds) < 60)
+		{
+			return state;
+		}
 
-		return state with { KeepAlive = new ScheduledJob(scheduler.ScheduleKeepAlive(runAt), runAt) };
+		if (state.KeepAlive is { } previous)
+		{
+			scheduler.Delete(previous.JobId);
+		}
+
+		return state with { KeepAlive = new(scheduler.ScheduleKeepAlive(runAt), runAt) };
 	}
 }

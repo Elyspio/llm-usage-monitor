@@ -95,7 +95,7 @@ public sealed class DashboardEndpointTests(ApiFactory factory) : IClassFixture<A
 			topic = "llm_usage_monitor_tests",
 			token = "tk_secret_value",
 			events = new { triggerFailed = true, authExpired = true, readFailed = true, reset = false, triggerSucceeded = true, recovered = true },
-			readFailureThreshold = 3,
+			readFailureThreshold = 3
 		};
 
 		var saved = await client.PutAsJsonAsync("/api/settings/notifications", update, Token);

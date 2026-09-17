@@ -1,0 +1,10 @@
+.git
+.idea
+.claude
+**/bin
+**/obj
+**/node_modules
+**/dist
+deploy/out
+deploy/*.tar.gz
+LlmUsageMonitor.Scripts

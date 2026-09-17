@@ -1,0 +1,5 @@
+# Oxfmt and the Linux build expect LF; keep it in the working tree whatever core.autocrlf says.
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.png binary
+*.ico binary

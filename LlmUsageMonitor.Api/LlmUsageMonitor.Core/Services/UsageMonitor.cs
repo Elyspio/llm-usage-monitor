@@ -65,7 +65,7 @@ public sealed class UsageMonitor(
 			{
 				LastReading = reading,
 				LastSuccessAt = now,
-				CurrentCycleKey = cycleKey,
+				CurrentCycleKey = cycleKey
 			};
 			state = SchedulePostResetCheck(state, reading, settings.Triggers.For(provider).AutoEnabled, now);
 			await states.Save(state, cancellationToken);
@@ -78,9 +78,9 @@ public sealed class UsageMonitor(
 			return;
 		}
 
-		if (cycleKey is not null && settings.Triggers.For(provider).AutoEnabled)
-		{
+		if (cycleKey is { } && settings.Triggers.For(provider).AutoEnabled)
 			// Still under the provider lock: the prompt never overlaps a reading.
+		{
 			await automaticTrigger.Run(provider, cycleKey, cancellationToken);
 		}
 	}
@@ -100,13 +100,23 @@ public sealed class UsageMonitor(
 	/// </summary>
 	private ProviderState SchedulePostResetCheck(ProviderState state, UsageReading reading, bool autoEnabled, DateTimeOffset now)
 	{
-		if (!autoEnabled || reading.TriggerWindow?.ResetsAt is not { } resetsAt || resetsAt <= now) return state;
+		if (!autoEnabled || reading.TriggerWindow?.ResetsAt is not { } resetsAt || resetsAt <= now)
+		{
+			return state;
+		}
 
 		var runAt = resetsAt.AddMinutes(1);
 		// The provider may shift the announced reset by a few seconds between readings.
-		if (state.PendingResetCheck is { } pending && Math.Abs((pending.RunAt - runAt).TotalSeconds) < 60) return state;
-		if (state.PendingResetCheck is { } previous) scheduler.Delete(previous.JobId);
+		if (state.PendingResetCheck is { } pending && Math.Abs((pending.RunAt - runAt).TotalSeconds) < 60)
+		{
+			return state;
+		}
 
-		return state with { PendingResetCheck = new ScheduledJob(scheduler.SchedulePostResetCheck(state.Provider, runAt), runAt) };
+		if (state.PendingResetCheck is { } previous)
+		{
+			scheduler.Delete(previous.JobId);
+		}
+
+		return state with { PendingResetCheck = new(scheduler.SchedulePostResetCheck(state.Provider, runAt), runAt) };
 	}
 }

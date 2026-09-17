@@ -16,7 +16,10 @@ public static class UsageRules
 	/// </summary>
 	public static IReadOnlyList<(UsageWindow Previous, UsageWindow Current)> DetectResets(UsageReading? previous, UsageReading current)
 	{
-		if (previous is null) return [];
+		if (previous is null)
+		{
+			return [];
+		}
 
 		return current.Windows
 			.Join(previous.Windows, window => window.Id, window => window.Id, (currentWindow, previousWindow) => (previousWindow, currentWindow))
@@ -33,17 +36,23 @@ public static class UsageRules
 	public static string? CycleKey(ProviderState state, UsageReading current, ResetEvent? lastReset, DateTimeOffset now)
 	{
 		var window = current.TriggerWindow;
-		if (window is null || window.UsedPercent > 0 || window.ResetsAt > now) return null;
+		if (window is null || window.UsedPercent > 0 || window.ResetsAt > now)
+		{
+			return null;
+		}
 
 		return state.CurrentCycleKey
-			?? ExpiredResetsAt(state.LastReading, window.Id, now)
-			?? (lastReset is null ? null : $"reset:{lastReset.Id}");
+		       ?? ExpiredResetsAt(state.LastReading, window.Id, now)
+		       ?? (lastReset is null ? null : $"reset:{lastReset.Id}");
 	}
 
 	private static string? ExpiredResetsAt(UsageReading? previous, string windowId, DateTimeOffset now)
 	{
 		var resetsAt = previous?.Windows.FirstOrDefault(window => window.Id == windowId)?.ResetsAt;
-		if (resetsAt is not { } expired || expired > now) return null;
+		if (resetsAt is not { } expired || expired > now)
+		{
+			return null;
+		}
 
 		var minute = new DateTimeOffset(expired.UtcDateTime.Year, expired.UtcDateTime.Month, expired.UtcDateTime.Day, expired.UtcDateTime.Hour, expired.UtcDateTime.Minute, 0, TimeSpan.Zero);
 		return $"resets:{minute.ToString("yyyy-MM-ddTHH:mm'Z'", CultureInfo.InvariantCulture)}";

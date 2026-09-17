@@ -16,13 +16,23 @@ public sealed class MongoFixture : IAsyncLifetime
 {
 	private readonly MongoDbContainer _container = new MongoDbBuilder("mongo:8.0").Build();
 
+	public async ValueTask InitializeAsync()
+	{
+		await _container.StartAsync();
+	}
+
+	public ValueTask DisposeAsync()
+	{
+		return _container.DisposeAsync();
+	}
+
 	/// <summary>A fresh database per test, on the shared container.</summary>
 	public async Task<ServiceProvider> CreateServices()
 	{
 		var connectionString = new MongoUrlBuilder(_container.GetConnectionString())
 		{
 			DatabaseName = $"tests-{Guid.NewGuid():N}",
-			AuthenticationSource = "admin",
+			AuthenticationSource = "admin"
 		}.ToString();
 		var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:MongoDB"] = connectionString }).Build();
 
@@ -32,10 +42,6 @@ public sealed class MongoFixture : IAsyncLifetime
 		await provider.GetRequiredService<IStorageInitializer>().Initialize(CancellationToken.None);
 		return provider;
 	}
-
-	public async ValueTask InitializeAsync() => await _container.StartAsync();
-
-	public ValueTask DisposeAsync() => _container.DisposeAsync();
 }
 
 public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<MongoFixture>
@@ -84,7 +90,7 @@ public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<Mon
 		await using var services = await mongo.CreateServices();
 		var database = services.GetRequiredService<IMongoDatabase>();
 
-		var collection = await (await database.ListCollectionsAsync(new ListCollectionsOptions { Filter = new BsonDocument("name", "usageSnapshots") }, Token)).SingleAsync(Token);
+		var collection = await (await database.ListCollectionsAsync(new() { Filter = new BsonDocument("name", "usageSnapshots") }, Token)).SingleAsync(Token);
 
 		collection["type"].AsString.ShouldBe("timeseries");
 		collection["options"]["timeseries"]["timeField"].AsString.ShouldBe("fetchedAt");
@@ -96,8 +102,8 @@ public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<Mon
 	{
 		await using var services = await mongo.CreateServices();
 		var snapshots = services.GetRequiredService<IUsageSnapshotRepository>();
-		await snapshots.Add(Provider.Claude, new UsageReading(Now.AddMinutes(-3), [new UsageWindow("five_hour", 10, Now.AddHours(2), 300), new UsageWindow("seven_day", 20, null, 10_080)]), Token);
-		await snapshots.Add(Provider.Claude, new UsageReading(Now, [new UsageWindow("five_hour", 12, Now.AddHours(2), 300)]), Token);
+		await snapshots.Add(Provider.Claude, new(Now.AddMinutes(-3), [new("five_hour", 10, Now.AddHours(2), 300), new("seven_day", 20, null, 10_080)]), Token);
+		await snapshots.Add(Provider.Claude, new(Now, [new("five_hour", 12, Now.AddHours(2), 300)]), Token);
 
 		var series = await snapshots.GetHistory(Provider.Claude, null, Now.AddHours(-1), Now, Token);
 
@@ -114,16 +120,16 @@ public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<Mon
 		var settingsRepository = services.GetRequiredService<ISettingsRepository>();
 		var state = new ProviderState(Provider.Claude)
 		{
-			LastReading = new UsageReading(Now, [new UsageWindow("five_hour", 0, null, 300)]),
-			LastFailure = new ProviderFailure("RATE_LIMITED", "HTTP 429", Now),
+			LastReading = new(Now, [new("five_hour", 0, null, 300)]),
+			LastFailure = new("RATE_LIMITED", "HTTP 429", Now),
 			BackoffLevel = 2,
 			BackoffUntil = Now.AddMinutes(30),
 			ActiveAlerts = [NotificationKind.AuthExpired],
 			CurrentCycleKey = "reset:1",
-			PendingResetCheck = new ScheduledJob("42", Now.AddHours(1)),
-			TokenExpiresAt = Now.AddHours(8),
+			PendingResetCheck = new("42", Now.AddHours(1)),
+			TokenExpiresAt = Now.AddHours(8)
 		};
-		var settings = AppSettings.CreateDefault(false) with { Polling = new PollingSettings(5, 7) };
+		var settings = AppSettings.CreateDefault(false) with { Polling = new(5, 7) };
 
 		await states.Save(state, Token);
 		await settingsRepository.Save(settings, Token);
@@ -133,6 +139,6 @@ public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<Mon
 		(loaded with { LastReading = state.LastReading, ActiveAlerts = state.ActiveAlerts }).ShouldBe(state);
 		loaded.ActiveAlerts.ShouldBe([NotificationKind.AuthExpired]);
 		(await settingsRepository.Find(Token)).ShouldBe(settings);
-		(await states.Get(Provider.Codex, Token)).ShouldBe(new ProviderState(Provider.Codex));
+		(await states.Get(Provider.Codex, Token)).ShouldBe(new(Provider.Codex));
 	}
 }

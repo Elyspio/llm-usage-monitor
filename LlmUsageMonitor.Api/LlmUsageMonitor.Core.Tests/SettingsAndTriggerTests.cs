@@ -1,5 +1,6 @@
 using LlmUsageMonitor.Abstractions.Data;
 using LlmUsageMonitor.Abstractions.Exceptions;
+using LlmUsageMonitor.Core.Services;
 using Shouldly;
 using Xunit;
 
@@ -14,9 +15,9 @@ public sealed class SettingsServiceTests
 	{
 		var harness = new TestHarness();
 
-		var exception = await Should.ThrowAsync<RequestValidationException>(() => harness.Settings.UpdatePolling(new PollingSettings(0, 61), Token));
+		var exception = await Should.ThrowAsync<RequestValidationException>(() => harness.Settings.UpdatePolling(new(0, 61), Token));
 
-		exception.Errors.Keys.ShouldBe(["claudeIntervalMinutes", "codexIntervalMinutes"], ignoreOrder: true);
+		exception.Errors.Keys.ShouldBe(["claudeIntervalMinutes", "codexIntervalMinutes"], true);
 	}
 
 	[Fact]
@@ -24,20 +25,20 @@ public sealed class SettingsServiceTests
 	{
 		var harness = new TestHarness();
 
-		await harness.Settings.UpdatePolling(new PollingSettings(5, 1), Token);
+		await harness.Settings.UpdatePolling(new(5, 1), Token);
 
 		harness.Scheduler.PollIntervals[Provider.Claude].ShouldBe(5);
 		harness.Scheduler.PollIntervals[Provider.Codex].ShouldBe(1);
-		(await harness.Settings.Get(Token)).Polling.ShouldBe(new PollingSettings(5, 1));
+		(await harness.Settings.Get(Token)).Polling.ShouldBe(new(5, 1));
 	}
 
 	[Fact]
 	public async Task Disabling_the_automatic_trigger_cancels_the_pending_post_reset_check()
 	{
 		var harness = new TestHarness();
-		await harness.States.Save(new ProviderState(Provider.Codex) { PendingResetCheck = new ScheduledJob("job-42", TestHarness.Start.AddHours(1)) }, Token);
+		await harness.States.Save(new(Provider.Codex) { PendingResetCheck = new("job-42", TestHarness.Start.AddHours(1)) }, Token);
 
-		await harness.Settings.UpdateTriggers(new TriggerSettings(new ProviderTriggerSettings(true, "haiku"), new ProviderTriggerSettings(false, " gpt-5.6-luna ")), Token);
+		await harness.Settings.UpdateTriggers(new(new(true, "haiku"), new(false, " gpt-5.6-luna ")), Token);
 
 		harness.Scheduler.Deleted.ShouldBe(["job-42"]);
 		harness.States.Stored[Provider.Codex].PendingResetCheck.ShouldBeNull();
@@ -50,7 +51,7 @@ public sealed class SettingsServiceTests
 		var harness = new TestHarness();
 
 		var exception = await Should.ThrowAsync<RequestValidationException>(() =>
-			harness.Settings.UpdateTriggers(new TriggerSettings(new ProviderTriggerSettings(true, " "), new ProviderTriggerSettings(true, "luna")), Token));
+			harness.Settings.UpdateTriggers(new(new(true, " "), new(true, "luna")), Token));
 
 		exception.Errors.Keys.ShouldBe(["claude.model"]);
 	}
@@ -61,11 +62,11 @@ public sealed class SettingsServiceTests
 		var harness = new TestHarness();
 		var events = NotificationEvents.Default;
 
-		var set = await harness.Settings.UpdateNotifications(new NotificationSettingsUpdate("https://ntfy.sh", "topic_1", "secret", events, 3), Token);
+		var set = await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "secret", events, 3), Token);
 		harness.SettingsRepository.Stored!.Notifications.ProtectedToken.ShouldBe("protected:secret");
-		var kept = await harness.Settings.UpdateNotifications(new NotificationSettingsUpdate("https://ntfy.sh", "topic_1", null, events, 3), Token);
+		var kept = await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", null, events, 3), Token);
 		harness.SettingsRepository.Stored!.Notifications.ProtectedToken.ShouldBe("protected:secret");
-		var removed = await harness.Settings.UpdateNotifications(new NotificationSettingsUpdate("https://ntfy.sh", "topic_1", "", events, 3), Token);
+		var removed = await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "", events, 3), Token);
 
 		(set.TokenDefined, kept.TokenDefined, removed.TokenDefined).ShouldBe((true, true, false));
 		harness.SettingsRepository.Stored!.Notifications.ProtectedToken.ShouldBeNull();
@@ -77,9 +78,9 @@ public sealed class SettingsServiceTests
 		var harness = new TestHarness();
 
 		var exception = await Should.ThrowAsync<RequestValidationException>(() =>
-			harness.Settings.UpdateNotifications(new NotificationSettingsUpdate("ftp://ntfy", "bad topic!", null, NotificationEvents.Default, 21), Token));
+			harness.Settings.UpdateNotifications(new("ftp://ntfy", "bad topic!", null, NotificationEvents.Default, 21), Token));
 
-		exception.Errors.Keys.ShouldBe(["url", "topic", "readFailureThreshold"], ignoreOrder: true);
+		exception.Errors.Keys.ShouldBe(["url", "topic", "readFailureThreshold"], true);
 	}
 
 	[Fact]
@@ -130,7 +131,7 @@ public sealed class TriggerServiceTests
 	{
 		var harness = new TestHarness();
 		await harness.Triggers.RequestManual(Provider.Codex, Token);
-		var dashboard = new Services.DashboardService(harness.States, harness.Runs, harness.Settings, harness.Time);
+		var dashboard = new DashboardService(harness.States, harness.Runs, harness.Settings, harness.Time);
 
 		var snapshot = await dashboard.GetDashboard(Token);
 

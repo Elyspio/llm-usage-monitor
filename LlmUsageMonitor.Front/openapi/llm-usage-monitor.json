@@ -1,857 +1,1064 @@
 {
-	"openapi": "3.1.1",
-	"info": {
-		"title": "LlmUsageMonitor.WebApi | v1",
-		"version": "1.0.0"
-	},
-	"paths": {
-		"/api/history": {
-			"get": {
-				"tags": ["History"],
-				"operationId": "GetHistory",
-				"parameters": [
-					{
-						"name": "provider",
-						"in": "query",
-						"schema": {
-							"$ref": "#/components/schemas/Provider"
-						}
-					},
-					{
-						"name": "windowId",
-						"in": "query",
-						"schema": {
-							"type": "string"
-						}
-					},
-					{
-						"name": "range",
-						"in": "query",
-						"schema": {
-							"type": "string"
-						}
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "OK",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/UsageHistory"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/providers/{provider}/trigger": {
-			"post": {
-				"tags": ["Providers"],
-				"operationId": "TriggerProvider",
-				"parameters": [
-					{
-						"name": "provider",
-						"in": "path",
-						"required": true,
-						"schema": {
-							"$ref": "#/components/schemas/Provider"
-						}
-					}
-				],
-				"responses": {
-					"202": {
-						"description": "Accepted",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/TriggerRun"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Conflict",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/trigger-runs/{id}": {
-			"get": {
-				"tags": ["TriggerRuns"],
-				"operationId": "GetTriggerRun",
-				"parameters": [
-					{
-						"name": "id",
-						"in": "path",
-						"required": true,
-						"schema": {
-							"type": "string"
-						}
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "OK",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/TriggerRun"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Not Found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/settings/polling": {
-			"get": {
-				"tags": ["Settings"],
-				"operationId": "GetPollingSettings",
-				"responses": {
-					"200": {
-						"description": "OK",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/PollingSettings"
-								}
-							}
-						}
-					}
-				}
-			},
-			"put": {
-				"tags": ["Settings"],
-				"operationId": "UpdatePollingSettings",
-				"requestBody": {
-					"content": {
-						"application/json": {
-							"schema": {
-								"$ref": "#/components/schemas/PollingSettings"
-							}
-						},
-						"text/json": {
-							"schema": {
-								"$ref": "#/components/schemas/PollingSettings"
-							}
-						},
-						"application/*+json": {
-							"schema": {
-								"$ref": "#/components/schemas/PollingSettings"
-							}
-						}
-					},
-					"required": true
-				},
-				"responses": {
-					"200": {
-						"description": "OK",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/PollingSettings"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Bad Request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ValidationProblemDetails"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/settings/triggers": {
-			"get": {
-				"tags": ["Settings"],
-				"operationId": "GetTriggerSettings",
-				"responses": {
-					"200": {
-						"description": "OK",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/TriggerSettings"
-								}
-							}
-						}
-					}
-				}
-			},
-			"put": {
-				"tags": ["Settings"],
-				"operationId": "UpdateTriggerSettings",
-				"requestBody": {
-					"content": {
-						"application/json": {
-							"schema": {
-								"$ref": "#/components/schemas/TriggerSettings"
-							}
-						},
-						"text/json": {
-							"schema": {
-								"$ref": "#/components/schemas/TriggerSettings"
-							}
-						},
-						"application/*+json": {
-							"schema": {
-								"$ref": "#/components/schemas/TriggerSettings"
-							}
-						}
-					},
-					"required": true
-				},
-				"responses": {
-					"200": {
-						"description": "OK",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/TriggerSettings"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Bad Request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ValidationProblemDetails"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/settings/notifications": {
-			"get": {
-				"tags": ["Settings"],
-				"operationId": "GetNotificationSettings",
-				"responses": {
-					"200": {
-						"description": "OK",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/NotificationSettingsView"
-								}
-							}
-						}
-					}
-				}
-			},
-			"put": {
-				"tags": ["Settings"],
-				"operationId": "UpdateNotificationSettings",
-				"requestBody": {
-					"content": {
-						"application/json": {
-							"schema": {
-								"$ref": "#/components/schemas/NotificationSettingsUpdate"
-							}
-						},
-						"text/json": {
-							"schema": {
-								"$ref": "#/components/schemas/NotificationSettingsUpdate"
-							}
-						},
-						"application/*+json": {
-							"schema": {
-								"$ref": "#/components/schemas/NotificationSettingsUpdate"
-							}
-						}
-					},
-					"required": true
-				},
-				"responses": {
-					"200": {
-						"description": "OK",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/NotificationSettingsView"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Bad Request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ValidationProblemDetails"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/settings/notifications/test": {
-			"post": {
-				"tags": ["Settings"],
-				"operationId": "SendTestNotification",
-				"responses": {
-					"204": {
-						"description": "No Content"
-					},
-					"502": {
-						"description": "Bad Gateway",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/dashboard": {
-			"get": {
-				"tags": ["Dashboard"],
-				"operationId": "GetDashboard",
-				"responses": {
-					"200": {
-						"description": "OK",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/DashboardSnapshot"
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	},
-	"components": {
-		"schemas": {
-			"DashboardSnapshot": {
-				"required": ["providers", "recentTriggerRuns"],
-				"type": "object",
-				"properties": {
-					"providers": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/ProviderDashboard"
-						}
-					},
-					"recentTriggerRuns": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/TriggerRun"
-						}
-					}
-				}
-			},
-			"NotificationEvents": {
-				"required": ["triggerFailed", "authExpired", "readFailed", "reset", "triggerSucceeded", "recovered"],
-				"type": "object",
-				"properties": {
-					"triggerFailed": {
-						"type": "boolean"
-					},
-					"authExpired": {
-						"type": "boolean"
-					},
-					"readFailed": {
-						"type": "boolean"
-					},
-					"reset": {
-						"type": "boolean"
-					},
-					"triggerSucceeded": {
-						"type": "boolean"
-					},
-					"recovered": {
-						"type": "boolean"
-					}
-				}
-			},
-			"NotificationKind": {
-				"enum": ["triggerFailed", "authExpired", "readFailed", "reset", "triggerSucceeded", "recovered"]
-			},
-			"NotificationSendFailure": {
-				"required": ["at", "message"],
-				"type": "object",
-				"properties": {
-					"at": {
-						"type": "string",
-						"format": "date-time"
-					},
-					"message": {
-						"type": "string"
-					}
-				}
-			},
-			"NotificationSettingsUpdate": {
-				"required": ["url", "topic", "token", "events", "readFailureThreshold"],
-				"type": "object",
-				"properties": {
-					"url": {
-						"type": "string"
-					},
-					"topic": {
-						"type": ["null", "string"]
-					},
-					"token": {
-						"type": ["null", "string"]
-					},
-					"events": {
-						"$ref": "#/components/schemas/NotificationEvents"
-					},
-					"readFailureThreshold": {
-						"type": "integer",
-						"format": "int32"
-					}
-				}
-			},
-			"NotificationSettingsView": {
-				"required": ["url", "topic", "tokenDefined", "events", "readFailureThreshold", "lastSendFailure"],
-				"type": "object",
-				"properties": {
-					"url": {
-						"type": "string"
-					},
-					"topic": {
-						"type": ["null", "string"]
-					},
-					"tokenDefined": {
-						"type": "boolean"
-					},
-					"events": {
-						"$ref": "#/components/schemas/NotificationEvents"
-					},
-					"readFailureThreshold": {
-						"type": "integer",
-						"format": "int32"
-					},
-					"lastSendFailure": {
-						"oneOf": [
-							{
-								"type": "null"
-							},
-							{
-								"$ref": "#/components/schemas/NotificationSendFailure"
-							}
-						]
-					}
-				}
-			},
-			"PollingSettings": {
-				"required": ["claudeIntervalMinutes", "codexIntervalMinutes"],
-				"type": "object",
-				"properties": {
-					"claudeIntervalMinutes": {
-						"type": "integer",
-						"format": "int32"
-					},
-					"codexIntervalMinutes": {
-						"type": "integer",
-						"format": "int32"
-					}
-				}
-			},
-			"ProblemDetails": {
-				"type": "object",
-				"properties": {
-					"type": {
-						"type": ["null", "string"]
-					},
-					"title": {
-						"type": ["null", "string"]
-					},
-					"status": {
-						"type": ["null", "integer"],
-						"format": "int32"
-					},
-					"detail": {
-						"type": ["null", "string"]
-					},
-					"instance": {
-						"type": ["null", "string"]
-					}
-				}
-			},
-			"Provider": {
-				"enum": ["claude", "codex"]
-			},
-			"ProviderDashboard": {
-				"required": ["provider", "lastReading", "triggerWindowId", "autoTriggerEnabled", "pollIntervalMinutes", "nextAutoTriggerAt", "runningTrigger", "health"],
-				"type": "object",
-				"properties": {
-					"provider": {
-						"$ref": "#/components/schemas/Provider"
-					},
-					"lastReading": {
-						"oneOf": [
-							{
-								"type": "null"
-							},
-							{
-								"$ref": "#/components/schemas/UsageReading"
-							}
-						]
-					},
-					"triggerWindowId": {
-						"type": ["null", "string"]
-					},
-					"autoTriggerEnabled": {
-						"type": "boolean"
-					},
-					"pollIntervalMinutes": {
-						"type": "integer",
-						"format": "int32"
-					},
-					"nextAutoTriggerAt": {
-						"type": ["null", "string"],
-						"format": "date-time"
-					},
-					"runningTrigger": {
-						"oneOf": [
-							{
-								"type": "null"
-							},
-							{
-								"$ref": "#/components/schemas/TriggerRun"
-							}
-						]
-					},
-					"health": {
-						"$ref": "#/components/schemas/ProviderHealth"
-					}
-				}
-			},
-			"ProviderFailure": {
-				"required": ["code", "message", "at"],
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string"
-					},
-					"message": {
-						"type": "string"
-					},
-					"at": {
-						"type": "string",
-						"format": "date-time"
-					}
-				}
-			},
-			"ProviderHealth": {
-				"required": ["lastSuccessAt", "lastFailure", "consecutiveFailures", "backoffUntil", "activeAlerts", "tokenExpiresAt", "refreshTokenExpiresAt"],
-				"type": "object",
-				"properties": {
-					"lastSuccessAt": {
-						"type": ["null", "string"],
-						"format": "date-time"
-					},
-					"lastFailure": {
-						"oneOf": [
-							{
-								"type": "null"
-							},
-							{
-								"$ref": "#/components/schemas/ProviderFailure"
-							}
-						]
-					},
-					"consecutiveFailures": {
-						"type": "integer",
-						"format": "int32"
-					},
-					"backoffUntil": {
-						"type": ["null", "string"],
-						"format": "date-time"
-					},
-					"activeAlerts": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/NotificationKind"
-						}
-					},
-					"tokenExpiresAt": {
-						"type": ["null", "string"],
-						"format": "date-time"
-					},
-					"refreshTokenExpiresAt": {
-						"type": ["null", "string"],
-						"format": "date-time"
-					}
-				}
-			},
-			"ProviderTriggerSettings": {
-				"required": ["autoEnabled", "model"],
-				"type": "object",
-				"properties": {
-					"autoEnabled": {
-						"type": "boolean"
-					},
-					"model": {
-						"type": "string"
-					}
-				}
-			},
-			"TriggerRun": {
-				"required": ["id", "provider", "manual", "cycleKey", "model", "status", "startedAt", "endedAt", "errorCode", "error"],
-				"type": "object",
-				"properties": {
-					"id": {
-						"type": "string"
-					},
-					"provider": {
-						"$ref": "#/components/schemas/Provider"
-					},
-					"manual": {
-						"type": "boolean"
-					},
-					"cycleKey": {
-						"type": ["null", "string"]
-					},
-					"model": {
-						"type": "string"
-					},
-					"status": {
-						"$ref": "#/components/schemas/TriggerStatus"
-					},
-					"startedAt": {
-						"type": "string",
-						"format": "date-time"
-					},
-					"endedAt": {
-						"type": ["null", "string"],
-						"format": "date-time"
-					},
-					"errorCode": {
-						"type": ["null", "string"]
-					},
-					"error": {
-						"type": ["null", "string"]
-					},
-					"durationMs": {
-						"type": ["null", "number"],
-						"format": "double"
-					}
-				}
-			},
-			"TriggerSettings": {
-				"required": ["claude", "codex"],
-				"type": "object",
-				"properties": {
-					"claude": {
-						"$ref": "#/components/schemas/ProviderTriggerSettings"
-					},
-					"codex": {
-						"$ref": "#/components/schemas/ProviderTriggerSettings"
-					}
-				}
-			},
-			"TriggerStatus": {
-				"enum": ["running", "succeeded", "failed"]
-			},
-			"UsageHistory": {
-				"required": ["from", "to", "series", "triggerRuns"],
-				"type": "object",
-				"properties": {
-					"from": {
-						"type": "string",
-						"format": "date-time"
-					},
-					"to": {
-						"type": "string",
-						"format": "date-time"
-					},
-					"series": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/UsageSeries"
-						}
-					},
-					"triggerRuns": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/TriggerRun"
-						}
-					}
-				}
-			},
-			"UsagePoint": {
-				"required": ["fetchedAt", "usedPercent", "resetsAt"],
-				"type": "object",
-				"properties": {
-					"fetchedAt": {
-						"type": "string",
-						"format": "date-time"
-					},
-					"usedPercent": {
-						"type": "number",
-						"format": "double"
-					},
-					"resetsAt": {
-						"type": ["null", "string"],
-						"format": "date-time"
-					},
-					"remainingPercent": {
-						"type": "number",
-						"format": "double"
-					}
-				}
-			},
-			"UsageReading": {
-				"required": ["fetchedAt", "windows"],
-				"type": "object",
-				"properties": {
-					"fetchedAt": {
-						"type": "string",
-						"format": "date-time"
-					},
-					"windows": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/UsageWindow"
-						}
-					}
-				}
-			},
-			"UsageSeries": {
-				"required": ["provider", "windowId", "points"],
-				"type": "object",
-				"properties": {
-					"provider": {
-						"$ref": "#/components/schemas/Provider"
-					},
-					"windowId": {
-						"type": "string"
-					},
-					"points": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/UsagePoint"
-						}
-					}
-				}
-			},
-			"UsageWindow": {
-				"required": ["id", "usedPercent", "resetsAt", "windowDurationMinutes"],
-				"type": "object",
-				"properties": {
-					"id": {
-						"type": "string"
-					},
-					"usedPercent": {
-						"type": "number",
-						"format": "double"
-					},
-					"resetsAt": {
-						"type": ["null", "string"],
-						"format": "date-time"
-					},
-					"windowDurationMinutes": {
-						"type": ["null", "integer"],
-						"format": "int32"
-					},
-					"remainingPercent": {
-						"type": "number",
-						"format": "double"
-					}
-				}
-			},
-			"ValidationProblemDetails": {
-				"type": "object",
-				"properties": {
-					"type": {
-						"type": ["null", "string"]
-					},
-					"title": {
-						"type": ["null", "string"]
-					},
-					"status": {
-						"type": ["null", "integer"],
-						"format": "int32"
-					},
-					"detail": {
-						"type": ["null", "string"]
-					},
-					"instance": {
-						"type": ["null", "string"]
-					},
-					"errors": {
-						"type": "object",
-						"additionalProperties": {
-							"type": "array",
-							"items": {
-								"type": "string"
-							}
-						}
-					}
-				}
-			}
-		},
-		"securitySchemes": {
-			"keycloak": {
-				"type": "oauth2",
-				"flows": {
-					"authorizationCode": {
-						"authorizationUrl": "https://auth.elyspio.fr/realms/internal/protocol/openid-connect/auth",
-						"tokenUrl": "https://auth.elyspio.fr/realms/internal/protocol/openid-connect/token",
-						"scopes": {
-							"openid": "OpenID Connect"
-						}
-					}
-				}
-			}
-		}
-	},
-	"security": [
-		{
-			"keycloak": ["openid"]
-		}
-	],
-	"tags": [
-		{
-			"name": "History"
-		},
-		{
-			"name": "Providers"
-		},
-		{
-			"name": "TriggerRuns"
-		},
-		{
-			"name": "Settings"
-		},
-		{
-			"name": "Dashboard"
-		}
-	]
+  "openapi": "3.1.1",
+  "info": {
+    "title": "LlmUsageMonitor.WebApi | v1",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/history": {
+      "get": {
+        "tags": [
+          "History"
+        ],
+        "operationId": "GetHistory",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/Provider"
+            }
+          },
+          {
+            "name": "windowId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "range",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageHistory"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/providers/{provider}/trigger": {
+      "post": {
+        "tags": [
+          "Providers"
+        ],
+        "operationId": "TriggerProvider",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Provider"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriggerRun"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/trigger-runs/{id}": {
+      "get": {
+        "tags": [
+          "TriggerRuns"
+        ],
+        "operationId": "GetTriggerRun",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriggerRun"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settings/polling": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "GetPollingSettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PollingSettings"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "UpdatePollingSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PollingSettings"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PollingSettings"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PollingSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PollingSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settings/triggers": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "GetTriggerSettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriggerSettings"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "UpdateTriggerSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TriggerSettings"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TriggerSettings"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TriggerSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriggerSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settings/notifications": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "GetNotificationSettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationSettingsView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "UpdateNotificationSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationSettingsUpdate"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationSettingsUpdate"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationSettingsUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationSettingsView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settings/notifications/test": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "SendTestNotification",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "operationId": "GetDashboard",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardSnapshot"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DashboardSnapshot": {
+        "required": [
+          "providers",
+          "recentTriggerRuns"
+        ],
+        "type": "object",
+        "properties": {
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProviderDashboard"
+            }
+          },
+          "recentTriggerRuns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TriggerRun"
+            }
+          }
+        }
+      },
+      "NotificationEvents": {
+        "required": [
+          "triggerFailed",
+          "authExpired",
+          "readFailed",
+          "reset",
+          "triggerSucceeded",
+          "recovered"
+        ],
+        "type": "object",
+        "properties": {
+          "triggerFailed": {
+            "type": "boolean"
+          },
+          "authExpired": {
+            "type": "boolean"
+          },
+          "readFailed": {
+            "type": "boolean"
+          },
+          "reset": {
+            "type": "boolean"
+          },
+          "triggerSucceeded": {
+            "type": "boolean"
+          },
+          "recovered": {
+            "type": "boolean"
+          }
+        }
+      },
+      "NotificationKind": {
+        "enum": [
+          "triggerFailed",
+          "authExpired",
+          "readFailed",
+          "reset",
+          "triggerSucceeded",
+          "recovered"
+        ]
+      },
+      "NotificationSendFailure": {
+        "required": [
+          "at",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "NotificationSettingsUpdate": {
+        "required": [
+          "url",
+          "topic",
+          "token",
+          "events",
+          "readFailureThreshold"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "topic": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "token": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "events": {
+            "$ref": "#/components/schemas/NotificationEvents"
+          },
+          "readFailureThreshold": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "NotificationSettingsView": {
+        "required": [
+          "url",
+          "topic",
+          "tokenDefined",
+          "events",
+          "readFailureThreshold",
+          "lastSendFailure"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "topic": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tokenDefined": {
+            "type": "boolean"
+          },
+          "events": {
+            "$ref": "#/components/schemas/NotificationEvents"
+          },
+          "readFailureThreshold": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastSendFailure": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NotificationSendFailure"
+              }
+            ]
+          }
+        }
+      },
+      "PollingSettings": {
+        "required": [
+          "claudeIntervalMinutes",
+          "codexIntervalMinutes"
+        ],
+        "type": "object",
+        "properties": {
+          "claudeIntervalMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "codexIntervalMinutes": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "Provider": {
+        "enum": [
+          "claude",
+          "codex"
+        ]
+      },
+      "ProviderDashboard": {
+        "required": [
+          "provider",
+          "lastReading",
+          "triggerWindowId",
+          "autoTriggerEnabled",
+          "pollIntervalMinutes",
+          "nextAutoTriggerAt",
+          "runningTrigger",
+          "health"
+        ],
+        "type": "object",
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/Provider"
+          },
+          "lastReading": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/UsageReading"
+              }
+            ]
+          },
+          "triggerWindowId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "autoTriggerEnabled": {
+            "type": "boolean"
+          },
+          "pollIntervalMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nextAutoTriggerAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "runningTrigger": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TriggerRun"
+              }
+            ]
+          },
+          "health": {
+            "$ref": "#/components/schemas/ProviderHealth"
+          }
+        }
+      },
+      "ProviderFailure": {
+        "required": [
+          "code",
+          "message",
+          "at"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProviderHealth": {
+        "required": [
+          "lastSuccessAt",
+          "lastFailure",
+          "consecutiveFailures",
+          "backoffUntil",
+          "activeAlerts",
+          "tokenExpiresAt",
+          "refreshTokenExpiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "lastSuccessAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastFailure": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProviderFailure"
+              }
+            ]
+          },
+          "consecutiveFailures": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "backoffUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "activeAlerts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationKind"
+            }
+          },
+          "tokenExpiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "refreshTokenExpiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ProviderTriggerSettings": {
+        "required": [
+          "autoEnabled",
+          "model"
+        ],
+        "type": "object",
+        "properties": {
+          "autoEnabled": {
+            "type": "boolean"
+          },
+          "model": {
+            "type": "string"
+          }
+        }
+      },
+      "TriggerRun": {
+        "required": [
+          "id",
+          "provider",
+          "manual",
+          "cycleKey",
+          "model",
+          "status",
+          "startedAt",
+          "endedAt",
+          "errorCode",
+          "error"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/Provider"
+          },
+          "manual": {
+            "type": "boolean"
+          },
+          "cycleKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "model": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TriggerStatus"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "errorCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "durationMs": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "TriggerSettings": {
+        "required": [
+          "claude",
+          "codex"
+        ],
+        "type": "object",
+        "properties": {
+          "claude": {
+            "$ref": "#/components/schemas/ProviderTriggerSettings"
+          },
+          "codex": {
+            "$ref": "#/components/schemas/ProviderTriggerSettings"
+          }
+        }
+      },
+      "TriggerStatus": {
+        "enum": [
+          "running",
+          "succeeded",
+          "failed"
+        ]
+      },
+      "UsageHistory": {
+        "required": [
+          "from",
+          "to",
+          "series",
+          "triggerRuns"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "series": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UsageSeries"
+            }
+          },
+          "triggerRuns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TriggerRun"
+            }
+          }
+        }
+      },
+      "UsagePoint": {
+        "required": [
+          "fetchedAt",
+          "usedPercent",
+          "resetsAt"
+        ],
+        "type": "object",
+        "properties": {
+          "fetchedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "usedPercent": {
+            "type": "number",
+            "format": "double"
+          },
+          "resetsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "remainingPercent": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "UsageReading": {
+        "required": [
+          "fetchedAt",
+          "windows"
+        ],
+        "type": "object",
+        "properties": {
+          "fetchedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "windows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UsageWindow"
+            }
+          }
+        }
+      },
+      "UsageSeries": {
+        "required": [
+          "provider",
+          "windowId",
+          "points"
+        ],
+        "type": "object",
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/Provider"
+          },
+          "windowId": {
+            "type": "string"
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UsagePoint"
+            }
+          }
+        }
+      },
+      "UsageWindow": {
+        "required": [
+          "id",
+          "usedPercent",
+          "resetsAt",
+          "windowDurationMinutes"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "usedPercent": {
+            "type": "number",
+            "format": "double"
+          },
+          "resetsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "windowDurationMinutes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "remainingPercent": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "ValidationProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "keycloak": {
+        "type": "oauth2",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://auth.elyspio.fr/realms/internal/protocol/openid-connect/auth",
+            "tokenUrl": "https://auth.elyspio.fr/realms/internal/protocol/openid-connect/token",
+            "scopes": {
+              "openid": "OpenID Connect"
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "keycloak": [
+        "openid"
+      ]
+    }
+  ],
+  "tags": [
+    {
+      "name": "History"
+    },
+    {
+      "name": "Providers"
+    },
+    {
+      "name": "TriggerRuns"
+    },
+    {
+      "name": "Settings"
+    },
+    {
+      "name": "Dashboard"
+    }
+  ]
 }

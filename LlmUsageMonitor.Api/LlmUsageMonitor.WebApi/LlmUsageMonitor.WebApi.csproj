@@ -1,32 +1,39 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
-	<PropertyGroup>
-		<RootNamespace>LlmUsageMonitor</RootNamespace>
-		<!-- The OpenAPI document is written on build next to the front, which generates its client from it. -->
-		<OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/../../LlmUsageMonitor.Front/openapi</OpenApiDocumentsDirectory>
-		<OpenApiGenerateDocumentsOptions>--file-name llm-usage-monitor</OpenApiGenerateDocumentsOptions>
-	</PropertyGroup>
+    <PropertyGroup>
+        <RootNamespace>LlmUsageMonitor</RootNamespace>
+        <!-- The OpenAPI document is written on build next to the front, which generates its client from it. -->
+        <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/../../LlmUsageMonitor.Front/openapi</OpenApiDocumentsDirectory>
+        <OpenApiGenerateDocumentsOptions>--file-name llm-usage-monitor</OpenApiGenerateDocumentsOptions>
+    </PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Elyspio.Utils.Telemetry" Version="2.0.0" />
-		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
-		<PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.12" />
-		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
-		<PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.12">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
-		<PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.2.3" />
-	</ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Elyspio.Utils.Telemetry" Version="2.0.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.12"/>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12"/>
+        <PackageReference Include="OpenTelemetry.Instrumentation.Hangfire" Version="1.18.0-beta.1"/>
+        <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.12">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.2.3"/>
+    </ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\LlmUsageMonitor.Abstractions\LlmUsageMonitor.Abstractions.csproj" />
-		<ProjectReference Include="..\LlmUsageMonitor.Adapters.Claude\LlmUsageMonitor.Adapters.Claude.csproj" />
-		<ProjectReference Include="..\LlmUsageMonitor.Adapters.Codex\LlmUsageMonitor.Adapters.Codex.csproj" />
-		<ProjectReference Include="..\LlmUsageMonitor.Adapters.Hangfire\LlmUsageMonitor.Adapters.Hangfire.csproj" />
-		<ProjectReference Include="..\LlmUsageMonitor.Adapters.MongoDB\LlmUsageMonitor.Adapters.MongoDB.csproj" />
-		<ProjectReference Include="..\LlmUsageMonitor.Adapters.Ntfy\LlmUsageMonitor.Adapters.Ntfy.csproj" />
-		<ProjectReference Include="..\LlmUsageMonitor.Core\LlmUsageMonitor.Core.csproj" />
-	</ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\LlmUsageMonitor.Abstractions\LlmUsageMonitor.Abstractions.csproj"/>
+        <ProjectReference Include="..\LlmUsageMonitor.Adapters.Claude\LlmUsageMonitor.Adapters.Claude.csproj"/>
+        <ProjectReference Include="..\LlmUsageMonitor.Adapters.Codex\LlmUsageMonitor.Adapters.Codex.csproj"/>
+        <ProjectReference Include="..\LlmUsageMonitor.Adapters.Hangfire\LlmUsageMonitor.Adapters.Hangfire.csproj"/>
+        <ProjectReference Include="..\LlmUsageMonitor.Adapters.MongoDB\LlmUsageMonitor.Adapters.MongoDB.csproj"/>
+        <ProjectReference Include="..\LlmUsageMonitor.Adapters.Ntfy\LlmUsageMonitor.Adapters.Ntfy.csproj"/>
+        <ProjectReference Include="..\LlmUsageMonitor.Core\LlmUsageMonitor.Core.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Update="appsettings.Development.json">
+            <DependentUpon>appsettings.json</DependentUpon>
+        </Content>
+    </ItemGroup>
 
 </Project>

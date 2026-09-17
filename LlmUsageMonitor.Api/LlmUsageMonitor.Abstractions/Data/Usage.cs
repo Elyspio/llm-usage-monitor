@@ -27,7 +27,7 @@ public sealed record UsageReading(DateTimeOffset FetchedAt, IReadOnlyList<UsageW
 	/// </summary>
 	[JsonIgnore]
 	public UsageWindow? TriggerWindow => Windows
-		.Where(window => window.WindowDurationMinutes is not null)
+		.Where(window => window.WindowDurationMinutes is { })
 		.MinBy(window => window.WindowDurationMinutes);
 }
 

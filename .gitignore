@@ -8,3 +8,9 @@ obj/
 .vs/
 *.user
 dist/
+deploy/out/
+deploy/*.tar.gz
+.claude
+.idea
+TestResults/
+deploy/appsettings.Production.json

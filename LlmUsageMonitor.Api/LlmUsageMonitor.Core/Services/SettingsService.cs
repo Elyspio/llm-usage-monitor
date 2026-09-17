@@ -23,7 +23,10 @@ public sealed partial class SettingsService(
 
 	public async Task<AppSettings> Get(CancellationToken cancellationToken)
 	{
-		if (await repository.Find(cancellationToken) is { } settings) return settings;
+		if (await repository.Find(cancellationToken) is { } settings)
+		{
+			return settings;
+		}
 
 		var defaults = AppSettings.CreateDefault(appConfig.Value.AutoTriggerEnabledByDefault);
 		await repository.Save(defaults, cancellationToken);
@@ -54,15 +57,15 @@ public sealed partial class SettingsService(
 		var settings = await Get(cancellationToken);
 		await repository.Save(settings with { Triggers = normalized }, cancellationToken);
 
-		foreach (var provider in Enum.GetValues<Provider>().Where(provider => !normalized.For(provider).AutoEnabled))
-		{
-			await CancelPendingResetCheck(provider, cancellationToken);
-		}
+		foreach (var provider in Enum.GetValues<Provider>().Where(provider => !normalized.For(provider).AutoEnabled)) await CancelPendingResetCheck(provider, cancellationToken);
 
 		return normalized;
 	}
 
-	public async Task<NotificationSettingsView> GetNotifications(CancellationToken cancellationToken) => ToView((await Get(cancellationToken)).Notifications);
+	public async Task<NotificationSettingsView> GetNotifications(CancellationToken cancellationToken)
+	{
+		return ToView((await Get(cancellationToken)).Notifications);
+	}
 
 	public async Task<NotificationSettingsView> UpdateNotifications(NotificationSettingsUpdate update, CancellationToken cancellationToken)
 	{
@@ -73,7 +76,7 @@ public sealed partial class SettingsService(
 		}
 
 		var topic = string.IsNullOrWhiteSpace(update.Topic) ? null : update.Topic.Trim();
-		if (topic is not null && !TopicPattern().IsMatch(topic))
+		if (topic is { } && !TopicPattern().IsMatch(topic))
 		{
 			errors["topic"] = ["Lettres, chiffres, « _ » et « - » uniquement, 64 caractères au plus."];
 		}
@@ -90,7 +93,7 @@ public sealed partial class SettingsService(
 		{
 			null => settings.Notifications.ProtectedToken,
 			"" => null,
-			var token => protector.Protect(token),
+			var token => protector.Protect(token)
 		};
 		var notifications = settings.Notifications with
 		{
@@ -98,7 +101,7 @@ public sealed partial class SettingsService(
 			Topic = topic,
 			ProtectedToken = protectedToken,
 			Events = update.Events,
-			ReadFailureThreshold = update.ReadFailureThreshold,
+			ReadFailureThreshold = update.ReadFailureThreshold
 		};
 		await repository.Save(settings with { Notifications = notifications }, cancellationToken);
 		return ToView(notifications);
@@ -107,14 +110,19 @@ public sealed partial class SettingsService(
 	private async Task CancelPendingResetCheck(Provider provider, CancellationToken cancellationToken)
 	{
 		var state = await states.Get(provider, cancellationToken);
-		if (state.PendingResetCheck is not { } pending) return;
+		if (state.PendingResetCheck is not { } pending)
+		{
+			return;
+		}
 
 		scheduler.Delete(pending.JobId);
 		await states.Save(state with { PendingResetCheck = null }, cancellationToken);
 	}
 
-	private static NotificationSettingsView ToView(NotificationSettings settings) =>
-		new(settings.Url, settings.Topic, settings.ProtectedToken is not null, settings.Events, settings.ReadFailureThreshold, settings.LastSendFailure);
+	private static NotificationSettingsView ToView(NotificationSettings settings)
+	{
+		return new(settings.Url, settings.Topic, settings.ProtectedToken is not null, settings.Events, settings.ReadFailureThreshold, settings.LastSendFailure);
+	}
 
 	private static void ValidateInterval(Dictionary<string, string[]> errors, string field, int minutes)
 	{
@@ -134,7 +142,10 @@ public sealed partial class SettingsService(
 
 	private static void ThrowIfAny(Dictionary<string, string[]> errors)
 	{
-		if (errors.Count > 0) throw new RequestValidationException(errors);
+		if (errors.Count > 0)
+		{
+			throw new RequestValidationException(errors);
+		}
 	}
 
 	[GeneratedRegex("^[A-Za-z0-9_-]{1,64}$")]

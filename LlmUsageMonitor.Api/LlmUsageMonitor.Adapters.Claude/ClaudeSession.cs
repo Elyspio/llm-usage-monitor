@@ -22,7 +22,8 @@ internal static class ClaudeCredentialsFile
 		}
 		catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
 		{
-			throw new ProviderException(ProviderErrorCodes.CredentialsUnavailable, "Cannot read the Claude CLI credentials. Sign in with `claude auth login` or set Claude:CredentialsPath.", exception);
+			throw new ProviderException(ProviderErrorCodes.CredentialsUnavailable, "Cannot read the Claude CLI credentials. Sign in with `claude auth login` or set Claude:CredentialsPath.",
+				exception);
 		}
 
 		using (document)
@@ -34,14 +35,16 @@ internal static class ClaudeCredentialsFile
 				throw new ProviderException(ProviderErrorCodes.AuthRequired, "The Claude CLI credentials contain no OAuth access token. Sign in with `claude auth login`.");
 			}
 
-			return new ClaudeCredentials(token.GetString()!, ReadMilliseconds(oauth, "expiresAt"), ReadMilliseconds(oauth, "refreshTokenExpiresAt"));
+			return new(token.GetString()!, ReadMilliseconds(oauth, "expiresAt"), ReadMilliseconds(oauth, "refreshTokenExpiresAt"));
 		}
 	}
 
-	private static DateTimeOffset? ReadMilliseconds(JsonElement oauth, string name) =>
-		oauth.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out var milliseconds)
+	private static DateTimeOffset? ReadMilliseconds(JsonElement oauth, string name)
+	{
+		return oauth.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out var milliseconds)
 			? DateTimeOffset.FromUnixTimeMilliseconds(milliseconds)
 			: null;
+	}
 }
 
 /// <summary>
@@ -53,7 +56,7 @@ internal sealed class ClaudeSession(IOptions<ClaudeOptions> options) : IClaudeSe
 	public async Task<ClaudeTokenInfo> ReadToken(CancellationToken cancellationToken)
 	{
 		var credentials = await ClaudeCredentialsFile.Read(options.Value.ResolveCredentialsPath(), cancellationToken);
-		return new ClaudeTokenInfo(credentials.ExpiresAt, credentials.RefreshTokenExpiresAt);
+		return new(credentials.ExpiresAt, credentials.RefreshTokenExpiresAt);
 	}
 
 	public Task RefreshThroughCli(CancellationToken cancellationToken)

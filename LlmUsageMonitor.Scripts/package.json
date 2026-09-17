@@ -4,20 +4,17 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"check": "pnpm run format:check && pnpm run lint && pnpm run typecheck",
-		"format": "oxfmt",
-		"format:check": "oxfmt --check",
-		"lint": "oxlint",
-		"lint:fix": "oxlint --fix",
+		"check": "pnpm run lint && pnpm run typecheck",
+		"format": "vp fmt",
+		"lint": "vp check --fix",
 		"typecheck": "tsc --noEmit",
 		"usage:codex": "tsx examples/codex.ts"
 	},
 	"devDependencies": {
 		"@types/node": "^26.5.0",
-		"oxfmt": "^0.67.0",
-		"oxlint": "^1.81.0",
 		"tsx": "^4.23.13",
-		"typescript": "^7.0.2"
+		"typescript": "^7.0.2",
+		"vite-plus": "^0.3.2"
 	},
 	"engines": {
 		"node": ">=22"

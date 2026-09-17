@@ -41,9 +41,14 @@ public sealed class HealthTracker(INotificationService notifications) : IHealthT
 		var next = state with { LastFailure = failure, ConsecutiveFailures = state.ConsecutiveFailures + 1 };
 		NotificationKind? alert = exception.Code == ProviderErrorCodes.AuthExpired
 			? NotificationKind.AuthExpired
-			: next.ConsecutiveFailures >= readFailureThreshold ? NotificationKind.ReadFailed : null;
+			: next.ConsecutiveFailures >= readFailureThreshold
+				? NotificationKind.ReadFailed
+				: null;
 
-		if (alert is not { } kind || next.ActiveAlerts.Contains(kind)) return next;
+		if (alert is not { } kind || next.ActiveAlerts.Contains(kind))
+		{
+			return next;
+		}
 
 		await notifications.Notify(kind, state.Provider, exception.Message, cancellationToken);
 		return next with { ActiveAlerts = [.. next.ActiveAlerts, kind] };

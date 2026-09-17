@@ -22,12 +22,12 @@ public sealed class CodexRpcException(JsonElement error)
 /// </summary>
 internal sealed class CodexAppServer : IAsyncDisposable
 {
-	private readonly ConcurrentDictionary<long, TaskCompletionSource<JsonElement>> _pending = new();
+	private readonly Task _errors;
 	private readonly Channel<ServerNotification> _notifications = Channel.CreateUnbounded<ServerNotification>();
-	private readonly SemaphoreSlim _writeLock = new(1, 1);
+	private readonly ConcurrentDictionary<long, TaskCompletionSource<JsonElement>> _pending = new();
 	private readonly Process _process;
 	private readonly Task _reader;
-	private readonly Task _errors;
+	private readonly SemaphoreSlim _writeLock = new(1, 1);
 	private long _nextId;
 
 	private CodexAppServer(Process process)
@@ -40,6 +40,19 @@ internal sealed class CodexAppServer : IAsyncDisposable
 
 	public ChannelReader<ServerNotification> Notifications => _notifications.Reader;
 
+	public async ValueTask DisposeAsync()
+	{
+		_process.StandardInput.Close();
+		if (!_process.HasExited)
+		{
+			_process.Kill(true);
+		}
+
+		await Task.WhenAny(Task.WhenAll(_reader, _errors), Task.Delay(TimeSpan.FromSeconds(5)));
+		_process.Dispose();
+		_writeLock.Dispose();
+	}
+
 	public static async Task<CodexAppServer> Start(CodexOptions options, CancellationToken cancellationToken)
 	{
 		var info = new ProcessStartInfo(options.Executable)
@@ -51,7 +64,7 @@ internal sealed class CodexAppServer : IAsyncDisposable
 			CreateNoWindow = true,
 			WorkingDirectory = options.ResolveWorkingDirectory(),
 			StandardOutputEncoding = Encoding.UTF8,
-			StandardErrorEncoding = Encoding.UTF8,
+			StandardErrorEncoding = Encoding.UTF8
 		};
 		info.ArgumentList.Add("app-server");
 		info.ArgumentList.Add("--listen");
@@ -95,19 +108,9 @@ internal sealed class CodexAppServer : IAsyncDisposable
 		}
 	}
 
-	public Task Notify(string method, object parameters) => Write(new { method, @params = parameters });
-
-	public async ValueTask DisposeAsync()
+	public Task Notify(string method, object parameters)
 	{
-		_process.StandardInput.Close();
-		if (!_process.HasExited)
-		{
-			_process.Kill(entireProcessTree: true);
-		}
-
-		await Task.WhenAny(Task.WhenAll(_reader, _errors), Task.Delay(TimeSpan.FromSeconds(5)));
-		_process.Dispose();
-		_writeLock.Dispose();
+		return Write(new { method, @params = parameters });
 	}
 
 	private async Task Write(object message)
@@ -135,21 +138,34 @@ internal sealed class CodexAppServer : IAsyncDisposable
 		{
 			while (await _process.StandardOutput.ReadLineAsync() is { } line)
 			{
-				if (TryParse(line) is not { } message) continue;
+				if (TryParse(line) is not { } message)
+				{
+					continue;
+				}
 
 				var hasMethod = message.TryGetProperty("method", out var method);
 				var hasId = message.TryGetProperty("id", out var id) && id.ValueKind == JsonValueKind.Number;
 
 				if (hasId && !hasMethod)
 				{
-					if (!_pending.TryRemove(id.GetInt64(), out var completion)) continue;
-					if (message.TryGetProperty("error", out var error)) completion.TrySetException(new CodexRpcException(error.Clone()));
-					else completion.TrySetResult(message.TryGetProperty("result", out var result) ? result.Clone() : default);
+					if (!_pending.TryRemove(id.GetInt64(), out var completion))
+					{
+						continue;
+					}
+
+					if (message.TryGetProperty("error", out var error))
+					{
+						completion.TrySetException(new CodexRpcException(error.Clone()));
+					}
+					else
+					{
+						completion.TrySetResult(message.TryGetProperty("result", out var result) ? result.Clone() : default);
+					}
 				}
 				else if (hasMethod && !hasId)
 				{
 					var parameters = message.TryGetProperty("params", out var value) ? value.Clone() : default;
-					_notifications.Writer.TryWrite(new ServerNotification(method.GetString() ?? string.Empty, parameters));
+					_notifications.Writer.TryWrite(new(method.GetString() ?? string.Empty, parameters));
 				}
 			}
 		}

@@ -52,10 +52,13 @@ public sealed class ClaudeUsageParserTests
 	[InlineData(1, "error: unknown option '--safe-mode'", ProviderErrorCodes.TriggerFailed)]
 	public void Prompt_results_are_classified_from_is_error_the_status_and_the_text(int exitCode, string output, string? expected)
 	{
-		ClaudePromptRunner.Classify(new CliResult(exitCode, output, ""))?.Code.ShouldBe(expected);
+		ClaudePromptRunner.Classify(new(exitCode, output, ""))?.Code.ShouldBe(expected);
 	}
 
-	private static JsonElement Json(string json) => JsonDocument.Parse(json).RootElement;
+	private static JsonElement Json(string json)
+	{
+		return JsonDocument.Parse(json).RootElement;
+	}
 }
 
 public sealed class CodexUsageParserTests
@@ -75,9 +78,9 @@ public sealed class CodexUsageParserTests
 	public void Older_clients_expose_only_the_legacy_snapshot()
 	{
 		var windows = CodexUsageParser.Parse(Json("""
-			{ "rateLimits": { "limitId": "codex", "primary": { "usedPercent": 30, "windowDurationMins": 300, "resetsAt": null },
-			  "secondary": { "usedPercent": 5, "windowDurationMins": 10080, "resetsAt": 1789806548 } } }
-			"""));
+		                                          { "rateLimits": { "limitId": "codex", "primary": { "usedPercent": 30, "windowDurationMins": 300, "resetsAt": null },
+		                                            "secondary": { "usedPercent": 5, "windowDurationMins": 10080, "resetsAt": 1789806548 } } }
+		                                          """));
 
 		windows.Select(window => window.Id).ShouldBe(["codex/primary", "codex/secondary"]);
 		windows[0].ResetsAt.ShouldBeNull();
@@ -108,10 +111,16 @@ public sealed class CodexUsageParserTests
 		CodexPromptRunner.MapTurnError(Json(error)).Code.ShouldBe(expected);
 	}
 
-	private static JsonElement Json(string json) => JsonDocument.Parse(json).RootElement;
+	private static JsonElement Json(string json)
+	{
+		return JsonDocument.Parse(json).RootElement;
+	}
 }
 
 internal static class Fixtures
 {
-	public static JsonElement Load(string name) => JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", name))).RootElement;
+	public static JsonElement Load(string name)
+	{
+		return JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", name))).RootElement;
+	}
 }

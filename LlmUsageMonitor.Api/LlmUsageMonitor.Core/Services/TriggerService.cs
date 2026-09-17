@@ -28,9 +28,32 @@ public sealed class TriggerService(
 {
 	private readonly Dictionary<Provider, IPromptRunner> _runners = runners.ToDictionary(runner => runner.Provider);
 
+	public async Task Run(Provider provider, string cycleKey, CancellationToken cancellationToken)
+	{
+		var settings = await settingsService.Get(cancellationToken);
+		var run = await runs.TryStartAutomatic(provider, cycleKey, settings.Triggers.For(provider).Model, time.GetUtcNow(), cancellationToken);
+		if (run is null)
+		{
+			return;
+		}
+
+		logger.LogInformation("{Provider} automatic trigger for cycle {CycleKey}", provider, cycleKey);
+		var completed = await Execute(run, cancellationToken);
+
+		if (completed.Status == TriggerStatus.Succeeded)
+		{
+			await notifications.Notify(NotificationKind.TriggerSucceeded, provider, "Prompt envoyé : un nouveau cycle est ouvert.", cancellationToken);
+		}
+		else
+			// No automatic retry: the cycle guard keeps this failure as the attempt of the cycle.
+		{
+			await notifications.Notify(NotificationKind.TriggerFailed, provider, $"{completed.ErrorCode} : {completed.Error}", cancellationToken);
+		}
+	}
+
 	public async Task<TriggerRun> RequestManual(Provider provider, CancellationToken cancellationToken)
 	{
-		if (locks.IsBusy(provider) || await runs.GetRunning(provider, cancellationToken) is not null)
+		if (locks.IsBusy(provider) || await runs.GetRunning(provider, cancellationToken) is { })
 		{
 			throw new ProviderException(ProviderErrorCodes.CliBusy, "A CLI process is already running for this provider.");
 		}
@@ -44,34 +67,19 @@ public sealed class TriggerService(
 	public async Task ExecuteManual(string runId, CancellationToken cancellationToken)
 	{
 		var run = await Get(runId, cancellationToken);
-		if (run.Status != TriggerStatus.Running) return;
+		if (run.Status != TriggerStatus.Running)
+		{
+			return;
+		}
 
 		using var providerLock = await locks.Acquire(run.Provider, cancellationToken);
 		// Manual triggers are never notified: the user is in front of the application.
 		await Execute(run, cancellationToken);
 	}
 
-	public async Task<TriggerRun> Get(string runId, CancellationToken cancellationToken) =>
-		await runs.Get(runId, cancellationToken) ?? throw new ResourceNotFoundException($"Trigger run {runId} does not exist.");
-
-	public async Task Run(Provider provider, string cycleKey, CancellationToken cancellationToken)
+	public async Task<TriggerRun> Get(string runId, CancellationToken cancellationToken)
 	{
-		var settings = await settingsService.Get(cancellationToken);
-		var run = await runs.TryStartAutomatic(provider, cycleKey, settings.Triggers.For(provider).Model, time.GetUtcNow(), cancellationToken);
-		if (run is null) return;
-
-		logger.LogInformation("{Provider} automatic trigger for cycle {CycleKey}", provider, cycleKey);
-		var completed = await Execute(run, cancellationToken);
-
-		if (completed.Status == TriggerStatus.Succeeded)
-		{
-			await notifications.Notify(NotificationKind.TriggerSucceeded, provider, "Prompt envoyé : un nouveau cycle est ouvert.", cancellationToken);
-		}
-		else
-		{
-			// No automatic retry: the cycle guard keeps this failure as the attempt of the cycle.
-			await notifications.Notify(NotificationKind.TriggerFailed, provider, $"{completed.ErrorCode} : {completed.Error}", cancellationToken);
-		}
+		return await runs.Get(runId, cancellationToken) ?? throw new ResourceNotFoundException($"Trigger run {runId} does not exist.");
 	}
 
 	private async Task<TriggerRun> Execute(TriggerRun run, CancellationToken cancellationToken)

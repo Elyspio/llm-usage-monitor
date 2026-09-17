@@ -1,91 +1,91 @@
 {
-  "realm": "llm-usage-monitor",
-  "enabled": true,
-  "sslRequired": "none",
-  "registrationAllowed": false,
-  "loginWithEmailAllowed": true,
-  "roles": {
-    "client": {
-      "i-llm-usage-monitor": [
-        {
-          "name": "llm-usage-monitor:admin",
-          "description": "Full access to LLM Usage Monitor"
-        }
-      ]
-    }
-  },
-  "clients": [
-    {
-      "clientId": "i-llm-usage-monitor",
-      "name": "LLM Usage Monitor (dev)",
-      "enabled": true,
-      "protocol": "openid-connect",
-      "publicClient": true,
-      "standardFlowEnabled": true,
-      "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
-      "redirectUris": [
-        "https://localhost:3000/auth/callback",
-        "https://localhost:3000/signin-oidc",
-        "https://localhost:3000/swagger/oauth2-redirect.html"
-      ],
-      "webOrigins": [
-        "https://localhost:3000"
-      ],
-      "attributes": {
-        "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "https://localhost:3000/"
-      },
-      "protocolMappers": [
-        {
-          "name": "audience-i-llm-usage-monitor",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-audience-mapper",
-          "consentRequired": false,
-          "config": {
-            "included.client.audience": "i-llm-usage-monitor",
-            "access.token.claim": "true",
-            "id.token.claim": "false"
-          }
-        }
-      ]
-    }
-  ],
-  "users": [
-    {
-      "username": "admin",
-      "enabled": true,
-      "emailVerified": true,
-      "email": "admin@local",
-      "firstName": "Local",
-      "lastName": "Administrator",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "admin",
-          "temporary": false
-        }
-      ],
-      "clientRoles": {
-        "i-llm-usage-monitor": [
-          "llm-usage-monitor:admin"
-        ]
-      }
-    },
-    {
-      "username": "norole",
-      "enabled": true,
-      "emailVerified": true,
-      "email": "norole@local",
-      "firstName": "No",
-      "lastName": "Role",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "norole",
-          "temporary": false
-        }
-      ]
-    }
-  ]
+	"realm": "llm-usage-monitor",
+	"enabled": true,
+	"sslRequired": "none",
+	"registrationAllowed": false,
+	"loginWithEmailAllowed": true,
+	"roles": {
+		"client": {
+			"i-llm-usage-monitor": [
+				{
+					"name": "llm-usage-monitor:admin",
+					"description": "Full access to LLM Usage Monitor"
+				}
+			]
+		}
+	},
+	"clients": [
+		{
+			"clientId": "i-llm-usage-monitor",
+			"name": "LLM Usage Monitor (dev)",
+			"enabled": true,
+			"protocol": "openid-connect",
+			"publicClient": true,
+			"standardFlowEnabled": true,
+			"implicitFlowEnabled": false,
+			"directAccessGrantsEnabled": false,
+			"redirectUris": [
+				"https://localhost:3000/auth/callback",
+				"https://localhost:3000/signin-oidc",
+				"https://localhost:3000/swagger/oauth2-redirect.html"
+			],
+			"webOrigins": [
+				"https://localhost:3000"
+			],
+			"attributes": {
+				"pkce.code.challenge.method": "S256",
+				"post.logout.redirect.uris": "https://localhost:3000/"
+			},
+			"protocolMappers": [
+				{
+					"name": "audience-i-llm-usage-monitor",
+					"protocol": "openid-connect",
+					"protocolMapper": "oidc-audience-mapper",
+					"consentRequired": false,
+					"config": {
+						"included.client.audience": "i-llm-usage-monitor",
+						"access.token.claim": "true",
+						"id.token.claim": "false"
+					}
+				}
+			]
+		}
+	],
+	"users": [
+		{
+			"username": "admin",
+			"enabled": true,
+			"emailVerified": true,
+			"email": "admin@local",
+			"firstName": "Local",
+			"lastName": "Administrator",
+			"credentials": [
+				{
+					"type": "password",
+					"value": "admin",
+					"temporary": false
+				}
+			],
+			"clientRoles": {
+				"i-llm-usage-monitor": [
+					"llm-usage-monitor:admin"
+				]
+			}
+		},
+		{
+			"username": "norole",
+			"enabled": true,
+			"emailVerified": true,
+			"email": "norole@local",
+			"firstName": "No",
+			"lastName": "Role",
+			"credentials": [
+				{
+					"type": "password",
+					"value": "norole",
+					"temporary": false
+				}
+			]
+		}
+	]
 }

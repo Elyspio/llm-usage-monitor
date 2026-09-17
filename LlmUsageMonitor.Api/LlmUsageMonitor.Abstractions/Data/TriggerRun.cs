@@ -4,7 +4,7 @@ public enum TriggerStatus
 {
 	Running,
 	Succeeded,
-	Failed,
+	Failed
 }
 
 /// <summary>

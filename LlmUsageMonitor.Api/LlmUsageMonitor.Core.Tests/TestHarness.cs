@@ -22,16 +22,16 @@ internal sealed class TestHarness
 		var defaults = AppSettings.CreateDefault(autoTriggerEnabled);
 		SettingsRepository.Stored = defaults with
 		{
-			Notifications = defaults.Notifications with { Topic = "tests", Events = new NotificationEvents(true, true, true, true, true, true) },
+			Notifications = defaults.Notifications with { Topic = "tests", Events = new(true, true, true, true, true, true) }
 		};
 
 		var appConfig = Options.Create(new AppConfig { PublicUrl = "https://monitor.test", AutoTriggerEnabledByDefault = autoTriggerEnabled });
-		Settings = new SettingsService(SettingsRepository, States, Scheduler, Protector, appConfig);
-		Notifications = new NotificationService(Sender, SettingsRepository, Settings, Protector, appConfig, Time, NullLogger<NotificationService>.Instance);
-		Health = new HealthTracker(Notifications);
-		Triggers = new TriggerService([ClaudeRunner, CodexRunner], Runs, Locks, Settings, Notifications, Scheduler, Time, NullLogger<TriggerService>.Instance);
-		KeepAlive = new ClaudeKeepAlive(Session, Locks, States, Settings, Health, Scheduler, Time, NullLogger<ClaudeKeepAlive>.Instance);
-		Monitor = new UsageMonitor([ClaudeReader, CodexReader], Locks, States, Snapshots, Resets, Settings, Health, KeepAlive, Triggers, Notifications, Scheduler, Time, NullLogger<UsageMonitor>.Instance);
+		Settings = new(SettingsRepository, States, Scheduler, Protector, appConfig);
+		Notifications = new(Sender, SettingsRepository, Settings, Protector, appConfig, Time, NullLogger<NotificationService>.Instance);
+		Health = new(Notifications);
+		Triggers = new([ClaudeRunner, CodexRunner], Runs, Locks, Settings, Notifications, Scheduler, Time, NullLogger<TriggerService>.Instance);
+		KeepAlive = new(Session, Locks, States, Settings, Health, Scheduler, Time, NullLogger<ClaudeKeepAlive>.Instance);
+		Monitor = new([ClaudeReader, CodexReader], Locks, States, Snapshots, Resets, Settings, Health, KeepAlive, Triggers, Notifications, Scheduler, Time, NullLogger<UsageMonitor>.Instance);
 		Session.ExpiresAt = Start.AddHours(8);
 	}
 
@@ -58,15 +58,20 @@ internal sealed class TestHarness
 	public ClaudeKeepAlive KeepAlive { get; }
 	public UsageMonitor Monitor { get; }
 
-	public static UsageWindow Window(string id, double used, DateTimeOffset? resetsAt, int? duration = 300) => new(id, used, resetsAt, duration);
+	public static UsageWindow Window(string id, double used, DateTimeOffset? resetsAt, int? duration = 300)
+	{
+		return new(id, used, resetsAt, duration);
+	}
 }
 
 internal sealed class InMemoryStates : IProviderStateRepository
 {
 	public Dictionary<Provider, ProviderState> Stored { get; } = [];
 
-	public Task<ProviderState> Get(Provider provider, CancellationToken cancellationToken) =>
-		Task.FromResult(Stored.TryGetValue(provider, out var state) ? state : new ProviderState(provider));
+	public Task<ProviderState> Get(Provider provider, CancellationToken cancellationToken)
+	{
+		return Task.FromResult(Stored.TryGetValue(provider, out var state) ? state : new(provider));
+	}
 
 	public Task Save(ProviderState state, CancellationToken cancellationToken)
 	{
@@ -85,23 +90,28 @@ internal sealed class InMemorySnapshots : IUsageSnapshotRepository
 		return Task.CompletedTask;
 	}
 
-	public Task<IReadOnlyList<UsageSeries>> GetHistory(Provider? provider, string? windowId, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken) =>
-		Task.FromResult<IReadOnlyList<UsageSeries>>([]);
+	public Task<IReadOnlyList<UsageSeries>> GetHistory(Provider? provider, string? windowId, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken)
+	{
+		return Task.FromResult<IReadOnlyList<UsageSeries>>([]);
+	}
 }
 
 internal sealed class InMemoryResets : IResetRepository
 {
 	public List<ResetEvent> Added { get; } = [];
 
-	public Task<ResetEvent> Add(Provider provider, string windowId, DateTimeOffset detectedAt, double usedBefore, double usedAfter, DateTimeOffset? previousResetsAt, CancellationToken cancellationToken)
+	public Task<ResetEvent> Add(Provider provider, string windowId, DateTimeOffset detectedAt, double usedBefore, double usedAfter, DateTimeOffset? previousResetsAt,
+		CancellationToken cancellationToken)
 	{
 		var reset = new ResetEvent($"reset-{Added.Count + 1}", provider, windowId, detectedAt, usedBefore, usedAfter, previousResetsAt);
 		Added.Add(reset);
 		return Task.FromResult(reset);
 	}
 
-	public Task<ResetEvent?> GetLast(Provider provider, string windowId, CancellationToken cancellationToken) =>
-		Task.FromResult(Added.LastOrDefault(reset => reset.Provider == provider && reset.WindowId == windowId));
+	public Task<ResetEvent?> GetLast(Provider provider, string windowId, CancellationToken cancellationToken)
+	{
+		return Task.FromResult(Added.LastOrDefault(reset => reset.Provider == provider && reset.WindowId == windowId));
+	}
 }
 
 internal sealed class InMemoryRuns : ITriggerRunRepository
@@ -110,12 +120,18 @@ internal sealed class InMemoryRuns : ITriggerRunRepository
 
 	public Task<TriggerRun?> TryStartAutomatic(Provider provider, string cycleKey, string model, DateTimeOffset startedAt, CancellationToken cancellationToken)
 	{
-		if (All.Any(run => !run.Manual && run.Provider == provider && run.CycleKey == cycleKey)) return Task.FromResult<TriggerRun?>(null);
+		if (All.Any(run => !run.Manual && run.Provider == provider && run.CycleKey == cycleKey))
+		{
+			return Task.FromResult<TriggerRun?>(null);
+		}
+
 		return Task.FromResult<TriggerRun?>(Start(provider, false, cycleKey, model, startedAt));
 	}
 
-	public Task<TriggerRun> StartManual(Provider provider, string model, DateTimeOffset startedAt, CancellationToken cancellationToken) =>
-		Task.FromResult(Start(provider, true, null, model, startedAt));
+	public Task<TriggerRun> StartManual(Provider provider, string model, DateTimeOffset startedAt, CancellationToken cancellationToken)
+	{
+		return Task.FromResult(Start(provider, true, null, model, startedAt));
+	}
 
 	public Task<TriggerRun> Complete(string id, TriggerStatus status, DateTimeOffset endedAt, string? errorCode, string? error, CancellationToken cancellationToken)
 	{
@@ -124,18 +140,30 @@ internal sealed class InMemoryRuns : ITriggerRunRepository
 		return Task.FromResult(All[index]);
 	}
 
-	public Task<TriggerRun?> Get(string id, CancellationToken cancellationToken) => Task.FromResult(All.FirstOrDefault(run => run.Id == id));
+	public Task<TriggerRun?> Get(string id, CancellationToken cancellationToken)
+	{
+		return Task.FromResult(All.FirstOrDefault(run => run.Id == id));
+	}
 
-	public Task<TriggerRun?> GetRunning(Provider provider, CancellationToken cancellationToken) =>
-		Task.FromResult(All.LastOrDefault(run => run.Provider == provider && run.Status == TriggerStatus.Running));
+	public Task<TriggerRun?> GetRunning(Provider provider, CancellationToken cancellationToken)
+	{
+		return Task.FromResult(All.LastOrDefault(run => run.Provider == provider && run.Status == TriggerStatus.Running));
+	}
 
-	public Task<IReadOnlyList<TriggerRun>> GetRecent(int count, CancellationToken cancellationToken) =>
-		Task.FromResult<IReadOnlyList<TriggerRun>>(All.OrderByDescending(run => run.StartedAt).Take(count).ToList());
+	public Task<IReadOnlyList<TriggerRun>> GetRecent(int count, CancellationToken cancellationToken)
+	{
+		return Task.FromResult<IReadOnlyList<TriggerRun>>(All.OrderByDescending(run => run.StartedAt).Take(count).ToList());
+	}
 
-	public Task<IReadOnlyList<TriggerRun>> GetBetween(Provider? provider, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken) =>
-		Task.FromResult<IReadOnlyList<TriggerRun>>(All.Where(run => provider is null || run.Provider == provider).ToList());
+	public Task<IReadOnlyList<TriggerRun>> GetBetween(Provider? provider, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken)
+	{
+		return Task.FromResult<IReadOnlyList<TriggerRun>>(All.Where(run => provider is null || run.Provider == provider).ToList());
+	}
 
-	public Task<long> FailRunning(DateTimeOffset endedAt, string errorCode, string error, CancellationToken cancellationToken) => Task.FromResult(0L);
+	public Task<long> FailRunning(DateTimeOffset endedAt, string errorCode, string error, CancellationToken cancellationToken)
+	{
+		return Task.FromResult(0L);
+	}
 
 	private TriggerRun Start(Provider provider, bool manual, string? cycleKey, string model, DateTimeOffset startedAt)
 	{
@@ -149,7 +177,10 @@ internal sealed class InMemorySettings : ISettingsRepository
 {
 	public AppSettings? Stored { get; set; }
 
-	public Task<AppSettings?> Find(CancellationToken cancellationToken) => Task.FromResult(Stored);
+	public Task<AppSettings?> Find(CancellationToken cancellationToken)
+	{
+		return Task.FromResult(Stored);
+	}
 
 	public Task Save(AppSettings settings, CancellationToken cancellationToken)
 	{
@@ -169,9 +200,15 @@ internal sealed class FakeScheduler : IJobScheduler
 	public List<string> EnqueuedTriggers { get; } = [];
 	public List<string> Deleted { get; } = [];
 
-	public void SetPollInterval(Provider provider, int minutes) => PollIntervals[provider] = minutes;
+	public void SetPollInterval(Provider provider, int minutes)
+	{
+		PollIntervals[provider] = minutes;
+	}
 
-	public void EnqueuePoll(Provider provider) => EnqueuedPolls.Add(provider);
+	public void EnqueuePoll(Provider provider)
+	{
+		EnqueuedPolls.Add(provider);
+	}
 
 	public string SchedulePostResetCheck(Provider provider, DateTimeOffset runAt)
 	{
@@ -187,9 +224,15 @@ internal sealed class FakeScheduler : IJobScheduler
 		return id;
 	}
 
-	public void EnqueueTrigger(string runId) => EnqueuedTriggers.Add(runId);
+	public void EnqueueTrigger(string runId)
+	{
+		EnqueuedTriggers.Add(runId);
+	}
 
-	public void Delete(string jobId) => Deleted.Add(jobId);
+	public void Delete(string jobId)
+	{
+		Deleted.Add(jobId);
+	}
 }
 
 internal sealed class FakeReader(Provider provider) : IUsageReader
@@ -231,7 +274,10 @@ internal sealed class FakeSession : IClaudeSession
 
 	public int Refreshes { get; private set; }
 
-	public Task<ClaudeTokenInfo> ReadToken(CancellationToken cancellationToken) => Task.FromResult(new ClaudeTokenInfo(ExpiresAt, null));
+	public Task<ClaudeTokenInfo> ReadToken(CancellationToken cancellationToken)
+	{
+		return Task.FromResult(new ClaudeTokenInfo(ExpiresAt, null));
+	}
 
 	public Task RefreshThroughCli(CancellationToken cancellationToken)
 	{
@@ -249,7 +295,11 @@ internal sealed class RecordingSender : INotificationSender
 
 	public Task Send(NotificationMessage message, string serverUrl, string topic, string? token, CancellationToken cancellationToken)
 	{
-		if (Failure is not null) return Task.FromException(Failure);
+		if (Failure is { })
+		{
+			return Task.FromException(Failure);
+		}
+
 		Sent.Add(message);
 		return Task.CompletedTask;
 	}
@@ -257,7 +307,13 @@ internal sealed class RecordingSender : INotificationSender
 
 internal sealed class ReversibleProtector : ISecretProtector
 {
-	public string Protect(string value) => $"protected:{value}";
+	public string Protect(string value)
+	{
+		return $"protected:{value}";
+	}
 
-	public string Unprotect(string value) => value["protected:".Length..];
+	public string Unprotect(string value)
+	{
+		return value["protected:".Length..];
+	}
 }

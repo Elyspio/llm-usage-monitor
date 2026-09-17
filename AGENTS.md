@@ -8,13 +8,13 @@ Application web qui surveille l'usage des abonnements Claude Code et Codex, et r
 - `LlmUsageMonitor.AppHost/` : AppHost Aspire 13.5 (C#). MongoDB, Keycloak de dev (realm importé depuis `Realms/`, comptes `admin`/`admin` avec le rôle et `norole`/`norole` sans rôle), API, front sur `https://localhost:3000`.
 - `LlmUsageMonitor.Api/` : ASP.NET Core 10.
   - `Abstractions` (contrats, config), `Core` (règles de cycle et de reset, lecture, déclenchements, keep-alive, santé, notifications, réglages), `WebApi` (contrôleurs, auth, OpenAPI).
-  - Adapters : `Claude` (`/api/oauth/usage`, prompt `claude -p`, rafraîchissement par `claude mcp list`), `Codex` (JSON-RPC `codex app-server`), `MongoDB` (5 collections + clés Data Protection), `Hangfire` (jobs dans le process de l'API, base `hangfire`), `Ntfy`.
+  - Adapters : `Claude` (`/api/oauth/usage`, prompt `claude -p`, rafraîchissement par `claude mcp list`), `Codex` (JSON-RPC `codex app-server`), `MongoDB` (5 collections + clés Data Protection), `Hangfire` (jobs dans le process de l'API, collections préfixées `hangfire.` dans la base de l'application), `Ntfy`.
   - `Core.Tests` (services réels sur stockage en mémoire, `FakeTimeProvider`), `Adapters.Tests` (fixtures anonymisées dans `Fixtures/`, repositories sur Mongo Testcontainers), `WebApi.Tests` (`WebApplicationFactory` sur Mongo Testcontainers, JWT signés localement, Hangfire désactivé).
   - Toutes les routes sont sous `/api` et exigent le rôle client `llm-usage-monitor:admin` ; `/hangfire` passe par cookie + OIDC avec le même rôle.
 - `LlmUsageMonitor.Front/` : SPA Vite+ (`@elyspio/vite-eslint-config` v6, React Router 8, MUI 9, TanStack Query, `oidc-client-ts`).
   - `openapi/llm-usage-monitor.json` : document OpenAPI écrit par le build de `WebApi`, commité.
   - `src/core/apis/generated/` : client `@hey-api/openapi-ts` généré depuis ce document, commité, exclu du lint et du formatage.
-- `src/*.ts` : lecteurs d'usage TypeScript d'origine, à supprimer une fois portés en C# avec tests de parité.
+- `LlmUsageMonitor.Scripts/` : lecteurs d'usage TypeScript d'origine (`src/`, `examples/`) et leur outillage (pnpm, Oxlint, Oxfmt, TypeScript 7). Projet indépendant du front, portés en C# dans les adapters ; les fixtures des tests d'adapters viennent de ces lecteurs.
 
 ## Lancer
 
@@ -44,6 +44,11 @@ Prérequis : Docker démarré (MongoDB via Testcontainers dans les tests backend
   pnpm test     # Vitest + Testing Library + MSW
   pnpm build
   ```
+- Scripts TypeScript (dans `LlmUsageMonitor.Scripts/`) :
+  ```sh
+  pnpm install
+  pnpm check    # Oxfmt, Oxlint, tsc
+  ```
 - Contrat API : le build de `WebApi` réécrit `LlmUsageMonitor.Front/openapi/llm-usage-monitor.json`, puis `pnpm gen:api` régénère le client. Après un changement d'API, commiter les deux ; `git status` ne doit plus montrer de diff.
 
 La génération du document OpenAPI au build démarre l'application sans MongoDB : Hangfire et `AppInitializer` y sont exclus (`OpenApiGeneration.IsRunning`). Tout service qui se connecte à sa construction doit l'être aussi.
@@ -54,4 +59,8 @@ Les adapters CLI sont testés sur des fixtures capturées et anonymisées (aucun
 
 ## Déploiement
 
-Build self-contained `linux-x64` dans Docker sur le poste, puis scp vers `ely-llm-wake-up.elylan` (`/opt/llm-usage-monitor/`, écrasement en place) et `systemctl restart llm-usage-monitor`. Config de prod : `/etc/llm-usage-monitor/appsettings.Production.json`, jamais commitée.
+```sh
+./deploy/deploy.ps1
+```
+
+Build self-contained `linux-x64` dans Docker sur le poste (`deploy/Dockerfile`), scp vers `ely-llm-wake-up.elylan`, extraction dans `/opt/llm-usage-monitor/` (écrasement en place) puis redémarrage de `llm-usage-monitor.service`. Config de prod : `/etc/llm-usage-monitor/appsettings.Production.json` (modèle `deploy/appsettings.Production.example.json`, jamais commitée), chargée via `LLM_USAGE_MONITOR_SETTINGS`. En prod l'API sert aussi la SPA (`wwwroot`) et `/conf.js`. Mise en service et retour arrière : `deploy/README.md`.

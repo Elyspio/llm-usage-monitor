@@ -14,11 +14,14 @@ internal sealed class ProviderStateRepository(IMongoDatabase database) : IProvid
 		return document?.ToDomain() ?? new ProviderState(provider);
 	}
 
-	public Task Save(ProviderState state, CancellationToken cancellationToken) => _states.ReplaceOneAsync(
-		document => document.Provider == state.Provider,
-		ProviderStateDocument.FromDomain(state),
-		new ReplaceOptions { IsUpsert = true },
-		cancellationToken);
+	public Task Save(ProviderState state, CancellationToken cancellationToken)
+	{
+		return _states.ReplaceOneAsync(
+			document => document.Provider == state.Provider,
+			ProviderStateDocument.FromDomain(state),
+			new ReplaceOptions { IsUpsert = true },
+			cancellationToken);
+	}
 }
 
 internal sealed class SettingsRepository(IMongoDatabase database) : ISettingsRepository
@@ -31,9 +34,12 @@ internal sealed class SettingsRepository(IMongoDatabase database) : ISettingsRep
 		return document?.ToDomain();
 	}
 
-	public Task Save(AppSettings settings, CancellationToken cancellationToken) => _settings.ReplaceOneAsync(
-		document => document.Id == SettingsDocument.GlobalId,
-		SettingsDocument.FromDomain(settings),
-		new ReplaceOptions { IsUpsert = true },
-		cancellationToken);
+	public Task Save(AppSettings settings, CancellationToken cancellationToken)
+	{
+		return _settings.ReplaceOneAsync(
+			document => document.Id == SettingsDocument.GlobalId,
+			SettingsDocument.FromDomain(settings),
+			new ReplaceOptions { IsUpsert = true },
+			cancellationToken);
+	}
 }

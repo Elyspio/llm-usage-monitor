@@ -22,19 +22,25 @@ public static class UsageWindowFactory
 			throw new ProviderException(ProviderErrorCodes.InvalidResponse, $"Invalid window duration for {id}.");
 		}
 
-		return new UsageWindow(id, used, resetsAt, durationMinutes is { } minutes ? (int)Math.Round(minutes) : null);
+		return new(id, used, resetsAt, durationMinutes is { } minutes ? (int)Math.Round(minutes) : null);
 	}
 
 	/// <summary>
 	///     Reads a reset time given as Unix seconds or as an ISO 8601 string; <c>null</c> when absent.
 	/// </summary>
-	public static DateTimeOffset? ParseReset(JsonElement value, string id) => value.ValueKind switch
+	public static DateTimeOffset? ParseReset(JsonElement value, string id)
 	{
-		JsonValueKind.Undefined or JsonValueKind.Null => null,
-		JsonValueKind.Number when value.TryGetDouble(out var seconds) && double.IsFinite(seconds) => DateTimeOffset.FromUnixTimeMilliseconds((long)Math.Round(seconds * 1000)),
-		JsonValueKind.String when DateTimeOffset.TryParse(value.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var date) => date.ToUniversalTime(),
-		_ => throw new ProviderException(ProviderErrorCodes.InvalidResponse, $"Invalid reset time for {id}."),
-	};
+		return value.ValueKind switch
+		{
+			JsonValueKind.Undefined or JsonValueKind.Null => null,
+			JsonValueKind.Number when value.TryGetDouble(out var seconds) && double.IsFinite(seconds) => DateTimeOffset.FromUnixTimeMilliseconds((long)Math.Round(seconds * 1000)),
+			JsonValueKind.String when DateTimeOffset.TryParse(value.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var date) => date.ToUniversalTime(),
+			_ => throw new ProviderException(ProviderErrorCodes.InvalidResponse, $"Invalid reset time for {id}.")
+		};
+	}
 
-	public static double? ReadNumber(JsonElement value) => value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var number) ? number : null;
+	public static double? ReadNumber(JsonElement value)
+	{
+		return value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var number) ? number : null;
+	}
 }

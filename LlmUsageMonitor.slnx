@@ -1,20 +1,20 @@
 <Solution>
-  <Folder Name="/Api/">
-    <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Abstractions\LlmUsageMonitor.Abstractions.csproj" />
-    <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Core\LlmUsageMonitor.Core.csproj" />
-    <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.WebApi\LlmUsageMonitor.WebApi.csproj" />
-  </Folder>
-  <Folder Name="/Api/Adapters/">
-    <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Adapters.Claude\LlmUsageMonitor.Adapters.Claude.csproj" />
-    <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Adapters.Codex\LlmUsageMonitor.Adapters.Codex.csproj" />
-    <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Adapters.Hangfire\LlmUsageMonitor.Adapters.Hangfire.csproj" />
-    <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Adapters.MongoDB\LlmUsageMonitor.Adapters.MongoDB.csproj" />
-    <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Adapters.Ntfy\LlmUsageMonitor.Adapters.Ntfy.csproj" />
-  </Folder>
-  <Folder Name="/Tests/">
-    <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Adapters.Tests\LlmUsageMonitor.Adapters.Tests.csproj" />
-    <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Core.Tests\LlmUsageMonitor.Core.Tests.csproj" />
-    <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.WebApi.Tests\LlmUsageMonitor.WebApi.Tests.csproj" />
-  </Folder>
-  <Project Path="LlmUsageMonitor.AppHost/LlmUsageMonitor.AppHost.csproj" />
+    <Folder Name="/Api/">
+        <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Abstractions\LlmUsageMonitor.Abstractions.csproj"/>
+        <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Core\LlmUsageMonitor.Core.csproj"/>
+        <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.WebApi\LlmUsageMonitor.WebApi.csproj"/>
+    </Folder>
+    <Folder Name="/Api/Adapters/">
+        <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Adapters.Claude\LlmUsageMonitor.Adapters.Claude.csproj"/>
+        <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Adapters.Codex\LlmUsageMonitor.Adapters.Codex.csproj"/>
+        <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Adapters.Hangfire\LlmUsageMonitor.Adapters.Hangfire.csproj"/>
+        <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Adapters.MongoDB\LlmUsageMonitor.Adapters.MongoDB.csproj"/>
+        <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Adapters.Ntfy\LlmUsageMonitor.Adapters.Ntfy.csproj"/>
+    </Folder>
+    <Folder Name="/Tests/">
+        <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Adapters.Tests\LlmUsageMonitor.Adapters.Tests.csproj"/>
+        <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Core.Tests\LlmUsageMonitor.Core.Tests.csproj"/>
+        <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.WebApi.Tests\LlmUsageMonitor.WebApi.Tests.csproj"/>
+    </Folder>
+    <Project Path="LlmUsageMonitor.AppHost/LlmUsageMonitor.AppHost.csproj"/>
 </Solution>
