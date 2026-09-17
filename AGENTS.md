@@ -1,6 +1,8 @@
 # LLM Usage Monitor
 
-Application web qui surveille l'usage des abonnements Claude Code et Codex, et relance une fenêtre d'usage après un reset. Spec : [PRD](https://github.com/Elyspio/llm-usage-monitor/issues/19), décisions : [map Wayfinder](https://github.com/Elyspio/llm-usage-monitor/issues/1). Vocabulaire du domaine : [CONTEXT.md](CONTEXT.md).
+Application web qui surveille l'usage des abonnements Claude Code et Codex, et relance une fenêtre d'usage après un reset. **En service en production depuis le 17 septembre 2026** sur [`https://monitor.llm.elyspio.fr`](https://monitor.llm.elyspio.fr), où elle remplace le cron `llm-wake-up`.
+
+Spec : [PRD](https://github.com/Elyspio/llm-usage-monitor/issues/19) — fermé, les 14 issues d'implémentation sont livrées. Décisions : [map Wayfinder](https://github.com/Elyspio/llm-usage-monitor/issues/1) — fermée, les tickets restent la trace des choix. Toute évolution repart d'une nouvelle issue.
 
 ## Structure
 
@@ -58,6 +60,10 @@ Le paquet `typescript` du front reste en 6.x : `@hey-api/openapi-ts` utilise l'A
 Les adapters CLI sont testés sur des fixtures capturées et anonymisées (aucun token, id de compte ni email). La gestion du process CLI se valide à la main.
 
 ## Déploiement
+
+En production : LXC `ely-llm-wake-up.elylan` (Debian 13, CT 106), service systemd `llm-usage-monitor` sous le compte dédié `llm-monitor`, Kestrel en HTTP sur `:5000` derrière HAProxy qui termine le TLS de `https://monitor.llm.elyspio.fr`. Keycloak (`auth.elyspio.fr`, realm `internal`, client `i-llm-usage-monitor`), MongoDB `rs-shard-a` et le collector de traces sont externes. Le cron qu'elle remplace est désactivé sur le LXC (`/etc/cron.hourly/llm-wake-up.disabled`) : à supprimer, avec les logins CLI de `root`, après deux semaines de fonctionnement stable.
+
+Mettre à jour :
 
 ```sh
 ./deploy/deploy.ps1
