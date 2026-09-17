@@ -9,6 +9,8 @@ param(
 	[string]$Target = "root@ely-llm-wake-up.elylan",
 	[string]$InstallDirectory = "/opt/llm-usage-monitor",
 	[string]$SettingsFile = "/etc/llm-usage-monitor/appsettings.Production.json",
+	# Local settings file to install on the host, for the first deployment or after a configuration change.
+	[string]$UploadSettings,
 	[switch]$SkipBuild
 )
 
@@ -34,8 +36,21 @@ if (-not $SkipBuild) {
 
 if (-not (Test-Path (Join-Path $output "LlmUsageMonitor.WebApi"))) { throw "No artifact in ${output}: run without -SkipBuild." }
 
-# The settings file holds the Mongo password: it is written once by hand on the LXC, never from here.
-Invoke-Remote "test -s $SettingsFile" "Missing or empty $SettingsFile on ${Target}: see deploy/README.md."
+if ($UploadSettings) {
+	if (-not (Test-Path $UploadSettings)) { throw "No settings file at ${UploadSettings}." }
+	scp $UploadSettings "${Target}:/tmp/appsettings.Production.json"
+	if ($LASTEXITCODE -ne 0) { throw "scp of the settings failed" }
+	$settingsDirectory = $SettingsFile.Substring(0, $SettingsFile.LastIndexOf("/"))
+	Invoke-Remote @"
+set -e
+install -d -o root -g llm-monitor -m 750 $settingsDirectory
+install -o llm-monitor -g llm-monitor -m 600 /tmp/appsettings.Production.json $SettingsFile
+rm -f /tmp/appsettings.Production.json
+"@ "remote installation of the settings failed"
+}
+
+# The settings file holds the Mongo password: it is uploaded on demand, and never committed.
+Invoke-Remote "test -s $SettingsFile" "Missing or empty $SettingsFile on ${Target}: deploy once with -UploadSettings, see deploy/README.md."
 
 tar -czf $archive -C $output .
 if ($LASTEXITCODE -ne 0) { throw "tar failed" }
