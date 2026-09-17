@@ -75,6 +75,27 @@ describe("SettingsPage", () => {
 		expect(await within(form).findByText("Modèle inconnu du serveur.")).toBeTruthy();
 	});
 
+	it("suggests the documented models and keeps the field free", async () => {
+		let body: unknown = null;
+		server.use(
+			http.put(`${apiUrl}/api/settings/triggers`, async ({ request }) => {
+				const saved = (await request.json()) as Record<string, unknown>;
+				body = saved;
+				return HttpResponse.json(saved);
+			})
+		);
+		renderPage();
+		const form = await screen.findByRole("form", { name: "Déclenchement" });
+		const model = within(form).getByLabelText("Modèle Claude");
+
+		fireEvent.change(model, { target: { value: "sonnet" } });
+		fireEvent.click(await screen.findByRole("option", { name: "claude-sonnet-5" }));
+		fireEvent.change(within(form).getByLabelText("Modèle Codex"), { target: { value: "gpt-5.6-terra" } });
+		fireEvent.click(within(form).getByRole("button", { name: "Enregistrer" }));
+
+		await expect.poll(() => body).toMatchObject({ claude: { model: "claude-sonnet-5" }, codex: { model: "gpt-5.6-terra" } });
+	});
+
 	it("never shows the token and keeps it when the field stays empty", async () => {
 		renderPage();
 		const form = await screen.findByRole("form", { name: "Notifications ntfy" });

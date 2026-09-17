@@ -3,6 +3,15 @@ import type { Provider, ProviderDashboard, ProviderHealth, UsageWindow } from "@
 export const providerLabel: Record<Provider, string> = { claude: "Claude", codex: "Codex" };
 export const providerColor: Record<Provider, string> = { claude: "#d97757", codex: "#10a37f" };
 
+/**
+ * Models offered for the trigger prompt: the model ids from the providers' documentation, never the family aliases.
+ * The field stays free: the installed CLI is the reference, this list is only a shortcut.
+ */
+export const modelSuggestions: Record<Provider, string[]> = {
+	claude: ["claude-haiku-4-5", "claude-sonnet-5", "claude-opus-5", "claude-fable-5-1"],
+	codex: ["gpt-6-astra", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.3-codex-spark", "gpt-5.5", "gpt-5.4", "gpt-5.4-mini"],
+};
+
 const windowLabels: Record<string, string> = {
 	five_hour: "Session 5 h",
 	seven_day: "Hebdo · tous modèles",

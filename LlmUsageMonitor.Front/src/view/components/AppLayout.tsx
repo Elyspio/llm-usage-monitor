@@ -2,13 +2,14 @@ import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import TuneIcon from "@mui/icons-material/Tune";
 import LogoutIcon from "@mui/icons-material/Logout";
-import { Box, Button, Stack, Typography } from "@mui/material";
+import { Avatar, Box, Button, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import { NavLink, Outlet } from "react-router";
 import { routes } from "@/config/routes";
 import { useAuth } from "@/view/context/auth.context";
 
 export const AppLayout = () => {
 	const { user, signOut } = useAuth();
+	const username = user?.profile.preferred_username;
 	return (
 		<Box sx={{ display: { md: "flex" }, minHeight: "100vh" }}>
 			<Box
@@ -97,14 +98,27 @@ export const AppLayout = () => {
 					</Button>
 				</Stack>
 				<Box sx={{ mt: "auto", pt: { xs: 2, md: 4 } }}>
-					<Box sx={{ borderTop: 1, borderColor: "divider", pt: 2, display: { xs: "flex", md: "block" }, alignItems: "center", justifyContent: "space-between" }}>
-						<Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>
-							{user?.profile.preferred_username}
+					<Stack direction="row" spacing={1.5} sx={{ alignItems: "center", borderTop: 1, borderColor: "divider", pt: 2 }}>
+						<Avatar
+							aria-hidden="true"
+							variant="rounded"
+							sx={{ width: 32, height: 32, borderRadius: "10px", bgcolor: "#12352b", color: "primary.main", fontFamily: "IBM Plex Mono", fontSize: "0.85rem" }}
+						>
+							{username?.[0]?.toUpperCase() ?? "?"}
+						</Avatar>
+						<Typography
+							variant="body2"
+							title={username}
+							sx={{ flex: 1, minWidth: 0, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+						>
+							{username}
 						</Typography>
-						<Button size="small" color="inherit" startIcon={<LogoutIcon />} onClick={signOut} sx={{ color: "text.secondary", ml: -1 }}>
-							Se déconnecter
-						</Button>
-					</Box>
+						<Tooltip title="Se déconnecter">
+							<IconButton aria-label="Se déconnecter" size="small" onClick={signOut} sx={{ color: "text.secondary", "&:hover": { color: "text.primary" } }}>
+								<LogoutIcon fontSize="small" />
+							</IconButton>
+						</Tooltip>
+					</Stack>
 				</Box>
 			</Box>
 			<Box component="main" id="main" tabIndex={-1} sx={{ p: { xs: 2, sm: 3, xl: 5 }, width: "100%", minWidth: 0, maxWidth: 1900, mx: "auto" }}>
