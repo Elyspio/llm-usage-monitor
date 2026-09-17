@@ -1,3 +1,4 @@
+using LlmUsageMonitor.Abstractions.Helpers;
 using LlmUsageMonitor.Abstractions.Injections;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
 using LlmUsageMonitor.Abstractions.Interfaces.Repositories;
@@ -17,7 +18,7 @@ public sealed class MongoAdapterModule : IModule
 		MongoConventions.Register();
 
 		var connectionString = configuration.GetConnectionString("MongoDB") ?? throw new InvalidOperationException("ConnectionStrings:MongoDB is required.");
-		var databaseName = MongoUrl.Create(connectionString).DatabaseName ?? "llm-usage-monitor";
+		var databaseName = MongoUrl.Create(connectionString).DatabaseName ?? StorageDefaults.DatabaseName;
 
 		services.AddSingleton<IMongoClient>(_ => new MongoClient(connectionString));
 		services.AddSingleton(sp => sp.GetRequiredService<IMongoClient>().GetDatabase(databaseName));

@@ -11,7 +11,7 @@ Cible : `ely-llm-wake-up.elylan` (Debian 13, CT 106), service systemd, derrière
 
 ## Mise en service (une fois)
 
-Prérequis hors de ce repo, voir « Infra prod » (#21) : client Keycloak de prod `i-llm-usage-monitor` (redirect URIs `/auth/callback`, `/signin-oidc`, `/swagger/oauth2-redirect.html`), backend HAProxy, user Mongo `llm-usage-monitor` (`readWrite` sur `llm-usage-monitor` et `hangfire`), CA elylan installée sur le LXC.
+Prérequis hors de ce repo, voir « Infra prod » (#21) : client Keycloak de prod `i-llm-usage-monitor` (redirect URIs `/auth/callback`, `/signin-oidc`, `/swagger/oauth2-redirect.html`), backend HAProxy, user Mongo `llm-usage-monitor` (`readWrite` sur la base `llm-usage-monitor`, qui contient aussi les collections `hangfire.`), CA elylan installée sur le LXC.
 
 1. Compte de service et CLIs :
    ```sh
@@ -23,17 +23,12 @@ Prérequis hors de ce repo, voir « Infra prod » (#21) : client Keycloak de pro
    sudo -u llm-monitor -H bash -lc 'claude auth login'
    sudo -u llm-monitor -H bash -lc 'codex login --device-auth'
    ```
-2. Droits Mongo : l'utilisateur `llm-usage-monitor` a besoin de `readWrite` sur les **deux** bases, Hangfire vivant dans la sienne.
-   ```js
-   // mongosh, connecté avec un compte d'administration
-   db.getSiblingDB("llm-usage-monitor").grantRolesToUser("llm-usage-monitor", [{ role: "readWrite", db: "hangfire" }]);
-   ```
-3. Configuration : remplir une copie locale de `appsettings.Production.example.json` (mot de passe Mongo, IP de HAProxy dans `ForwardedHeaders:KnownProxies` — `10.0.0.20` = `proxy.elylan`, sans quoi les redirections OIDC partent en `http`), puis l'installer depuis le poste :
+2. Configuration : remplir une copie locale de `appsettings.Production.example.json` (mot de passe Mongo, IP de HAProxy dans `ForwardedHeaders:KnownProxies` — `10.0.0.20` = `proxy.elylan`, sans quoi les redirections OIDC partent en `http`), puis l'installer depuis le poste :
    ```powershell
    ./deploy/deploy.ps1 -UploadSettings deploy/appsettings.Production.json
    ```
    Le fichier local n'est pas commité (`.gitignore`) ; il arrive en `600 llm-monitor` dans `/etc/llm-usage-monitor/`. Sans `-UploadSettings`, `deploy.ps1` refuse de déployer si le fichier manque sur l'hôte. L'unité systemd, elle, est réinstallée à chaque déploiement.
-4. Vérifications : connexion sur `https://monitor.llm.elyspio.fr`, lectures des deux providers sur le dashboard, un déclenchement manuel, traces du service `llm-usage-monitor` dans Jaeger, notification de test depuis Réglages.
+3. Vérifications : connexion sur `https://monitor.llm.elyspio.fr`, lectures des deux providers sur le dashboard, un déclenchement manuel, traces du service `llm-usage-monitor` dans Jaeger, notification de test depuis Réglages.
 
 Le déclenchement automatique est actif par défaut en prod (`App:AutoTriggerEnabledByDefault`) ; il se coupe par provider dans Réglages.
 
