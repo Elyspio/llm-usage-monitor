@@ -12,4 +12,4 @@ En service en production depuis le 17 septembre 2026 sur [`https://monitor.llm.e
 aspire run
 ```
 
-Spécification : [PRD](https://github.com/Elyspio/llm-usage-monitor/issues/19) (fermé, livré). Structure, tests et déploiement : [AGENTS.md](AGENTS.md). Mise en service et retour arrière : [deploy/README.md](deploy/README.md). Vocabulaire du domaine : [CONTEXT.md](CONTEXT.md).
+Spécification : [PRD](https://github.com/Elyspio/llm-usage-monitor/issues/19) (fermé, livré). Structure, tests et déploiement : [AGENTS.md](AGENTS.md). Mise en service et retour arrière : [deploy/README.md](deploy/README.md).

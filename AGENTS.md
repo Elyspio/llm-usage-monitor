@@ -2,7 +2,7 @@
 
 Application web qui surveille l'usage des abonnements Claude Code et Codex, et relance une fenêtre d'usage après un reset. **En service en production depuis le 17 septembre 2026** sur [`https://monitor.llm.elyspio.fr`](https://monitor.llm.elyspio.fr), où elle remplace le cron `llm-wake-up`.
 
-Spec : [PRD](https://github.com/Elyspio/llm-usage-monitor/issues/19) — fermé, les 14 issues d'implémentation sont livrées. Décisions : [map Wayfinder](https://github.com/Elyspio/llm-usage-monitor/issues/1) — fermée, les tickets restent la trace des choix. Vocabulaire du domaine : [CONTEXT.md](CONTEXT.md). Toute évolution repart d'une nouvelle issue.
+Spec : [PRD](https://github.com/Elyspio/llm-usage-monitor/issues/19) — fermé, les 14 issues d'implémentation sont livrées. Décisions : [map Wayfinder](https://github.com/Elyspio/llm-usage-monitor/issues/1) — fermée, les tickets restent la trace des choix. Toute évolution repart d'une nouvelle issue.
 
 ## Structure
 
