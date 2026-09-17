@@ -7,6 +7,4 @@
 **/dist
 deploy/out
 deploy/*.tar.gz
-src
-examples
-node_modules
+LlmUsageMonitor.Scripts

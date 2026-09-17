@@ -12,3 +12,4 @@ deploy/out/
 deploy/*.tar.gz
 .claude
 .idea
+TestResults/

@@ -1,6 +1,5 @@
 {
 	"$schema": "./node_modules/oxfmt/configuration_schema.json",
-	"ignorePatterns": ["LlmUsageMonitor.*/**"],
 	"singleQuote": true,
 	"useTabs": true
 }

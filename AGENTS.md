@@ -14,7 +14,7 @@ Application web qui surveille l'usage des abonnements Claude Code et Codex, et r
 - `LlmUsageMonitor.Front/` : SPA Vite+ (`@elyspio/vite-eslint-config` v6, React Router 8, MUI 9, TanStack Query, `oidc-client-ts`).
   - `openapi/llm-usage-monitor.json` : document OpenAPI écrit par le build de `WebApi`, commité.
   - `src/core/apis/generated/` : client `@hey-api/openapi-ts` généré depuis ce document, commité, exclu du lint et du formatage.
-- `src/*.ts` : lecteurs d'usage TypeScript d'origine, à supprimer une fois portés en C# avec tests de parité.
+- `LlmUsageMonitor.Scripts/` : lecteurs d'usage TypeScript d'origine (`src/`, `examples/`) et leur outillage (pnpm, Oxlint, Oxfmt, TypeScript 7). Projet indépendant du front, portés en C# dans les adapters ; les fixtures des tests d'adapters viennent de ces lecteurs.
 
 ## Lancer
 
@@ -43,6 +43,11 @@ Prérequis : Docker démarré (MongoDB via Testcontainers dans les tests backend
   pnpm check    # formatage, lint, typecheck
   pnpm test     # Vitest + Testing Library + MSW
   pnpm build
+  ```
+- Scripts TypeScript (dans `LlmUsageMonitor.Scripts/`) :
+  ```sh
+  pnpm install
+  pnpm check    # Oxfmt, Oxlint, tsc
   ```
 - Contrat API : le build de `WebApi` réécrit `LlmUsageMonitor.Front/openapi/llm-usage-monitor.json`, puis `pnpm gen:api` régénère le client. Après un changement d'API, commiter les deux ; `git status` ne doit plus montrer de diff.
 
