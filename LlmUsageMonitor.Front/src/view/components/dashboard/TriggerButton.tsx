@@ -33,7 +33,8 @@ export const TriggerButton = ({ provider, runningTrigger }: { provider: Provider
 	return (
 		<Stack sx={{ alignItems: "flex-end" }}>
 			<Button
-				variant="contained"
+				variant="outlined"
+				color="inherit"
 				startIcon={<PlayArrowIcon />}
 				loading={busy}
 				loadingPosition="start"

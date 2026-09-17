@@ -227,7 +227,10 @@ internal sealed class NotificationsDocument
 	public string Url { get; set; } = null!;
 	public string? Topic { get; set; }
 	public string? ProtectedToken { get; set; }
-	public NotificationEvents Events { get; set; } = NotificationEvents.Default;
+	/// <summary>Flat event settings written before provider-specific notification settings existed.</summary>
+	[BsonElement("events"), BsonIgnoreIfNull]
+	public NotificationEvents? LegacyEvents { get; set; }
+	[BsonIgnoreIfNull] public NotificationEventsByProvider? ProviderEvents { get; set; }
 	public int ReadFailureThreshold { get; set; }
 	public FailureDocument? LastSendFailure { get; set; }
 
@@ -238,7 +241,7 @@ internal sealed class NotificationsDocument
 			Url = settings.Url,
 			Topic = settings.Topic,
 			ProtectedToken = settings.ProtectedToken,
-			Events = settings.Events,
+			ProviderEvents = settings.Events,
 			ReadFailureThreshold = settings.ReadFailureThreshold,
 			LastSendFailure = settings.LastSendFailure is { } failure ? new FailureDocument { Code = "SEND_FAILED", Message = failure.Message, At = failure.At.ToUtc() } : null
 		};
@@ -250,7 +253,7 @@ internal sealed class NotificationsDocument
 			Url,
 			Topic,
 			ProtectedToken,
-			Events,
+			ProviderEvents ?? new(LegacyEvents ?? NotificationEvents.Default, LegacyEvents ?? NotificationEvents.Default),
 			ReadFailureThreshold,
 			LastSendFailure is { } failure ? new NotificationSendFailure(failure.At.ToOffset(), failure.Message) : null);
 	}

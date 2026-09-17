@@ -129,7 +129,15 @@ public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<Mon
 			PendingResetCheck = new("42", Now.AddHours(1)),
 			TokenExpiresAt = Now.AddHours(8)
 		};
-		var settings = AppSettings.CreateDefault(false) with { Polling = new(5, 7) };
+		var defaults = AppSettings.CreateDefault(false);
+		var settings = defaults with
+		{
+			Polling = new(5, 7),
+			Notifications = defaults.Notifications with
+			{
+				Events = new(NotificationEvents.Default, NotificationEvents.Default with { Reset = true })
+			}
+		};
 
 		await states.Save(state, Token);
 		await settingsRepository.Save(settings, Token);
@@ -138,7 +146,48 @@ public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<Mon
 		loaded.LastReading!.Windows.ShouldHaveSingleItem().Id.ShouldBe("five_hour");
 		(loaded with { LastReading = state.LastReading, ActiveAlerts = state.ActiveAlerts }).ShouldBe(state);
 		loaded.ActiveAlerts.ShouldBe([NotificationKind.AuthExpired]);
-		(await settingsRepository.Find(Token)).ShouldBe(settings);
+		var savedSettings = await settingsRepository.Find(Token);
+		savedSettings.ShouldBe(settings);
+		savedSettings!.Notifications.Events.Claude.Reset.ShouldBeFalse();
+		savedSettings.Notifications.Events.Codex.Reset.ShouldBeTrue();
 		(await states.Get(Provider.Codex, Token)).ShouldBe(new(Provider.Codex));
+	}
+
+	[Fact]
+	public async Task Legacy_notification_events_are_applied_to_both_providers()
+	{
+		await using var services = await mongo.CreateServices();
+		var database = services.GetRequiredService<IMongoDatabase>();
+		var settings = database.GetCollection<BsonDocument>("settings");
+		await settings.InsertOneAsync(
+			new BsonDocument
+			{
+				["_id"] = "global",
+				["claudeIntervalMinutes"] = 3,
+				["codexIntervalMinutes"] = 3,
+				["claudeTrigger"] = new BsonDocument { ["autoEnabled"] = false, ["model"] = "haiku" },
+				["codexTrigger"] = new BsonDocument { ["autoEnabled"] = false, ["model"] = "gpt-5.6-luna" },
+				["notifications"] = new BsonDocument
+				{
+					["url"] = "https://ntfy.sh",
+					["events"] = new BsonDocument
+					{
+						["triggerFailed"] = false,
+						["authExpired"] = true,
+						["readFailed"] = true,
+						["reset"] = false,
+						["triggerSucceeded"] = true,
+						["recovered"] = true
+					},
+					["readFailureThreshold"] = 3
+				}
+			},
+			cancellationToken: Token);
+
+		var loaded = await services.GetRequiredService<ISettingsRepository>().Find(Token);
+
+		loaded.ShouldNotBeNull();
+		loaded.Notifications.Events.Claude.ShouldBe(loaded.Notifications.Events.Codex);
+		loaded.Notifications.Events.Claude.TriggerFailed.ShouldBeFalse();
 	}
 }

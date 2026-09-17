@@ -13,4 +13,5 @@ deploy/*.tar.gz
 .claude
 .idea
 TestResults/
+.playwright-cli/
 deploy/appsettings.Production.json

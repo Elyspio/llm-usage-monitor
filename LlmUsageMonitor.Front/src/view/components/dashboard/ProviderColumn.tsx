@@ -1,32 +1,32 @@
 import BoltIcon from "@mui/icons-material/Bolt";
-import { Alert, AlertTitle, Box, Chip, Grid, Paper, Stack, Typography } from "@mui/material";
+import { Alert, AlertTitle, Box, Chip, Paper, Stack, Typography } from "@mui/material";
 import type { ProviderDashboard } from "@/core/apis/generated/types.gen";
-import { errorInfo, isDegraded, providerColor, providerLabel, sortWindows } from "@/core/dashboard";
+import { errorInfo, isDegraded, providerColor, providerLabel } from "@/core/dashboard";
 import { fmtAgo, fmtIn, fmtWhen } from "@/core/format";
 import { TriggerButton } from "./TriggerButton";
-import { WindowCard } from "./WindowCard";
 
 export const ProviderColumn = ({ provider, now }: { provider: ProviderDashboard; now: number }) => {
 	const { health, lastReading } = provider;
 	const degraded = isDegraded(health);
 	const failure = degraded ? health.lastFailure : null;
 	const error = failure ? errorInfo(failure.code, provider.provider) : null;
-	const windows = sortWindows(lastReading?.windows ?? [], provider.triggerWindowId);
 
 	return (
-		<Paper
-			component="section"
-			aria-label={providerLabel[provider.provider]}
-			variant="outlined"
-			sx={{ p: 2.5, height: "100%", borderTop: 4, borderTopColor: providerColor[provider.provider] }}
-		>
-			<Stack direction="row" spacing={2} sx={{ alignItems: "flex-start", justifyContent: "space-between", mb: 2 }}>
+		<Paper component="section" aria-label={providerLabel[provider.provider]} variant="outlined" sx={{ p: { xs: 2, lg: 3 }, height: "100%" }}>
+			<Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: "flex-start", justifyContent: "space-between", mb: 3 }}>
 				<Box sx={{ minWidth: 0 }}>
 					<Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+						<Box aria-hidden="true" sx={{ color: providerColor[provider.provider], fontSize: 26, lineHeight: 1, mr: 0.5 }}>
+							{provider.provider === "claude" ? "✳" : "⌘"}
+						</Box>
 						<Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
 							{providerLabel[provider.provider]}
 						</Typography>
-						{error ? <Chip size="small" color={error.severity} label={error.title} /> : <Chip size="small" color="success" label="OK" />}
+						{error ? (
+							<Chip size="small" color={error.severity} label={error.title} />
+						) : (
+							<Chip size="small" variant="outlined" color={lastReading ? "success" : "default"} label={lastReading ? "OK" : "En attente"} />
+						)}
 					</Stack>
 					<Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
 						{readingLine(provider, now)}
@@ -53,27 +53,10 @@ export const ProviderColumn = ({ provider, now }: { provider: ProviderDashboard;
 				</Alert>
 			)}
 
-			<Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 2, color: "text.secondary" }}>
+			<Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 0, p: 0, borderRadius: 2, bgcolor: "transparent", color: "text.secondary" }}>
 				<BoltIcon fontSize="small" />
 				<Typography variant="body2">{autoLine(provider, now)}</Typography>
 			</Stack>
-
-			{lastReading && windows.length > 0 ? (
-				<Grid container spacing={2}>
-					{windows.map((window) => (
-						<Grid key={window.id} size={window.id === provider.triggerWindowId ? 12 : { xs: 12, sm: 6 }}>
-							<WindowCard window={window} now={now} isTrigger={window.id === provider.triggerWindowId} stale={degraded} fetchedAt={lastReading.fetchedAt} />
-						</Grid>
-					))}
-				</Grid>
-			) : (
-				<Box sx={{ border: "1px dashed", borderColor: "divider", borderRadius: 2, p: 2, color: "text.secondary" }}>
-					<Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.primary" }}>
-						Aucune donnée
-					</Typography>
-					<Typography variant="body2">Le service n'a encore obtenu aucune lecture valide pour ce provider.</Typography>
-				</Box>
-			)}
 		</Paper>
 	);
 };

@@ -94,7 +94,11 @@ public sealed class DashboardEndpointTests(ApiFactory factory) : IClassFixture<A
 			url = "https://ntfy.sh",
 			topic = "llm_usage_monitor_tests",
 			token = "tk_secret_value",
-			events = new { triggerFailed = true, authExpired = true, readFailed = true, reset = false, triggerSucceeded = true, recovered = true },
+			events = new
+			{
+				claude = new { triggerFailed = true, authExpired = true, readFailed = true, reset = false, triggerSucceeded = true, recovered = true },
+				codex = new { triggerFailed = false, authExpired = true, readFailed = true, reset = false, triggerSucceeded = true, recovered = true }
+			},
 			readFailureThreshold = 3
 		};
 
@@ -105,6 +109,9 @@ public sealed class DashboardEndpointTests(ApiFactory factory) : IClassFixture<A
 		(await saved.Content.ReadAsStringAsync(Token)).ShouldNotContain("tk_secret_value");
 		read.ShouldNotContain("tk_secret_value");
 		JsonDocument.Parse(read).RootElement.GetProperty("tokenDefined").GetBoolean().ShouldBeTrue();
+		var events = JsonDocument.Parse(read).RootElement.GetProperty("events");
+		events.GetProperty("claude").GetProperty("triggerFailed").GetBoolean().ShouldBeTrue();
+		events.GetProperty("codex").GetProperty("triggerFailed").GetBoolean().ShouldBeFalse();
 	}
 
 	[Fact]

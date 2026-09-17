@@ -10,7 +10,7 @@ public sealed record AppSettings(PollingSettings Polling, TriggerSettings Trigge
 		return new(
 			new(3, 3),
 			new(new(autoTriggerEnabled, "haiku"), new(autoTriggerEnabled, "gpt-5.6-luna")),
-			new("https://ntfy.sh", null, null, NotificationEvents.Default, 3, null));
+			new("https://ntfy.sh", null, null, NotificationEventsByProvider.Default, 3, null));
 	}
 }
 
@@ -47,7 +47,7 @@ public sealed record NotificationSettings(
 	string Url,
 	string? Topic,
 	string? ProtectedToken,
-	NotificationEvents Events,
+	NotificationEventsByProvider Events,
 	int ReadFailureThreshold,
 	NotificationSendFailure? LastSendFailure)
 {
@@ -74,6 +74,16 @@ public sealed record NotificationEvents(bool TriggerFailed, bool AuthExpired, bo
 	}
 }
 
+public sealed record NotificationEventsByProvider(NotificationEvents Claude, NotificationEvents Codex)
+{
+	public static NotificationEventsByProvider Default => new(NotificationEvents.Default, NotificationEvents.Default);
+
+	public NotificationEvents For(Provider provider)
+	{
+		return provider == Provider.Claude ? Claude : Codex;
+	}
+}
+
 public sealed record NotificationSendFailure(DateTimeOffset At, string Message);
 
 public enum NotificationKind
@@ -93,7 +103,7 @@ public sealed record NotificationSettingsView(
 	string Url,
 	string? Topic,
 	bool TokenDefined,
-	NotificationEvents Events,
+	NotificationEventsByProvider Events,
 	int ReadFailureThreshold,
 	NotificationSendFailure? LastSendFailure);
 
@@ -101,4 +111,4 @@ public sealed record NotificationSettingsView(
 ///     The notification settings sent by the application.
 /// </summary>
 /// <param name="Token">The new token: <c>null</c> keeps the current one, an empty string removes it.</param>
-public sealed record NotificationSettingsUpdate(string Url, string? Topic, string? Token, NotificationEvents Events, int ReadFailureThreshold);
+public sealed record NotificationSettingsUpdate(string Url, string? Topic, string? Token, NotificationEventsByProvider Events, int ReadFailureThreshold);

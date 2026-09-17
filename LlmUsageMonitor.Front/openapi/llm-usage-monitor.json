@@ -430,6 +430,21 @@
           }
         }
       },
+      "NotificationEventsByProvider": {
+        "required": [
+          "claude",
+          "codex"
+        ],
+        "type": "object",
+        "properties": {
+          "claude": {
+            "$ref": "#/components/schemas/NotificationEvents"
+          },
+          "codex": {
+            "$ref": "#/components/schemas/NotificationEvents"
+          }
+        }
+      },
       "NotificationKind": {
         "enum": [
           "triggerFailed",
@@ -482,7 +497,7 @@
             ]
           },
           "events": {
-            "$ref": "#/components/schemas/NotificationEvents"
+            "$ref": "#/components/schemas/NotificationEventsByProvider"
           },
           "readFailureThreshold": {
             "type": "integer",
@@ -514,7 +529,7 @@
             "type": "boolean"
           },
           "events": {
-            "$ref": "#/components/schemas/NotificationEvents"
+            "$ref": "#/components/schemas/NotificationEventsByProvider"
           },
           "readFailureThreshold": {
             "type": "integer",

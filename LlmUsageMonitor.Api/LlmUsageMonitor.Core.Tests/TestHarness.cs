@@ -22,7 +22,11 @@ internal sealed class TestHarness
 		var defaults = AppSettings.CreateDefault(autoTriggerEnabled);
 		SettingsRepository.Stored = defaults with
 		{
-			Notifications = defaults.Notifications with { Topic = "tests", Events = new(true, true, true, true, true, true) }
+			Notifications = defaults.Notifications with
+			{
+				Topic = "tests",
+				Events = new(new(true, true, true, true, true, true), new(true, true, true, true, true, true))
+			}
 		};
 
 		var appConfig = Options.Create(new AppConfig { PublicUrl = "https://monitor.test", AutoTriggerEnabledByDefault = autoTriggerEnabled });

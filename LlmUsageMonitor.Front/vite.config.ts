@@ -16,6 +16,8 @@ export default defineConfig({
 	fmt: { ...config.fmt, ignorePatterns: [...config.fmt.ignorePatterns, "openapi/**"] },
 	server: {
 		...config.server,
+		// Keycloak callbacks and web origins require this exact port. Never silently move to 3001.
+		strictPort: true,
 		proxy: Object.fromEntries(apiPaths.map((path) => [path, { target: apiUrl, secure: false }])),
 	},
 	test: {

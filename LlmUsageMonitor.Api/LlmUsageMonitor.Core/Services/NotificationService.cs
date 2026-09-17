@@ -25,7 +25,7 @@ public sealed class NotificationService(
 	public async Task Notify(NotificationKind kind, Provider provider, string detail, CancellationToken cancellationToken)
 	{
 		var settings = (await settingsService.Get(cancellationToken)).Notifications;
-		if (string.IsNullOrWhiteSpace(settings.Topic) || !settings.Events.IsEnabled(kind))
+		if (string.IsNullOrWhiteSpace(settings.Topic) || !settings.Events.For(provider).IsEnabled(kind))
 		{
 			return;
 		}

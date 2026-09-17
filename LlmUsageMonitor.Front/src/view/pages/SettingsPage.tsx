@@ -1,4 +1,20 @@
-import { Alert, Button, CircularProgress, FormControlLabel, Paper, Stack, Switch, TextField, Typography } from "@mui/material";
+import {
+	Alert,
+	Box,
+	Button,
+	CircularProgress,
+	FormControlLabel,
+	InputAdornment,
+	Stack,
+	Switch,
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableRow,
+	TextField,
+	Typography,
+} from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, type ReactNode, useState } from "react";
 import {
@@ -29,7 +45,10 @@ export const SettingsPage = () => {
 	if (polling.isError || triggers.isError || notifications.isError) return <Alert severity="error">Impossible de charger les réglages.</Alert>;
 
 	return (
-		<Stack spacing={3} sx={{ maxWidth: 760 }}>
+		<Stack spacing={3} sx={{ maxWidth: 1100 }}>
+			<Typography variant="overline" color="text.secondary">
+				02 / Configuration
+			</Typography>
 			<Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
 				Réglages
 			</Typography>
@@ -41,17 +60,25 @@ export const SettingsPage = () => {
 };
 
 const Section = ({ title, children, onSubmit }: { title: string; children: ReactNode; onSubmit: (event: FormEvent) => void }) => (
-	<Paper component="form" aria-label={title} variant="outlined" noValidate onSubmit={onSubmit} sx={{ p: 2.5 }}>
-		<Typography variant="h6" component="h2" sx={{ fontWeight: 700, mb: 2 }}>
+	<Box
+		component="form"
+		aria-label={title}
+		noValidate
+		onSubmit={onSubmit}
+		sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "220px minmax(0, 1fr)" }, gap: 3, py: 3, borderTop: 1, borderColor: "divider" }}
+	>
+		<Typography variant="h6" component="h2" sx={{ fontSize: "0.95rem" }}>
 			{title}
 		</Typography>
-		<Stack spacing={2}>{children}</Stack>
-	</Paper>
+		<Stack spacing={2.5} sx={{ minWidth: 0 }}>
+			{children}
+		</Stack>
+	</Box>
 );
 
 const SaveBar = ({ pending, saved, failed }: { pending: boolean; saved: boolean; failed: boolean }) => (
-	<Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-		<Button type="submit" variant="contained" loading={pending}>
+	<Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: { xs: "flex-start", sm: "center" } }}>
+		<Button type="submit" variant="outlined" color="inherit" loading={pending}>
 			Enregistrer
 		</Button>
 		{saved && <Typography sx={{ color: "success.main" }}>Enregistré, appliqué immédiatement.</Typography>}
@@ -78,21 +105,45 @@ function PollingSection({ initial }: { initial: PollingSettings }) {
 
 	return (
 		<Section title="Lecture de l'usage" onSubmit={submit}>
-			{providers.map((provider) => {
-				const field = provider === "claude" ? "claudeIntervalMinutes" : "codexIntervalMinutes";
-				return (
-					<TextField
-						key={provider}
-						type="number"
-						label={`Intervalle ${providerLabel[provider]} (minutes)`}
-						value={values[field]}
-						onChange={(event) => setValues({ ...values, [field]: Number(event.target.value) })}
-						error={Boolean(errors[field])}
-						helperText={errors[field] ?? "Entre 1 et 60 minutes. Un intervalle court augmente le risque de 429."}
-						slotProps={{ htmlInput: { min: 1, max: 60 } }}
-					/>
-				);
-			})}
+			<Box>
+				<Table size="small" aria-label="Intervalles de lecture">
+					<TableHead>
+						<TableRow>
+							<TableCell sx={{ pl: 0 }}>Provider</TableCell>
+							<TableCell sx={{ pr: 0, width: { xs: 140, sm: 220 } }}>Valeur</TableCell>
+						</TableRow>
+					</TableHead>
+					<TableBody>
+						{providers.map((provider) => {
+							const field = provider === "claude" ? "claudeIntervalMinutes" : "codexIntervalMinutes";
+							return (
+								<TableRow key={provider}>
+									<TableCell component="th" scope="row" sx={{ pl: 0, fontWeight: 600 }}>
+										{providerLabel[provider]}
+									</TableCell>
+									<TableCell sx={{ pr: 0 }}>
+										<TextField
+											fullWidth
+											type="number"
+											value={values[field]}
+											onChange={(event) => setValues({ ...values, [field]: Number(event.target.value) })}
+											error={Boolean(errors[field])}
+											helperText={errors[field]}
+											slotProps={{
+												htmlInput: { min: 1, max: 60, "aria-label": `Intervalle ${providerLabel[provider]} (minutes)` },
+												input: { endAdornment: <InputAdornment position="end">min</InputAdornment> },
+											}}
+										/>
+									</TableCell>
+								</TableRow>
+							);
+						})}
+					</TableBody>
+				</Table>
+			</Box>
+			<Typography variant="caption" color="text.secondary">
+				Entre 1 et 60 minutes. Un intervalle court augmente le risque de 429.
+			</Typography>
 			<SaveBar pending={save.isPending} saved={save.isSuccess} failed={save.isError} />
 		</Section>
 	);
@@ -117,28 +168,48 @@ function TriggerSection({ initial }: { initial: TriggerSettings }) {
 
 	return (
 		<Section title="Déclenchement" onSubmit={submit}>
-			{providers.map((provider) => (
-				<Stack key={provider} direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: { sm: "center" } }}>
-					<FormControlLabel
-						sx={{ minWidth: 260 }}
-						control={
-							<Switch
-								checked={values[provider].autoEnabled}
-								onChange={(event) => setValues({ ...values, [provider]: { ...values[provider], autoEnabled: event.target.checked } })}
-							/>
-						}
-						label={`${providerLabel[provider]} : automatique après reset`}
-					/>
-					<TextField
-						fullWidth
-						label={`Modèle ${providerLabel[provider]}`}
-						value={values[provider].model}
-						onChange={(event) => setValues({ ...values, [provider]: { ...values[provider], model: event.target.value } })}
-						error={Boolean(errors[`${provider}.model`])}
-						helperText={errors[`${provider}.model`] ?? "Modèle du prompt « 1+1=? »."}
-					/>
-				</Stack>
-			))}
+			<Box sx={{ overflowX: "auto" }}>
+				<Table size="small" aria-label="Déclenchement par provider" sx={{ minWidth: 520 }}>
+					<TableHead>
+						<TableRow>
+							<TableCell sx={{ pl: 0 }}>Provider</TableCell>
+							<TableCell align="center" sx={{ width: 180, whiteSpace: "nowrap", fontSize: "0.65rem" }}>
+								Automatique après reset
+							</TableCell>
+							<TableCell sx={{ pr: 0, width: 260 }}>Modèle</TableCell>
+						</TableRow>
+					</TableHead>
+					<TableBody>
+						{providers.map((provider) => (
+							<TableRow key={provider}>
+								<TableCell component="th" scope="row" sx={{ pl: 0, fontWeight: 600 }}>
+									{providerLabel[provider]}
+								</TableCell>
+								<TableCell align="center">
+									<Switch
+										checked={values[provider].autoEnabled}
+										onChange={(event) => setValues({ ...values, [provider]: { ...values[provider], autoEnabled: event.target.checked } })}
+										slotProps={{ input: { "aria-label": `${providerLabel[provider]} automatique après reset` } }}
+									/>
+								</TableCell>
+								<TableCell sx={{ pr: 0 }}>
+									<TextField
+										fullWidth
+										value={values[provider].model}
+										onChange={(event) => setValues({ ...values, [provider]: { ...values[provider], model: event.target.value } })}
+										error={Boolean(errors[`${provider}.model`])}
+										helperText={errors[`${provider}.model`]}
+										slotProps={{ htmlInput: { "aria-label": `Modèle ${providerLabel[provider]}` } }}
+									/>
+								</TableCell>
+							</TableRow>
+						))}
+					</TableBody>
+				</Table>
+			</Box>
+			<Typography variant="caption" color="text.secondary">
+				Modèle utilisé pour le prompt « 1+1=? ».
+			</Typography>
 			<SaveBar pending={save.isPending} saved={save.isSuccess} failed={save.isError} />
 		</Section>
 	);
@@ -218,17 +289,43 @@ function NotificationSection({ initial }: { initial: NotificationSettingsView })
 				helperText={errors.readFailureThreshold ?? "Entre 1 et 20 ; les 429 ne comptent pas."}
 				slotProps={{ htmlInput: { min: 1, max: 20 } }}
 			/>
-			<Stack>
-				{(Object.keys(eventLabels) as (keyof NotificationEvents)[]).map((event) => (
-					<FormControlLabel
-						key={event}
-						control={
-							<Switch checked={values.events[event]} onChange={(change) => setValues({ ...values, events: { ...values.events, [event]: change.target.checked } })} />
-						}
-						label={eventLabels[event]}
-					/>
-				))}
-			</Stack>
+			<Box sx={{ overflowX: "auto" }}>
+				<Table size="small" aria-label="Événements notifiés par provider" sx={{ minWidth: 430 }}>
+					<TableHead>
+						<TableRow>
+							<TableCell sx={{ pl: 0 }}>Événement</TableCell>
+							{providers.map((provider) => (
+								<TableCell key={provider} align="center" sx={{ width: 96 }}>
+									{providerLabel[provider]}
+								</TableCell>
+							))}
+						</TableRow>
+					</TableHead>
+					<TableBody>
+						{(Object.keys(eventLabels) as (keyof NotificationEvents)[]).map((event) => (
+							<TableRow key={event}>
+								<TableCell component="th" scope="row" sx={{ pl: 0, fontSize: "0.82rem" }}>
+									{eventLabels[event]}
+								</TableCell>
+								{providers.map((provider) => (
+									<TableCell key={provider} align="center">
+										<Switch
+											checked={values.events[provider][event]}
+											onChange={(change) =>
+												setValues({
+													...values,
+													events: { ...values.events, [provider]: { ...values.events[provider], [event]: change.target.checked } },
+												})
+											}
+											slotProps={{ input: { "aria-label": providerLabel[provider] } }}
+										/>
+									</TableCell>
+								))}
+							</TableRow>
+						))}
+					</TableBody>
+				</Table>
+			</Box>
 			{current.lastSendFailure && (
 				<Alert severity="warning">
 					Dernier échec d'envoi {fmtWhen(current.lastSendFailure.at, now)} : {current.lastSendFailure.message}
@@ -236,7 +333,7 @@ function NotificationSection({ initial }: { initial: NotificationSettingsView })
 			)}
 			{test.isSuccess && <Alert severity="success">Notification de test envoyée.</Alert>}
 			{test.isError && <Alert severity="error">L'envoi de test a échoué.</Alert>}
-			<Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
+			<Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: { xs: "flex-start", sm: "center" } }}>
 				<SaveBar pending={save.isPending} saved={save.isSuccess} failed={save.isError} />
 				<Button variant="outlined" loading={test.isPending} disabled={!current.topic} onClick={() => test.mutate({})}>
 					Envoyer un test

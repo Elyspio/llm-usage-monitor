@@ -18,6 +18,11 @@ export type NotificationEvents = {
     recovered: boolean;
 };
 
+export type NotificationEventsByProvider = {
+    claude: NotificationEvents;
+    codex: NotificationEvents;
+};
+
 export type NotificationKind = 'triggerFailed' | 'authExpired' | 'readFailed' | 'reset' | 'triggerSucceeded' | 'recovered';
 
 export type NotificationSendFailure = {
@@ -29,7 +34,7 @@ export type NotificationSettingsUpdate = {
     url: string;
     topic: null | string;
     token: null | string;
-    events: NotificationEvents;
+    events: NotificationEventsByProvider;
     readFailureThreshold: number;
 };
 
@@ -37,7 +42,7 @@ export type NotificationSettingsView = {
     url: string;
     topic: null | string;
     tokenDefined: boolean;
-    events: NotificationEvents;
+    events: NotificationEventsByProvider;
     readFailureThreshold: number;
     lastSendFailure: null | NotificationSendFailure;
 };

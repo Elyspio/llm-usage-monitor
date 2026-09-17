@@ -28,14 +28,14 @@ const renderPage = () =>
 	);
 
 describe("DashboardPage", () => {
-	it("shows one column per provider with the trigger window first", async () => {
+	it("shows all windows on the shared timeline with the trigger window first", async () => {
 		renderPage();
 
-		const claude = await screen.findByRole("region", { name: "Claude" });
-		const cards = within(claude).getAllByText(/Session 5 h|Hebdo · tous modèles/);
-		expect(cards.map((card) => card.textContent)).toEqual(["Session 5 h", "Hebdo · tous modèles"]);
-		expect(within(claude).getByText("60 %")).toBeTruthy();
-		expect(within(claude).getByText("déclencheuse")).toBeTruthy();
+		const timeline = await screen.findByRole("region", { name: "Chronologie des quotas" });
+		const cards = within(timeline).getAllByText(/Claude · Session 5 h|Claude · Hebdo · tous modèles/);
+		expect(cards.map((card) => card.textContent)).toEqual(["Claude · Session 5 h", "Claude · Hebdo · tous modèles"]);
+		expect(within(timeline).getByText("60 %")).toBeTruthy();
+		expect(within(timeline).getByRole("progressbar", { name: "Claude Session 5 h consommé" }).getAttribute("value")).toBe("40");
 		expect(await screen.findByRole("region", { name: "Codex" })).toBeTruthy();
 		expect(screen.getByText("Déclenchement automatique désactivé dans les réglages.")).toBeTruthy();
 	});
@@ -49,7 +49,7 @@ describe("DashboardPage", () => {
 		expect(within(claude).getAllByText("Connexion expirée").length).toBeGreaterThan(0);
 		expect(within(claude).getByText(/claude auth login/)).toBeTruthy();
 		expect(within(claude).getByText(/AUTH_EXPIRED · The Claude CLI could not refresh its login./)).toBeTruthy();
-		expect(within(claude).getAllByText(/périmé · lu il y a/).length).toBe(2);
+		expect(screen.getAllByText(/périmé · lu il y a/).length).toBe(2);
 	});
 
 	it("queues a manual trigger and follows it until it ends", async () => {

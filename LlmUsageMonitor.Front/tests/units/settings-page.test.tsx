@@ -11,7 +11,10 @@ const notifications = {
 	url: "https://ntfy.sh",
 	topic: "llm_usage",
 	tokenDefined: true,
-	events: { triggerFailed: true, authExpired: true, readFailed: true, reset: false, triggerSucceeded: true, recovered: true },
+	events: {
+		claude: { triggerFailed: true, authExpired: true, readFailed: true, reset: false, triggerSucceeded: true, recovered: true },
+		codex: { triggerFailed: false, authExpired: true, readFailed: true, reset: false, triggerSucceeded: true, recovered: true },
+	},
 	readFailureThreshold: 3,
 	lastSendFailure: { at: new Date().toISOString(), message: "ntfy returned HTTP 502." },
 };
@@ -59,6 +62,13 @@ describe("SettingsPage", () => {
 	it("shows the field errors returned by the API", async () => {
 		renderPage();
 		const form = await screen.findByRole("form", { name: "Déclenchement" });
+		const table = within(form).getByRole("table", { name: "Déclenchement par provider" });
+
+		expect(
+			within(table)
+				.getAllByRole("columnheader")
+				.map((header) => header.textContent)
+		).toEqual(["Provider", "Automatique après reset", "Modèle"]);
 
 		fireEvent.click(within(form).getByRole("button", { name: "Enregistrer" }));
 
@@ -76,5 +86,25 @@ describe("SettingsPage", () => {
 		fireEvent.click(within(form).getByRole("button", { name: "Enregistrer" }));
 
 		await expect.poll(() => lastNotificationBody).toMatchObject({ topic: "llm_usage", token: null });
+	});
+
+	it("shows notification events as a provider matrix and saves each provider independently", async () => {
+		renderPage();
+		const form = await screen.findByRole("form", { name: "Notifications ntfy" });
+		const table = within(form).getByRole("table", { name: "Événements notifiés par provider" });
+
+		expect(
+			within(table)
+				.getAllByRole("columnheader")
+				.map((header) => header.textContent)
+		).toEqual(["Événement", "Claude", "Codex"]);
+		const triggerFailed = within(table).getByRole("row", { name: /Déclenchement automatique en échec/ });
+		expect((within(triggerFailed).getByRole("switch", { name: "Claude" }) as HTMLInputElement).checked).toBe(true);
+		expect((within(triggerFailed).getByRole("switch", { name: "Codex" }) as HTMLInputElement).checked).toBe(false);
+
+		fireEvent.click(within(triggerFailed).getByRole("switch", { name: "Codex" }));
+		fireEvent.click(within(form).getByRole("button", { name: "Enregistrer" }));
+
+		await expect.poll(() => lastNotificationBody).toMatchObject({ events: { claude: { triggerFailed: true }, codex: { triggerFailed: true } } });
 	});
 });

@@ -1,10 +1,11 @@
-import { Alert, CircularProgress, Grid } from "@mui/material";
+import { Alert, Box, CircularProgress, Grid, Stack, Typography } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { getDashboardOptions } from "@/core/apis/generated/@tanstack/react-query.gen";
 import { HistoryCard } from "@components/dashboard/HistoryCard";
 import { ProviderColumn } from "@components/dashboard/ProviderColumn";
 import { TriggerJournal } from "@components/dashboard/TriggerJournal";
+import { UsageTimeline } from "@components/dashboard/UsageTimeline";
 import { useNow } from "@hooks/useNow";
 
 export const DashboardPage = () => {
@@ -24,18 +25,26 @@ export const DashboardPage = () => {
 	if (isError) return <Alert severity="error">Impossible de charger le tableau de bord.</Alert>;
 
 	return (
-		<Grid container spacing={3}>
-			{data.providers.map((provider) => (
-				<Grid key={provider.provider} size={{ xs: 12, md: 6 }}>
-					<ProviderColumn provider={provider} now={now} />
+		<Stack spacing={4}>
+			<Box>
+				<Typography variant="overline" color="text.secondary">
+					01 / Tableau de board
+				</Typography>
+			</Box>
+			<UsageTimeline providers={data.providers} now={now} />
+			<Grid container spacing={3}>
+				{data.providers.map((provider) => (
+					<Grid key={provider.provider} size={{ xs: 12, md: 6 }}>
+						<ProviderColumn provider={provider} now={now} />
+					</Grid>
+				))}
+				<Grid size={{ xs: 12, lg: 7 }}>
+					<HistoryCard durations={durations} now={now} />
 				</Grid>
-			))}
-			<Grid size={{ xs: 12, lg: 7 }}>
-				<HistoryCard durations={durations} now={now} />
+				<Grid size={{ xs: 12, lg: 5 }}>
+					<TriggerJournal runs={data.recentTriggerRuns} now={now} />
+				</Grid>
 			</Grid>
-			<Grid size={{ xs: 12, lg: 5 }}>
-				<TriggerJournal runs={data.recentTriggerRuns} now={now} />
-			</Grid>
-		</Grid>
+		</Stack>
 	);
 };

@@ -60,7 +60,7 @@ public sealed class SettingsServiceTests
 	public async Task The_ntfy_token_is_encrypted_kept_or_removed_and_never_returned()
 	{
 		var harness = new TestHarness();
-		var events = NotificationEvents.Default;
+		var events = NotificationEventsByProvider.Default;
 
 		var set = await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "secret", events, 3), Token);
 		harness.SettingsRepository.Stored!.Notifications.ProtectedToken.ShouldBe("protected:secret");
@@ -78,7 +78,7 @@ public sealed class SettingsServiceTests
 		var harness = new TestHarness();
 
 		var exception = await Should.ThrowAsync<RequestValidationException>(() =>
-			harness.Settings.UpdateNotifications(new("ftp://ntfy", "bad topic!", null, NotificationEvents.Default, 21), Token));
+			harness.Settings.UpdateNotifications(new("ftp://ntfy", "bad topic!", null, NotificationEventsByProvider.Default, 21), Token));
 
 		exception.Errors.Keys.ShouldBe(["url", "topic", "readFailureThreshold"], true);
 	}
@@ -92,6 +92,25 @@ public sealed class SettingsServiceTests
 		await harness.Notifications.Notify(NotificationKind.TriggerFailed, Provider.Codex, "boom", Token);
 
 		harness.SettingsRepository.Stored!.Notifications.LastSendFailure!.Message.ShouldBe("ntfy returned HTTP 502.");
+	}
+
+	[Fact]
+	public async Task Notification_events_are_enabled_per_provider()
+	{
+		var harness = new TestHarness();
+		var settings = harness.SettingsRepository.Stored!;
+		harness.SettingsRepository.Stored = settings with
+		{
+			Notifications = settings.Notifications with
+			{
+				Events = new(NotificationEvents.Default, NotificationEvents.Default with { TriggerFailed = false })
+			}
+		};
+
+		await harness.Notifications.Notify(NotificationKind.TriggerFailed, Provider.Codex, "ignored", Token);
+		await harness.Notifications.Notify(NotificationKind.TriggerFailed, Provider.Claude, "sent", Token);
+
+		harness.Sender.Sent.ShouldHaveSingleItem().Title.ShouldStartWith("Claude");
 	}
 }
 
