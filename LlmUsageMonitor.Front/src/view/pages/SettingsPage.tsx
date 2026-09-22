@@ -52,7 +52,7 @@ export const SettingsPage = () => {
 
 	return (
 		<Stack spacing={3}>
-			<Typography variant="overline" color="text.secondary">
+			<Typography variant="overline" sx={{ color: "text.secondary" }}>
 				03 / Configuration
 			</Typography>
 			<Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
@@ -191,7 +191,7 @@ function PollingSection({ initial }: { initial: PollingSettings }) {
 					})}
 				</TableBody>
 			</Table>
-			<Typography variant="caption" color="text.secondary">
+			<Typography variant="caption" sx={{ color: "text.secondary" }}>
 				Entre 1 et 60 minutes. Un intervalle court augmente le risque de 429.
 			</Typography>
 		</Section>
@@ -274,7 +274,7 @@ function TriggerSection({ initial }: { initial: TriggerSettings }) {
 					</TableBody>
 				</Table>
 			</Box>
-			<Typography variant="caption" color="text.secondary">
+			<Typography variant="caption" sx={{ color: "text.secondary" }}>
 				Modèle utilisé pour le prompt « 1+1=? ».
 			</Typography>
 		</Section>

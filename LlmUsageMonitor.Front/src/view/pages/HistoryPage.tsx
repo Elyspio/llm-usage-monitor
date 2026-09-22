@@ -24,7 +24,7 @@ export const HistoryPage = () => {
 
 	return (
 		<Stack spacing={3}>
-			<Typography variant="overline" color="text.secondary">
+			<Typography variant="overline" sx={{ color: "text.secondary" }}>
 				02 / Historique
 			</Typography>
 			<Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
