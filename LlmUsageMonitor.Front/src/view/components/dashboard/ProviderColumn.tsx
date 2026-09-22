@@ -3,7 +3,7 @@ import { Alert, AlertTitle, Box, Chip, Paper, Stack, Typography } from "@mui/mat
 import type { ProviderDashboard } from "@/core/apis/generated/types.gen";
 import { errorInfo, isDegraded, providerColor, providerLabel } from "@/core/dashboard";
 import { fmtAgo, fmtIn, fmtWhen } from "@/core/format";
-import { CodexLogo } from "./CodexLogo";
+import { ProviderLogo } from "./ProviderLogo";
 import { TriggerButton } from "./TriggerButton";
 
 export const ProviderColumn = ({ provider, now }: { provider: ProviderDashboard; now: number }) => {
@@ -17,9 +17,7 @@ export const ProviderColumn = ({ provider, now }: { provider: ProviderDashboard;
 			<Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: "flex-start", justifyContent: "space-between", mb: 3 }}>
 				<Box sx={{ minWidth: 0 }}>
 					<Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-						<Box aria-hidden="true" sx={{ color: providerColor[provider.provider], fontSize: 26, lineHeight: 1, mr: 0.5 }}>
-							{provider.provider === "claude" ? "✳" : <CodexLogo sx={{ display: "block", fontSize: 22 }} />}
-						</Box>
+						<ProviderLogo provider={provider.provider} sx={{ color: providerColor[provider.provider], fontSize: 22, mr: 0.5 }} />
 						<Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
 							{providerLabel[provider.provider]}
 						</Typography>
