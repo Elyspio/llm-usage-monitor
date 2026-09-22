@@ -26,6 +26,17 @@ describe("shared timeline", () => {
 		);
 		expect(chart.rows[0].timing).toBeNull();
 	});
+	it("marks every Monday midnight of the range", () => {
+		const chart = toTimeline([claude], Date.now());
+		const expected: number[] = [];
+		for (const day = new Date(chart.start); day.getTime() < chart.end; day.setDate(day.getDate() + 1)) {
+			if (day.getDay() === 1) expected.push(day.getTime());
+		}
+		expect(expected.length).toBeGreaterThan(0);
+		expect(chart.mondays).toEqual(expected);
+		expect(toTimeline([], new Date(2026, 8, 22, 12).getTime()).mondays).toEqual([]);
+		expect(toTimeline([], new Date(2026, 8, 21, 12).getTime()).mondays).toEqual([new Date(2026, 8, 21).getTime()]);
+	});
 	it("includes now after all windows have expired", () => {
 		const now = Date.now() + 30 * 86400000;
 		const chart = toTimeline([claude], now);

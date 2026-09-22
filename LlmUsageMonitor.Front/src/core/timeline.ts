@@ -20,5 +20,12 @@ export function toTimeline(providers: ProviderDashboard[], now: number) {
 		ticks.push(cursor.getTime());
 		cursor.setDate(cursor.getDate() + step);
 	}
-	return { rows, start: start.getTime(), end: end.getTime(), ticks, position };
+	const mondays: number[] = [];
+	const monday = new Date(start);
+	monday.setDate(monday.getDate() + ((8 - monday.getDay()) % 7));
+	while (monday < end) {
+		mondays.push(monday.getTime());
+		monday.setDate(monday.getDate() + 7);
+	}
+	return { rows, start: start.getTime(), end: end.getTime(), ticks, mondays, position };
 }
