@@ -1,8 +1,8 @@
 # Builds the deployable artifact on the dev machine: a self-contained linux-x64 API with the SPA in wwwroot.
 # docker build -f deploy/Dockerfile --target artifact --output type=local,dest=deploy/out .
 
-FROM node:24-bookworm-slim AS front
-RUN npm install --global pnpm@11.25.0
+FROM node:26-bookworm-slim AS front
+RUN npm install --global pnpm@12.5.1
 WORKDIR /src/LlmUsageMonitor.Front
 COPY LlmUsageMonitor.Front/package.json LlmUsageMonitor.Front/pnpm-lock.yaml LlmUsageMonitor.Front/pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
