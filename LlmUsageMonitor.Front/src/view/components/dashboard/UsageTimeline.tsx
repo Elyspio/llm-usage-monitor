@@ -6,7 +6,7 @@ import { toTimeline } from "@/core/timeline";
 
 const columns = "minmax(210px, 28%) minmax(0, 1fr) 100px";
 const mono = { fontFamily: "IBM Plex Mono, monospace" };
-const mondayLine = "1px dashed #a1a1aa";
+const mondayColor = "#7dd3fc";
 const dateLabel = (value: number) => new Date(value).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 
 export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard[]; now: number }) => {
@@ -21,7 +21,29 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 					Fenêtre
 				</Typography>
 				<Box sx={{ position: "relative", height: 34, borderBottom: 1, borderColor: "divider" }}>
-					<Typography variant="overline" sx={{ position: "absolute", left: `${position(now)}%`, top: -25, transform: "translateX(-50%)", color: "primary.main" }}>
+					{mondays.map((monday) => (
+						<Typography
+							key={monday}
+							variant="overline"
+							title="Lundi"
+							sx={{ position: "absolute", left: `${position(monday)}%`, top: -25, transform: "translateX(-50%)", color: mondayColor }}
+						>
+							L
+						</Typography>
+					))}
+					{/* Drawn after the Monday labels, on the paper colour: « Maintenant » stays readable on a Monday. */}
+					<Typography
+						variant="overline"
+						sx={{
+							position: "absolute",
+							left: `${position(now)}%`,
+							top: -25,
+							transform: "translateX(-50%)",
+							px: 0.5,
+							bgcolor: "background.paper",
+							color: "primary.main",
+						}}
+					>
 						Maintenant
 					</Typography>
 					{ticks.map((tick) => (
@@ -118,7 +140,11 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 								</Typography>
 							)}
 							{mondays.map((monday) => (
-								<Box key={monday} aria-hidden="true" sx={{ position: "absolute", top: 4, height: 30, borderLeft: mondayLine, left: `${position(monday)}%` }} />
+								<Box
+									key={monday}
+									aria-hidden="true"
+									sx={{ position: "absolute", top: 4, height: 30, width: 2, bgcolor: mondayColor, left: `${position(monday)}%` }}
+								/>
 							))}
 							<Box aria-label="Maintenant" sx={{ position: "absolute", top: 4, height: 30, width: 2, bgcolor: "#d4d4d8", left: `${position(now)}%` }} />
 							{validTiming && width < 5 && !expired && (
@@ -142,19 +168,6 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 					</Box>
 				);
 			})}
-			{rows.length > 0 && mondays.length > 0 && (
-				<Box sx={{ display: { xs: "none", md: "grid" }, gridTemplateColumns: columns, gap: 3 }}>
-					<Box sx={{ gridColumn: 2, position: "relative", height: 26 }}>
-						{mondays.map((monday) => (
-							<Box key={monday} sx={{ position: "absolute", left: `${position(monday)}%`, top: 0, height: 8, borderLeft: mondayLine }}>
-								<Typography variant="overline" sx={{ position: "absolute", top: 6, transform: "translateX(-50%)", whiteSpace: "nowrap", color: "text.secondary" }}>
-									Lundi {new Date(monday).getDate()}
-								</Typography>
-							</Box>
-						))}
-					</Box>
-				</Box>
-			)}
 			<Stack direction="row" useFlexGap spacing={3} sx={{ flexWrap: "wrap", pt: 2, color: "text.secondary" }}>
 				<Typography variant="body2">
 					<Box component="span" sx={{ display: "inline-block", width: 20, height: 10, bgcolor: "primary.main", borderRadius: "3px", mr: 1 }} />
@@ -169,7 +182,7 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 					maintenant
 				</Typography>
 				<Typography variant="body2">
-					<Box component="span" sx={{ display: "inline-block", height: 14, borderLeft: mondayLine, mr: 1, verticalAlign: "middle" }} />
+					<Box component="span" sx={{ display: "inline-block", width: 2, height: 14, bgcolor: mondayColor, mr: 1, verticalAlign: "middle" }} />
 					lundi
 				</Typography>
 			</Stack>
