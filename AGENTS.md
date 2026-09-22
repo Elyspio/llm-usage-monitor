@@ -13,7 +13,7 @@ Spec : [PRD](https://github.com/Elyspio/llm-usage-monitor/issues/19) — fermé,
   - Adapters : `Claude` (`/api/oauth/usage`, prompt `claude -p`, rafraîchissement par `claude mcp list`), `Codex` (JSON-RPC `codex app-server`), `MongoDB` (5 collections + clés Data Protection), `Hangfire` (jobs dans le process de l'API, collections préfixées `hangfire.` dans la base de l'application), `Ntfy`.
   - `Core.Tests` (services réels sur stockage en mémoire, `FakeTimeProvider`), `Adapters.Tests` (fixtures anonymisées dans `Fixtures/`, repositories sur Mongo Testcontainers), `WebApi.Tests` (`WebApplicationFactory` sur Mongo Testcontainers, JWT signés localement, Hangfire désactivé).
   - Toutes les routes sont sous `/api` et exigent le rôle client `llm-usage-monitor:admin` ; `/hangfire` passe par cookie + OIDC avec le même rôle.
-- `LlmUsageMonitor.Front/` : SPA Vite+ (`@elyspio/vite-eslint-config` v6, React Router 8, MUI 9, TanStack Query, `oidc-client-ts`).
+- `LlmUsageMonitor.Front/` : SPA Vite+ 1.0 (`@elyspio/vite-eslint-config` v8, React Router 8, MUI 9, TanStack Query, `oidc-client-ts`).
   - `openapi/llm-usage-monitor.json` : document OpenAPI écrit par le build de `WebApi`, commité.
   - `src/core/apis/generated/` : client `@hey-api/openapi-ts` généré depuis ce document, commité, exclu du lint et du formatage.
 - `LlmUsageMonitor.Scripts/` : lecteurs d'usage TypeScript d'origine (`src/`, `examples/`) et leur outillage (pnpm, Oxlint, Oxfmt, TypeScript 7). Projet indépendant du front, portés en C# dans les adapters ; les fixtures des tests d'adapters viennent de ces lecteurs.
@@ -49,7 +49,7 @@ Prérequis : Docker démarré (MongoDB via Testcontainers dans les tests backend
 - Scripts TypeScript (dans `LlmUsageMonitor.Scripts/`) :
   ```sh
   pnpm install
-  pnpm check    # Oxfmt, Oxlint, tsc
+  pnpm check    # Oxfmt, Oxlint, typecheck
   ```
 - Contrat API : le build de `WebApi` réécrit `LlmUsageMonitor.Front/openapi/llm-usage-monitor.json`, puis `pnpm gen:api` régénère le client. Après un changement d'API, commiter les deux ; `git status` ne doit plus montrer de diff.
 

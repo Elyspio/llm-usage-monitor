@@ -4,19 +4,19 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"check": "pnpm run lint && pnpm run typecheck",
-		"format": "vp fmt",
-		"lint": "vp check --fix",
-		"typecheck": "tsc --noEmit",
+		"check": "vp check",
+		"lint": "vp lint",
+		"fmt": "vp fmt",
 		"usage:codex": "tsx examples/codex.ts"
 	},
 	"devDependencies": {
-		"@types/node": "^26.5.0",
+		"@types/node": "^26.6.2",
 		"tsx": "^4.23.13",
 		"typescript": "^7.0.2",
-		"vite-plus": "^0.3.2"
+		"vite-plus": "catalog:"
 	},
 	"engines": {
-		"node": ">=22"
-	}
+		"node": ">=26.0.0"
+	},
+	"packageManager": "pnpm@12.5.1"
 }
