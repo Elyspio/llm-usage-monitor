@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { UsageWindow } from "@/core/apis/generated/types.gen";
-import { errorInfo, isDegraded, sortWindows, windowLabel, windowTiming } from "@/core/dashboard";
+import { errorInfo, isDegraded, providerColor, sortWindows, windowColor, windowLabel, windowTiming } from "@/core/dashboard";
 import { fmtDuration, fmtSpan } from "@/core/format";
 import { serverFieldErrors, validateInterval, validateThreshold, validateTopic } from "@/core/settings.validation";
 
@@ -20,6 +20,12 @@ describe("dashboard logic", () => {
 
 		expect(timing).toEqual({ start: Date.parse("2026-09-14T09:00:00Z"), end: Date.parse("2026-09-14T14:00:00Z"), elapsedPercent: 60 });
 		expect(windowTiming(window("five_hour", 300, null), now)).toBeNull();
+	});
+
+	it("colours a window like its provider, the Claude session in a lighter orange", () => {
+		expect(windowColor("claude", "five_hour")).toBe("#f4a261");
+		expect(windowColor("claude", "seven_day")).toBe(providerColor.claude);
+		expect(windowColor("codex", "codex/primary")).toBe(providerColor.codex);
 	});
 
 	it("puts the trigger window first, then the others by duration", () => {

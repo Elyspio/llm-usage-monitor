@@ -1,6 +1,6 @@
 import { Box, Paper, Stack, Typography } from "@mui/material";
 import type { ProviderDashboard } from "@/core/apis/generated/types.gen";
-import { isDegraded, providerLabel, windowLabel } from "@/core/dashboard";
+import { isDegraded, providerColor, providerLabel, windowColor, windowLabel } from "@/core/dashboard";
 import { fmtAgo, fmtIn, fmtPercent, fmtWhen } from "@/core/format";
 import { toTimeline } from "@/core/timeline";
 
@@ -63,7 +63,8 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 				const stale = isDegraded(provider.health);
 				const expired = window.resetsAt != null && Date.parse(window.resetsAt) < now;
 				const remaining = Math.max(0, Math.min(100, 100 - window.usedPercent));
-				const color = stale || expired ? "#85858e" : remaining >= 50 ? "#10b981" : remaining >= 20 ? "#fbbf24" : "#fb7185";
+				const status = stale || expired ? "#85858e" : remaining >= 50 ? "#10b981" : remaining >= 20 ? "#fbbf24" : "#fb7185";
+				const color = stale || expired ? "#85858e" : windowColor(provider.provider, window.id);
 				const validTiming = timing && Number.isFinite(timing.start) && Number.isFinite(timing.end) ? timing : null;
 				const left = validTiming ? position(validTiming.start) : 0;
 				const width = validTiming ? position(validTiming.end) - left : 0;
@@ -157,7 +158,7 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 							sx={{
 								...mono,
 								textAlign: "right",
-								color: remaining < 50 || stale || expired ? color : "text.primary",
+								color: remaining < 50 || stale || expired ? status : "text.primary",
 								fontSize: "1.45rem",
 								gridColumn: { xs: 2, md: "auto" },
 								gridRow: { xs: 1, md: "auto" },
@@ -170,7 +171,17 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 			})}
 			<Stack direction="row" useFlexGap spacing={3} sx={{ flexWrap: "wrap", pt: 2, color: "text.secondary" }}>
 				<Typography variant="body2">
-					<Box component="span" sx={{ display: "inline-block", width: 20, height: 10, bgcolor: "primary.main", borderRadius: "3px", mr: 1 }} />
+					<Box
+						component="span"
+						sx={{
+							display: "inline-block",
+							width: 20,
+							height: 10,
+							background: `linear-gradient(90deg, ${windowColor("claude", "five_hour")} 0 33%, ${providerColor.claude} 33% 66%, ${providerColor.codex} 66%)`,
+							borderRadius: "3px",
+							mr: 1,
+						}}
+					/>
 					quota consommé
 				</Typography>
 				<Typography variant="body2">

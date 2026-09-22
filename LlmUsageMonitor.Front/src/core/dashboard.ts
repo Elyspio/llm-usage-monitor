@@ -3,6 +3,9 @@ import type { Provider, ProviderDashboard, ProviderHealth, UsageWindow } from "@
 export const providerLabel: Record<Provider, string> = { claude: "Claude", codex: "Codex" };
 export const providerColor: Record<Provider, string> = { claude: "#d97757", codex: "#10a37f" };
 
+/** Colour of a window on the dashboard and in the history: the provider's, a lighter orange for the Claude session. */
+export const windowColor = (provider: Provider, windowId: string) => (provider === "claude" && windowId === "five_hour" ? "#f4a261" : providerColor[provider]);
+
 /**
  * Models offered for the trigger prompt: the model ids from the providers' documentation, never the family aliases.
  * The field stays free: the installed CLI is the reference, this list is only a shortcut.

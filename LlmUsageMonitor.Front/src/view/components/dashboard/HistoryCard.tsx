@@ -5,13 +5,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { getHistoryOptions } from "@/core/apis/generated/@tanstack/react-query.gen";
 import type { UsageHistory } from "@/core/apis/generated/types.gen";
-import { providerColor, providerLabel, windowLabel } from "@/core/dashboard";
+import { providerColor, providerLabel, windowColor, windowLabel } from "@/core/dashboard";
 import { fmtDayLabel, fmtHour } from "@/core/format";
 
 type Range = "24h" | "7d";
 
 type Series = { key: string; label: string; color: string; data: (number | null)[] };
-const claudeSessionColor = "#f4a261";
 
 /** Series share a merged time axis and keep their last valid value until the next reading. */
 export function toChart(history: UsageHistory, durations: Record<string, number | null>): { times: Date[]; series: Series[] } {
@@ -30,7 +29,7 @@ export function toChart(history: UsageHistory, durations: Record<string, number 
 		return {
 			key,
 			label: `${providerLabel[item.provider]} · ${windowLabel({ id: item.windowId, windowDurationMinutes: durations[key] ?? null })}`,
-			color: item.provider === "claude" && item.windowId === "five_hour" ? claudeSessionColor : providerColor[item.provider],
+			color: windowColor(item.provider, item.windowId),
 			data,
 		};
 	});
