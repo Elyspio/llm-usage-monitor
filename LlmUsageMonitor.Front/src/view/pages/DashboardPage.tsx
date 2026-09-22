@@ -15,7 +15,7 @@ export const DashboardPage = () => {
 	return (
 		<Stack spacing={4}>
 			<Box>
-				<Typography variant="overline" color="text.secondary">
+				<Typography variant="overline" sx={{ color: "text.secondary" }}>
 					01 / Tableau de bord
 				</Typography>
 			</Box>
