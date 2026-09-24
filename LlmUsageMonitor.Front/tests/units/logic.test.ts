@@ -65,6 +65,9 @@ describe("settings validation", () => {
 	it("applies the API bounds", () => {
 		expect(validateInterval(0)).not.toBeNull();
 		expect(validateInterval(60)).toBeNull();
+		expect(validateInterval(15)).toBeNull();
+		expect(validateInterval(45)).not.toBeNull();
+		expect(validateInterval(7)).not.toBeNull();
 		expect(validateThreshold(21)).not.toBeNull();
 		expect(validateTopic("bad topic")).not.toBeNull();
 		expect(validateTopic("")).toBeNull();

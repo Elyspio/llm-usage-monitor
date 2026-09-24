@@ -192,7 +192,7 @@ function PollingSection({ initial }: { initial: PollingSettings }) {
 				</TableBody>
 			</Table>
 			<Typography variant="caption" color="text.secondary">
-				Entre 1 et 60 minutes. Un intervalle court augmente le risque de 429.
+				Diviseur de 60 (1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30 ou 60 minutes). Un intervalle court augmente le risque de 429.
 			</Typography>
 		</Section>
 	);

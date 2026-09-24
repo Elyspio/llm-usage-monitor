@@ -9,6 +9,10 @@ export function validateInterval(value: number): string | null {
 	if (!Number.isInteger(value) || value < intervalBounds.min || value > intervalBounds.max) {
 		return `Entre ${intervalBounds.min} et ${intervalBounds.max} minutes.`;
 	}
+	// The poll cron restarts every hour: only divisors of 60 keep the gaps even.
+	if (60 % value !== 0) {
+		return "Diviseur de 60 attendu : 1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30 ou 60 minutes.";
+	}
 	return null;
 }
 
