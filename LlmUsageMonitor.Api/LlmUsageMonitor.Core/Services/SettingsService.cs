@@ -20,6 +20,7 @@ public sealed partial class SettingsService(
 	IOptions<AppConfig> appConfig) : ISettingsService
 {
 	public const int MaxModelLength = 100;
+	public const string IntervalDivisorMessage = "Diviseur de 60 attendu : 1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30 ou 60 minutes.";
 
 	public async Task<AppSettings> Get(CancellationToken cancellationToken)
 	{
@@ -129,6 +130,10 @@ public sealed partial class SettingsService(
 		if (minutes is < PollingSettings.MinIntervalMinutes or > PollingSettings.MaxIntervalMinutes)
 		{
 			errors[field] = [$"Entre {PollingSettings.MinIntervalMinutes} et {PollingSettings.MaxIntervalMinutes} minutes."];
+		}
+		else if (!PollingSettings.DividesHour(minutes))
+		{
+			errors[field] = [IntervalDivisorMessage];
 		}
 	}
 

@@ -44,7 +44,8 @@ internal sealed class HangfireJobScheduler(IBackgroundJobClient jobs, IRecurring
 
 	internal static string ToCron(int minutes)
 	{
-		return minutes >= 60 ? "0 * * * *" : $"*/{Math.Max(1, minutes)} * * * *";
+		var divisor = PollingSettings.ToHourDivisor(minutes);
+		return divisor == 60 ? "0 * * * *" : $"*/{divisor} * * * *";
 	}
 }
 

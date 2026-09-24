@@ -21,6 +21,28 @@ public sealed class SettingsServiceTests
 	}
 
 	[Fact]
+	public async Task Polling_that_does_not_divide_the_hour_is_rejected()
+	{
+		var harness = new TestHarness();
+
+		var exception = await Should.ThrowAsync<RequestValidationException>(() => harness.Settings.UpdatePolling(new(45, 7), Token));
+
+		exception.Errors.Keys.ShouldBe(["claudeIntervalMinutes", "codexIntervalMinutes"], true);
+		exception.Errors["claudeIntervalMinutes"].ShouldBe([SettingsService.IntervalDivisorMessage]);
+	}
+
+	[Theory]
+	[InlineData(45, 30)]
+	[InlineData(7, 6)]
+	[InlineData(15, 15)]
+	[InlineData(0, 1)]
+	[InlineData(90, 60)]
+	public void A_saved_interval_is_rounded_down_to_a_divisor_of_the_hour(int saved, int expected)
+	{
+		PollingSettings.ToHourDivisor(saved).ShouldBe(expected);
+	}
+
+	[Fact]
 	public async Task A_new_polling_interval_rewrites_the_poll_jobs_at_once()
 	{
 		var harness = new TestHarness();
