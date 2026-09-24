@@ -8,6 +8,7 @@ using LlmUsageMonitor.Abstractions.Extensions;
 using LlmUsageMonitor.Adapters.Claude;
 using LlmUsageMonitor.Adapters.Codex;
 using LlmUsageMonitor.Adapters.Hangfire;
+using LlmUsageMonitor.Adapters.LiteLlm;
 using LlmUsageMonitor.Adapters.MongoDB;
 using LlmUsageMonitor.Adapters.Ntfy;
 using LlmUsageMonitor.Authorization;
@@ -40,6 +41,7 @@ builder.AddModule<MongoAdapterModule>();
 builder.AddModule<ClaudeAdapterModule>();
 builder.AddModule<CodexAdapterModule>();
 builder.AddModule<NtfyAdapterModule>();
+builder.AddModule<LiteLlmAdapterModule>();
 builder.AddModule<HangfireAdapterModule>();
 
 // Enums travel as camelCase strings, both in responses and in the OpenAPI document.

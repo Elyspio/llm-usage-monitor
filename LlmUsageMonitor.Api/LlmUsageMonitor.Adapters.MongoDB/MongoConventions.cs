@@ -11,6 +11,9 @@ internal static class Collections
 	public const string ProviderStates = "providerStates";
 	public const string Settings = "settings";
 	public const string DataProtectionKeys = "dataProtectionKeys";
+	public const string TokenUsage = "tokenUsage";
+	public const string UsageMachines = "usageMachines";
+	public const string ModelPrices = "modelPrices";
 }
 
 internal static class MongoConventions

@@ -9,12 +9,13 @@ using Microsoft.Extensions.Logging;
 namespace LlmUsageMonitor.Core.Hosting;
 
 /// <summary>
-///     On start: storage, default settings, runs interrupted by the previous process, poll jobs and a first reading.
+///     On start: storage, default settings, runs interrupted by the previous process, poll jobs, a first reading and the model prices.
 /// </summary>
 public sealed class AppInitializer(
 	IStorageInitializer storage,
 	ISettingsService settingsService,
 	ITriggerRunRepository runs,
+	IModelPriceRepository prices,
 	IJobScheduler scheduler,
 	TimeProvider time,
 	ILogger<AppInitializer> logger) : IHostedService
@@ -34,6 +35,12 @@ public sealed class AppInitializer(
 		{
 			scheduler.SetPollInterval(provider, settings.Polling.For(provider));
 			scheduler.EnqueuePoll(provider);
+		}
+
+		scheduler.SchedulePriceRefresh();
+		if (!await prices.Any(cancellationToken))
+		{
+			scheduler.EnqueuePriceRefresh();
 		}
 	}
 

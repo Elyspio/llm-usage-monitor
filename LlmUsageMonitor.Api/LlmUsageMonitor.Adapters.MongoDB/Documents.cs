@@ -259,6 +259,104 @@ internal sealed class NotificationsDocument
 	}
 }
 
+internal sealed class TokenUsageDocument
+{
+	/// <summary>The bucket key, so an upload replaces the stored bucket without a lookup.</summary>
+	public string Id { get; set; } = null!;
+
+	public string MachineId { get; set; } = null!;
+	public Provider Provider { get; set; }
+	public string Model { get; set; } = null!;
+	public DateTime Hour { get; set; }
+	public TokenCountsDocument Tokens { get; set; } = null!;
+	public double? CostUsd { get; set; }
+	public double? CacheSavingsUsd { get; set; }
+
+	public static string Key(string machineId, Provider provider, string model, DateTimeOffset hour)
+	{
+		return $"{machineId}|{provider}|{model}|{hour.UtcDateTime:yyyy-MM-ddTHH}";
+	}
+
+	public static TokenUsageDocument FromDomain(TokenUsageBucket bucket)
+	{
+		return new()
+		{
+			Id = Key(bucket.MachineId, bucket.Provider, bucket.Model, bucket.Hour),
+			MachineId = bucket.MachineId,
+			Provider = bucket.Provider,
+			Model = bucket.Model,
+			Hour = bucket.Hour.ToUtc(),
+			Tokens = TokenCountsDocument.FromDomain(bucket.Tokens),
+			CostUsd = bucket.Cost?.Usd,
+			CacheSavingsUsd = bucket.Cost?.CacheSavingsUsd
+		};
+	}
+
+	public TokenUsageBucket ToDomain()
+	{
+		return new(
+			MachineId,
+			Provider,
+			Model,
+			Hour.ToOffset(),
+			Tokens.ToDomain(),
+			CostUsd is { } usd ? new TokenCost(usd, CacheSavingsUsd ?? 0) : null);
+	}
+}
+
+internal sealed class TokenCountsDocument
+{
+	public long Input { get; set; }
+	public long CacheRead { get; set; }
+	public long CacheWrite { get; set; }
+	public long Output { get; set; }
+
+	public static TokenCountsDocument FromDomain(TokenCounts tokens)
+	{
+		return new() { Input = tokens.Input, CacheRead = tokens.CacheRead, CacheWrite = tokens.CacheWrite, Output = tokens.Output };
+	}
+
+	public TokenCounts ToDomain()
+	{
+		return new(Input, CacheRead, CacheWrite, Output);
+	}
+}
+
+internal sealed class UsageMachineDocument
+{
+	public string Id { get; set; } = null!;
+	public string Name { get; set; } = null!;
+	public DateTime LastUploadAt { get; set; }
+}
+
+internal sealed class ModelPriceDocument
+{
+	/// <summary>The model name.</summary>
+	public string Id { get; set; } = null!;
+
+	public double InputPerToken { get; set; }
+	public double OutputPerToken { get; set; }
+	public double? CacheReadPerToken { get; set; }
+	public double? CacheWritePerToken { get; set; }
+
+	public static ModelPriceDocument FromDomain(ModelPrice price)
+	{
+		return new()
+		{
+			Id = price.Model,
+			InputPerToken = price.InputPerToken,
+			OutputPerToken = price.OutputPerToken,
+			CacheReadPerToken = price.CacheReadPerToken,
+			CacheWritePerToken = price.CacheWritePerToken
+		};
+	}
+
+	public ModelPrice ToDomain()
+	{
+		return new(Id, InputPerToken, OutputPerToken, CacheReadPerToken, CacheWritePerToken);
+	}
+}
+
 internal sealed class DataProtectionKeyDocument
 {
 	public ObjectId Id { get; set; }

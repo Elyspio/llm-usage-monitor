@@ -37,6 +37,20 @@ internal sealed class HangfireJobScheduler(IBackgroundJobClient jobs, IRecurring
 		jobs.Enqueue<ProviderJobs>(job => job.RunTrigger(runId, CancellationToken.None));
 	}
 
+	public void SchedulePriceRefresh()
+	{
+		recurringJobs.AddOrUpdate<ProviderJobs>(
+			"refresh-model-prices",
+			job => job.RefreshPrices(CancellationToken.None),
+			Cron.Daily(4),
+			new() { TimeZone = TimeZoneInfo.Utc });
+	}
+
+	public void EnqueuePriceRefresh()
+	{
+		jobs.Enqueue<ProviderJobs>(job => job.RefreshPrices(CancellationToken.None));
+	}
+
 	public void Delete(string jobId)
 	{
 		jobs.Delete(jobId);
@@ -52,8 +66,14 @@ internal sealed class HangfireJobScheduler(IBackgroundJobClient jobs, IRecurring
 /// <summary>
 ///     The Hangfire entry points; each one delegates to an application service.
 /// </summary>
-public sealed class ProviderJobs(IUsageMonitor monitor, ITriggerService triggers, IClaudeKeepAlive keepAlive)
+public sealed class ProviderJobs(IUsageMonitor monitor, ITriggerService triggers, IClaudeKeepAlive keepAlive, IModelPriceService prices)
 {
+	[DisplayName("Refresh model prices")]
+	public Task RefreshPrices(CancellationToken cancellationToken)
+	{
+		return prices.Refresh(cancellationToken);
+	}
+
 	[DisplayName("Poll {0}")]
 	public Task Poll(Provider provider, CancellationToken cancellationToken)
 	{

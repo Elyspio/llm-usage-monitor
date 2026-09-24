@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetDashboardData, GetDashboardResponses, GetHistoryData, GetHistoryResponses, GetNotificationSettingsData, GetNotificationSettingsResponses, GetPollingSettingsData, GetPollingSettingsResponses, GetTriggerRunData, GetTriggerRunErrors, GetTriggerRunResponses, GetTriggerSettingsData, GetTriggerSettingsResponses, SendTestNotificationData, SendTestNotificationErrors, SendTestNotificationResponses, TriggerProviderData, TriggerProviderErrors, TriggerProviderResponses, UpdateNotificationSettingsData, UpdateNotificationSettingsErrors, UpdateNotificationSettingsResponses, UpdatePollingSettingsData, UpdatePollingSettingsErrors, UpdatePollingSettingsResponses, UpdateTriggerSettingsData, UpdateTriggerSettingsErrors, UpdateTriggerSettingsResponses } from './types.gen';
+import type { GetDashboardData, GetDashboardResponses, GetHistoryData, GetHistoryResponses, GetNotificationSettingsData, GetNotificationSettingsResponses, GetPollingSettingsData, GetPollingSettingsResponses, GetTokenUsageData, GetTokenUsageErrors, GetTokenUsageResponses, GetTriggerRunData, GetTriggerRunErrors, GetTriggerRunResponses, GetTriggerSettingsData, GetTriggerSettingsResponses, SendTestNotificationData, SendTestNotificationErrors, SendTestNotificationResponses, TriggerProviderData, TriggerProviderErrors, TriggerProviderResponses, UpdateNotificationSettingsData, UpdateNotificationSettingsErrors, UpdateNotificationSettingsResponses, UpdatePollingSettingsData, UpdatePollingSettingsErrors, UpdatePollingSettingsResponses, UpdateTriggerSettingsData, UpdateTriggerSettingsErrors, UpdateTriggerSettingsResponses, UploadTokenUsageData, UploadTokenUsageErrors, UploadTokenUsageResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -94,4 +94,20 @@ export const getDashboard = <ThrowOnError extends boolean = false>(options?: Opt
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/dashboard',
     ...options
+});
+
+export const getTokenUsage = <ThrowOnError extends boolean = false>(options?: Options<GetTokenUsageData, ThrowOnError>): RequestResult<GetTokenUsageResponses, GetTokenUsageErrors, ThrowOnError> => (options?.client ?? client).get<GetTokenUsageResponses, GetTokenUsageErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/token-usage',
+    ...options
+});
+
+export const uploadTokenUsage = <ThrowOnError extends boolean = false>(options: Options<UploadTokenUsageData, ThrowOnError>): RequestResult<UploadTokenUsageResponses, UploadTokenUsageErrors, ThrowOnError> => (options.client ?? client).post<UploadTokenUsageResponses, UploadTokenUsageErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/token-usage',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });

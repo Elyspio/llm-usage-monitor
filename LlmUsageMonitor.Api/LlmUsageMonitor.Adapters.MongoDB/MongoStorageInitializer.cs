@@ -42,5 +42,10 @@ internal sealed class MongoStorageInitializer(IMongoDatabase database) : IStorag
 				}),
 			new(Builders<TriggerRunDocument>.IndexKeys.Descending(run => run.StartedAt))
 		], cancellationToken);
+
+		// Token usage is kept without expiry; the reports read it by period, for every workstation or one.
+		var tokenUsage = database.GetCollection<TokenUsageDocument>(Collections.TokenUsage);
+		await tokenUsage.Indexes.CreateOneAsync(new CreateIndexModel<TokenUsageDocument>(
+			Builders<TokenUsageDocument>.IndexKeys.Ascending(bucket => bucket.Hour).Ascending(bucket => bucket.MachineId)), cancellationToken: cancellationToken);
 	}
 }

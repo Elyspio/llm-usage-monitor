@@ -374,6 +374,107 @@
           }
         }
       }
+    },
+    "/api/token-usage": {
+      "get": {
+        "tags": [
+          "TokenUsage"
+        ],
+        "operationId": "GetTokenUsage",
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "machineId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timeZone",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenUsageReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "TokenUsage"
+        ],
+        "operationId": "UploadTokenUsage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenUsageUpload"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenUsageUpload"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenUsageUpload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenUsageUploadResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -764,6 +865,186 @@
           }
         }
       },
+      "TokenCounts": {
+        "required": [
+          "input",
+          "cacheRead",
+          "cacheWrite",
+          "output"
+        ],
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cacheRead": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cacheWrite": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "output": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "TokenUsageBucketUpload": {
+        "required": [
+          "provider",
+          "model",
+          "hour",
+          "tokens"
+        ],
+        "type": "object",
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/Provider"
+          },
+          "model": {
+            "type": "string"
+          },
+          "hour": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tokens": {
+            "$ref": "#/components/schemas/TokenCounts"
+          }
+        }
+      },
+      "TokenUsageReport": {
+        "required": [
+          "from",
+          "to",
+          "step",
+          "timeZone",
+          "rows",
+          "machines"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "step": {
+            "$ref": "#/components/schemas/TokenUsageStep"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TokenUsageRow"
+            }
+          },
+          "machines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UsageMachine"
+            }
+          }
+        }
+      },
+      "TokenUsageRow": {
+        "required": [
+          "start",
+          "provider",
+          "model",
+          "tokens",
+          "costUsd",
+          "cacheSavingsUsd",
+          "unpricedTokens"
+        ],
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/Provider"
+          },
+          "model": {
+            "type": "string"
+          },
+          "tokens": {
+            "$ref": "#/components/schemas/TokenCounts"
+          },
+          "costUsd": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "cacheSavingsUsd": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "unpricedTokens": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "TokenUsageStep": {
+        "enum": [
+          "hour",
+          "day"
+        ]
+      },
+      "TokenUsageUpload": {
+        "required": [
+          "machineId",
+          "machineName",
+          "buckets"
+        ],
+        "type": "object",
+        "properties": {
+          "machineId": {
+            "type": "string"
+          },
+          "machineName": {
+            "type": "string"
+          },
+          "buckets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TokenUsageBucketUpload"
+            }
+          }
+        }
+      },
+      "TokenUsageUploadResult": {
+        "required": [
+          "stored",
+          "unpriced"
+        ],
+        "type": "object",
+        "properties": {
+          "stored": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unpriced": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "TriggerRun": {
         "required": [
           "id",
@@ -882,6 +1163,26 @@
             "items": {
               "$ref": "#/components/schemas/TriggerRun"
             }
+          }
+        }
+      },
+      "UsageMachine": {
+        "required": [
+          "id",
+          "name",
+          "lastUploadAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "lastUploadAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -1074,6 +1375,9 @@
     },
     {
       "name": "Dashboard"
+    },
+    {
+      "name": "TokenUsage"
     }
   ]
 }

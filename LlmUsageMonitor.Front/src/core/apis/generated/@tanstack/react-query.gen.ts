@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { getDashboard, getHistory, getNotificationSettings, getPollingSettings, getTriggerRun, getTriggerSettings, type Options, sendTestNotification, triggerProvider, updateNotificationSettings, updatePollingSettings, updateTriggerSettings } from '../sdk.gen';
-import type { GetDashboardData, GetDashboardResponse, GetHistoryData, GetHistoryResponse, GetNotificationSettingsData, GetNotificationSettingsResponse, GetPollingSettingsData, GetPollingSettingsResponse, GetTriggerRunData, GetTriggerRunError, GetTriggerRunResponse, GetTriggerSettingsData, GetTriggerSettingsResponse, SendTestNotificationData, SendTestNotificationError, SendTestNotificationResponse, TriggerProviderData, TriggerProviderError, TriggerProviderResponse, UpdateNotificationSettingsData, UpdateNotificationSettingsError, UpdateNotificationSettingsResponse, UpdatePollingSettingsData, UpdatePollingSettingsError, UpdatePollingSettingsResponse, UpdateTriggerSettingsData, UpdateTriggerSettingsError, UpdateTriggerSettingsResponse } from '../types.gen';
+import { getDashboard, getHistory, getNotificationSettings, getPollingSettings, getTokenUsage, getTriggerRun, getTriggerSettings, type Options, sendTestNotification, triggerProvider, updateNotificationSettings, updatePollingSettings, updateTriggerSettings, uploadTokenUsage } from '../sdk.gen';
+import type { GetDashboardData, GetDashboardResponse, GetHistoryData, GetHistoryResponse, GetNotificationSettingsData, GetNotificationSettingsResponse, GetPollingSettingsData, GetPollingSettingsResponse, GetTokenUsageData, GetTokenUsageError, GetTokenUsageResponse, GetTriggerRunData, GetTriggerRunError, GetTriggerRunResponse, GetTriggerSettingsData, GetTriggerSettingsResponse, SendTestNotificationData, SendTestNotificationError, SendTestNotificationResponse, TriggerProviderData, TriggerProviderError, TriggerProviderResponse, UpdateNotificationSettingsData, UpdateNotificationSettingsError, UpdateNotificationSettingsResponse, UpdatePollingSettingsData, UpdatePollingSettingsError, UpdatePollingSettingsResponse, UpdateTriggerSettingsData, UpdateTriggerSettingsError, UpdateTriggerSettingsResponse, UploadTokenUsageData, UploadTokenUsageError, UploadTokenUsageResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -198,3 +198,32 @@ export const getDashboardOptions = (options?: Options<GetDashboardData>) => quer
     },
     queryKey: getDashboardQueryKey(options)
 });
+
+export const getTokenUsageQueryKey = (options?: Options<GetTokenUsageData>) => createQueryKey('getTokenUsage', options);
+
+export const getTokenUsageOptions = (options?: Options<GetTokenUsageData>) => queryOptions<GetTokenUsageResponse, GetTokenUsageError, GetTokenUsageResponse, ReturnType<typeof getTokenUsageQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getTokenUsage({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getTokenUsageQueryKey(options)
+});
+
+export const uploadTokenUsageMutation = (options?: Partial<Options<UploadTokenUsageData>>): UseMutationOptions<UploadTokenUsageResponse, UploadTokenUsageError, Options<UploadTokenUsageData>> => {
+    const mutationOptions: UseMutationOptions<UploadTokenUsageResponse, UploadTokenUsageError, Options<UploadTokenUsageData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await uploadTokenUsage({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
