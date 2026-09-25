@@ -1,5 +1,6 @@
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
+import InsightsOutlinedIcon from "@mui/icons-material/InsightsOutlined";
 import TuneIcon from "@mui/icons-material/Tune";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { Avatar, Box, Button, IconButton, Stack, Tooltip, Typography } from "@mui/material";
@@ -92,6 +93,9 @@ export const AppLayout = () => {
 					</Button>
 					<Button component={NavLink} to={routes.history} startIcon={<HistoryOutlinedIcon />}>
 						Historique
+					</Button>
+					<Button component={NavLink} to={routes.usage} startIcon={<InsightsOutlinedIcon />}>
+						Usage
 					</Button>
 					<Button component={NavLink} to={routes.settings} startIcon={<TuneIcon />}>
 						Réglages
