@@ -135,7 +135,7 @@ public sealed class TokenUsageService(
 		}
 		catch (Exception exception) when (exception is TimeZoneNotFoundException or InvalidTimeZoneException)
 		{
-			throw new RequestValidationException(new Dictionary<string, string[]> { ["timeZone"] = ["Fuseau IANA attendu, par exemple Europe/Paris."] });
+			throw new RequestValidationException(new Dictionary<string, string[]> { ["timeZone"] = ["IANA time zone expected, for example Europe/Paris."] });
 		}
 	}
 
@@ -145,17 +145,17 @@ public sealed class TokenUsageService(
 
 		if (string.IsNullOrWhiteSpace(upload.MachineId) || upload.MachineId.Length > TokenUsageUpload.MaxIdLength)
 		{
-			errors["machineId"] = [$"Obligatoire, {TokenUsageUpload.MaxIdLength} caractères au plus."];
+			errors["machineId"] = [$"Required, {TokenUsageUpload.MaxIdLength} characters at most."];
 		}
 
 		if (string.IsNullOrWhiteSpace(upload.MachineName) || upload.MachineName.Trim().Length > TokenUsageUpload.MaxIdLength)
 		{
-			errors["machineName"] = [$"Obligatoire, {TokenUsageUpload.MaxIdLength} caractères au plus."];
+			errors["machineName"] = [$"Required, {TokenUsageUpload.MaxIdLength} characters at most."];
 		}
 
 		if (upload.Buckets.Count > TokenUsageUpload.MaxBuckets)
 		{
-			errors["buckets"] = [$"{TokenUsageUpload.MaxBuckets} buckets au plus par envoi."];
+			errors["buckets"] = [$"{TokenUsageUpload.MaxBuckets} buckets at most per upload."];
 			throw new RequestValidationException(errors);
 		}
 
@@ -167,22 +167,22 @@ public sealed class TokenUsageService(
 
 			if (string.IsNullOrWhiteSpace(bucket.Model) || bucket.Model.Length > TokenUsageUpload.MaxModelLength)
 			{
-				errors[$"{field}.model"] = [$"Obligatoire, {TokenUsageUpload.MaxModelLength} caractères au plus."];
+				errors[$"{field}.model"] = [$"Required, {TokenUsageUpload.MaxModelLength} characters at most."];
 			}
 
 			if (bucket.Hour.UtcTicks % TimeSpan.TicksPerHour != 0 || bucket.Hour > now)
 			{
-				errors[$"{field}.hour"] = ["Début d'heure UTC attendu, pas dans le futur."];
+				errors[$"{field}.hour"] = ["Start of a UTC hour expected, not in the future."];
 			}
 
 			if (bucket.Tokens is null || bucket.Tokens.Input < 0 || bucket.Tokens.CacheRead < 0 || bucket.Tokens.CacheWrite < 0 || bucket.Tokens.Output < 0)
 			{
-				errors[$"{field}.tokens"] = ["Compteurs positifs ou nuls attendus."];
+				errors[$"{field}.tokens"] = ["Zero or positive counters expected."];
 			}
 
 			if (!seen.Add((bucket.Provider, bucket.Model, bucket.Hour.ToUniversalTime())))
 			{
-				errors[field] = ["Bucket en double dans l'envoi."];
+				errors[field] = ["Duplicate bucket in the upload."];
 			}
 		}
 

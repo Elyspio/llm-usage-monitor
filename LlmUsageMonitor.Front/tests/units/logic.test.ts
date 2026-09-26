@@ -43,9 +43,9 @@ describe("dashboard logic", () => {
 		expect(isDegraded({ ...base, lastSuccessAt: null, lastFailure: null })).toBe(false);
 	});
 
-	it("labels the windows and the errors in French", () => {
-		expect(windowLabel(window("five_hour", 300))).toBe("Session 5 h");
-		expect(windowLabel(window("codex/primary", 10_080))).toBe("Hebdo");
+	it("labels the windows and the errors", () => {
+		expect(windowLabel(window("five_hour", 300))).toBe("5 h session");
+		expect(windowLabel(window("codex/primary", 10_080))).toBe("Weekly");
 		expect(errorInfo("RATE_LIMITED", "claude").severity).toBe("warning");
 		expect(errorInfo("AUTH_EXPIRED", "codex").action).toContain("codex login --device-auth");
 	});
@@ -53,11 +53,11 @@ describe("dashboard logic", () => {
 
 describe("formatting", () => {
 	it("formats spans and durations", () => {
-		expect(fmtSpan(3 * 86_400_000 + 4 * 3_600_000)).toBe("3 j 4 h");
+		expect(fmtSpan(3 * 86_400_000 + 4 * 3_600_000)).toBe("3 d 4 h");
 		expect(fmtSpan(7 * 60_000 + 5_000, true)).toBe("7 min 05 s");
-		expect(fmtDuration(10_080)).toBe("7 j");
+		expect(fmtDuration(10_080)).toBe("7 d");
 		expect(fmtDuration(300)).toBe("5 h");
-		expect(fmtDuration(null)).toBe("durée inconnue");
+		expect(fmtDuration(null)).toBe("unknown duration");
 	});
 });
 

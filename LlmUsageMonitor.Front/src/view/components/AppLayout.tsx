@@ -18,7 +18,7 @@ export const AppLayout = () => {
 				href="#main"
 				sx={{ position: "fixed", left: 16, top: -100, zIndex: 10, bgcolor: "primary.main", color: "primary.contrastText", p: 2, "&:focus": { top: 16 } }}
 			>
-				Aller au contenu
+				Skip to content
 			</Box>
 			<Box
 				component="aside"
@@ -57,16 +57,16 @@ export const AppLayout = () => {
 					<Box>
 						<Typography sx={{ fontWeight: 700, letterSpacing: "-0.04em" }}>LLM Monitor</Typography>
 						<Typography variant="overline" sx={{ color: "text.secondary", fontSize: "0.65rem" }}>
-							Usage & automatisation
+							Usage & automation
 						</Typography>
 					</Box>
 				</Stack>
 				<Typography variant="overline" sx={{ color: "text.secondary", mb: 1, display: { xs: "none", md: "block" } }}>
-					Espace de contrôle
+					Control space
 				</Typography>
 				<Stack
 					component="nav"
-					aria-label="Navigation principale"
+					aria-label="Main navigation"
 					direction={{ xs: "row", md: "column" }}
 					spacing={1}
 					sx={{
@@ -85,20 +85,20 @@ export const AppLayout = () => {
 				>
 					<Button component={NavLink} to={routes.dashboard} end startIcon={<DashboardOutlinedIcon />}>
 						<Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-							Tableau de bord
+							Dashboard
 						</Box>
 						<Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
-							Tableau
+							Home
 						</Box>
 					</Button>
 					<Button component={NavLink} to={routes.history} startIcon={<HistoryOutlinedIcon />}>
-						Historique
+						History
 					</Button>
 					<Button component={NavLink} to={routes.usage} startIcon={<InsightsOutlinedIcon />}>
 						Usage
 					</Button>
 					<Button component={NavLink} to={routes.settings} startIcon={<TuneIcon />}>
-						Réglages
+						Settings
 					</Button>
 				</Stack>
 				<Box sx={{ mt: "auto", pt: { xs: 2, md: 4 } }}>
@@ -117,8 +117,8 @@ export const AppLayout = () => {
 						>
 							{username}
 						</Typography>
-						<Tooltip title="Se déconnecter">
-							<IconButton aria-label="Se déconnecter" size="small" onClick={signOut} sx={{ color: "text.secondary", "&:hover": { color: "text.primary" } }}>
+						<Tooltip title="Sign out">
+							<IconButton aria-label="Sign out" size="small" onClick={signOut} sx={{ color: "text.secondary", "&:hover": { color: "text.primary" } }}>
 								<LogoutIcon fontSize="small" />
 							</IconButton>
 						</Tooltip>

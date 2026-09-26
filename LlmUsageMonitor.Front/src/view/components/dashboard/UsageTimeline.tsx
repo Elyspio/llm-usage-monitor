@@ -1,37 +1,37 @@
 import { Box, Paper, Stack, Typography } from "@mui/material";
 import type { ProviderDashboard } from "@/core/apis/generated/types.gen";
 import { isDegraded, providerColor, providerLabel, windowColor, windowLabel } from "@/core/dashboard";
-import { fmtAgo, fmtIn, fmtPercent, fmtWhen } from "@/core/format";
+import { fmtAgo, fmtIn, fmtPercent, fmtWhen, locale } from "@/core/format";
 import { toTimeline } from "@/core/timeline";
 
 const columns = "minmax(210px, 28%) minmax(0, 1fr) 100px";
 const mono = { fontFamily: "IBM Plex Mono, monospace" };
 const mondayColor = "#7dd3fc";
-const dateLabel = (value: number) => new Date(value).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+const dateLabel = (value: number) => new Date(value).toLocaleDateString(locale, { day: "numeric", month: "short" });
 
 export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard[]; now: number }) => {
 	const { rows, ticks, mondays, position, start, end } = toTimeline(providers, now);
 	return (
-		<Paper component="section" aria-label="Chronologie des quotas" variant="outlined" sx={{ p: { xs: 2, md: 3.5 }, overflow: "hidden" }}>
+		<Paper component="section" aria-label="Quota timeline" variant="outlined" sx={{ p: { xs: 2, md: 3.5 }, overflow: "hidden" }}>
 			<Typography variant="overline" sx={{ display: { md: "none" }, color: "text.secondary" }}>
-				Chronologie · {dateLabel(start)} → {dateLabel(end - 1)}
+				Timeline · {dateLabel(start)} → {dateLabel(end - 1)}
 			</Typography>
 			<Box sx={{ display: { xs: "none", md: "grid" }, gridTemplateColumns: columns, gap: 3, alignItems: "end", mb: 0.5, pt: 3 }}>
 				<Typography variant="overline" color="text.secondary">
-					Fenêtre
+					Window
 				</Typography>
 				<Box sx={{ position: "relative", height: 34, borderBottom: 1, borderColor: "divider" }}>
 					{mondays.map((monday) => (
 						<Typography
 							key={monday}
 							variant="overline"
-							title="Lundi"
+							title="Monday"
 							sx={{ position: "absolute", left: `${position(monday)}%`, top: -25, transform: "translateX(-50%)", color: mondayColor }}
 						>
-							L
+							M
 						</Typography>
 					))}
-					{/* Drawn after the Monday labels, on the paper colour: « Maintenant » stays readable on a Monday. */}
+					{/* Drawn after the Monday labels, on the paper colour: "Now" stays readable on a Monday. */}
 					<Typography
 						variant="overline"
 						sx={{
@@ -44,7 +44,7 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 							color: "primary.main",
 						}}
 					>
-						Maintenant
+						Now
 					</Typography>
 					{ticks.map((tick) => (
 						<Box key={tick} sx={{ position: "absolute", left: `${position(tick)}%`, bottom: 0, height: 8, borderLeft: 1, borderColor: "divider" }}>
@@ -55,10 +55,10 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 					))}
 				</Box>
 				<Typography variant="overline" color="text.secondary" align="right">
-					Restant
+					Remaining
 				</Typography>
 			</Box>
-			{rows.length === 0 && <Typography sx={{ py: 5, color: "text.secondary" }}>Aucune donnée. En attente d'une première lecture.</Typography>}
+			{rows.length === 0 && <Typography sx={{ py: 5, color: "text.secondary" }}>No data. Waiting for a first reading.</Typography>}
 			{rows.map(({ provider, window, timing }) => {
 				const stale = isDegraded(provider.health);
 				const expired = window.resetsAt != null && Date.parse(window.resetsAt) < now;
@@ -91,16 +91,16 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 									? `${fmtWhen(validTiming.start, now)} → ${fmtWhen(validTiming.end, now)}`
 									: window.resetsAt
 										? `Reset ${fmtWhen(window.resetsAt, now)}`
-										: "Fenêtre pas encore démarrée"}
+										: "Window not started yet"}
 							</Typography>
 							{stale && (
 								<Typography variant="caption" color="warning.main">
-									périmé · lu {fmtAgo(provider.lastReading!.fetchedAt, now)}
+									stale · read {fmtAgo(provider.lastReading!.fetchedAt, now)}
 								</Typography>
 							)}
 							{expired && (
 								<Typography variant="caption" color="warning.main" sx={{ display: "block" }}>
-									Reset passé · en attente de lecture
+									Reset passed · waiting for a reading
 								</Typography>
 							)}
 						</Box>
@@ -111,7 +111,7 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 									component="progress"
 									max={100}
 									value={Math.max(0, Math.min(100, window.usedPercent))}
-									aria-label={`${providerLabel[provider.provider]} ${windowLabel(window)} consommé`}
+									aria-label={`${providerLabel[provider.provider]} ${windowLabel(window)} used`}
 									aria-valuemin={0}
 									aria-valuemax={100}
 									aria-valuenow={Math.max(0, Math.min(100, window.usedPercent))}
@@ -137,7 +137,7 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 								</Box>
 							) : (
 								<Typography variant="caption" sx={{ position: "relative", bgcolor: "background.paper", color: "text.secondary", pr: 1 }}>
-									Durée non disponible
+									Duration unavailable
 								</Typography>
 							)}
 							{mondays.map((monday) => (
@@ -147,7 +147,7 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 									sx={{ position: "absolute", top: 4, height: 30, width: 2, bgcolor: mondayColor, left: `${position(monday)}%` }}
 								/>
 							))}
-							<Box aria-label="Maintenant" sx={{ position: "absolute", top: 4, height: 30, width: 2, bgcolor: "#d4d4d8", left: `${position(now)}%` }} />
+							<Box aria-label="Now" sx={{ position: "absolute", top: 4, height: 30, width: 2, bgcolor: "#d4d4d8", left: `${position(now)}%` }} />
 							{validTiming && width < 5 && !expired && (
 								<Typography variant="caption" sx={{ ...mono, position: "absolute", top: -13, right: 0, color: "text.secondary" }}>
 									reset {fmtIn(window.resetsAt!, now)}
@@ -182,19 +182,19 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 							mr: 1,
 						}}
 					/>
-					quota consommé
+					quota used
 				</Typography>
 				<Typography variant="body2">
 					<Box component="span" sx={{ display: "inline-block", width: 20, height: 10, bgcolor: "#28282b", borderRadius: "3px", mr: 1 }} />
-					fenêtre ouverte
+					open window
 				</Typography>
 				<Typography variant="body2">
 					<Box component="span" sx={{ display: "inline-block", width: 2, height: 14, bgcolor: "#d4d4d8", mr: 1, verticalAlign: "middle" }} />
-					maintenant
+					now
 				</Typography>
 				<Typography variant="body2">
 					<Box component="span" sx={{ display: "inline-block", width: 2, height: 14, bgcolor: mondayColor, mr: 1, verticalAlign: "middle" }} />
-					lundi
+					Monday
 				</Typography>
 			</Stack>
 		</Paper>

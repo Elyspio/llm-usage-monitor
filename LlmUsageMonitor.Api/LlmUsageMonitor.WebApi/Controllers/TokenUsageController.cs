@@ -28,7 +28,7 @@ public sealed class TokenUsageController(ITokenUsageService tokenUsage) : Contro
 			"30d" => TokenUsageRange.Last30Days,
 			"90d" => TokenUsageRange.Last90Days,
 			"all" => TokenUsageRange.All,
-			_ => throw new RequestValidationException(new Dictionary<string, string[]> { ["range"] = ["Valeurs possibles : 24h, 7d, 30d, 90d, all."] })
+			_ => throw new RequestValidationException(new Dictionary<string, string[]> { ["range"] = ["Possible values: 24h, 7d, 30d, 90d, all."] })
 		};
 		return tokenUsage.Get(period, machineId, timeZone, cancellationToken);
 	}

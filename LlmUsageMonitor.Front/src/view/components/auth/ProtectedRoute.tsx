@@ -29,12 +29,12 @@ export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
 					<Typography variant="h1" sx={{ fontSize: { xs: "2rem", sm: "2.75rem" } }}>
 						LLM Monitor
 					</Typography>
-					<Typography sx={{ color: "text.secondary" }}>Retrouvez vos quotas Claude et Codex, suivez les resets et pilotez vos relances.</Typography>
+					<Typography sx={{ color: "text.secondary" }}>See your Claude and Codex quotas, follow the resets and drive the restarts.</Typography>
 					<Button variant="contained" onClick={signIn} size="large">
-						Se connecter
+						Sign in
 					</Button>
 					<Typography variant="caption" color="text.secondary">
-						Connexion requise pour accéder au tableau de bord.
+						Sign in required to access the dashboard.
 					</Typography>
 				</Stack>
 			</Stack>

@@ -20,7 +20,7 @@ public sealed partial class SettingsService(
 	IOptions<AppConfig> appConfig) : ISettingsService
 {
 	public const int MaxModelLength = 100;
-	public const string IntervalDivisorMessage = "Diviseur de 60 attendu : 1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30 ou 60 minutes.";
+	public const string IntervalDivisorMessage = "A divisor of 60 is expected: 1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30 or 60 minutes.";
 
 	public async Task<AppSettings> Get(CancellationToken cancellationToken)
 	{
@@ -73,18 +73,18 @@ public sealed partial class SettingsService(
 		var errors = new Dictionary<string, string[]>();
 		if (!Uri.TryCreate(update.Url, UriKind.Absolute, out var url) || (url.Scheme != Uri.UriSchemeHttp && url.Scheme != Uri.UriSchemeHttps))
 		{
-			errors["url"] = ["URL http(s) absolue attendue."];
+			errors["url"] = ["Absolute http(s) URL expected."];
 		}
 
 		var topic = string.IsNullOrWhiteSpace(update.Topic) ? null : update.Topic.Trim();
 		if (topic is { } && !TopicPattern().IsMatch(topic))
 		{
-			errors["topic"] = ["Lettres, chiffres, « _ » et « - » uniquement, 64 caractères au plus."];
+			errors["topic"] = ["Letters, digits, _ and - only, 64 characters at most."];
 		}
 
 		if (update.ReadFailureThreshold is < NotificationSettings.MinReadFailureThreshold or > NotificationSettings.MaxReadFailureThreshold)
 		{
-			errors["readFailureThreshold"] = [$"Entre {NotificationSettings.MinReadFailureThreshold} et {NotificationSettings.MaxReadFailureThreshold}."];
+			errors["readFailureThreshold"] = [$"Between {NotificationSettings.MinReadFailureThreshold} and {NotificationSettings.MaxReadFailureThreshold}."];
 		}
 
 		ThrowIfAny(errors);
@@ -129,7 +129,7 @@ public sealed partial class SettingsService(
 	{
 		if (minutes is < PollingSettings.MinIntervalMinutes or > PollingSettings.MaxIntervalMinutes)
 		{
-			errors[field] = [$"Entre {PollingSettings.MinIntervalMinutes} et {PollingSettings.MaxIntervalMinutes} minutes."];
+			errors[field] = [$"Between {PollingSettings.MinIntervalMinutes} and {PollingSettings.MaxIntervalMinutes} minutes."];
 		}
 		else if (!PollingSettings.DividesHour(minutes))
 		{
@@ -141,7 +141,7 @@ public sealed partial class SettingsService(
 	{
 		if (string.IsNullOrWhiteSpace(model) || model.Trim().Length > MaxModelLength)
 		{
-			errors[field] = [$"Modèle obligatoire, {MaxModelLength} caractères au plus."];
+			errors[field] = [$"Model required, {MaxModelLength} characters at most."];
 		}
 	}
 

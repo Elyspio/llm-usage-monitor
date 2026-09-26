@@ -1,38 +1,39 @@
 import { Box, Paper, Stack, Table, TableBody, TableCell, TableHead, TableRow, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import { useState } from "react";
+import { locale } from "@/core/format";
 import { fmtShare, fmtTokens, fmtUsd, type DayLine, type ModelLine, type UsageMetric } from "@/core/usage";
 import { providerColor } from "@/core/dashboard";
 import { ProviderLogo } from "@components/dashboard/ProviderLogo";
 
 type Breakdown = "model" | "day";
 
-const dayFormat = new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+const dayFormat = new Intl.DateTimeFormat(locale, { weekday: "short", day: "numeric", month: "short" });
 
 const numeric = { textAlign: "right", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" } as const;
 
-/** Cost, share and tokens by model or by day; a model without price shows « Non tarifé ». */
+/** Cost, share and tokens by model or by day; a model without price shows "Unpriced". */
 export const UsageBreakdown = ({ models, days, metric }: { models: ModelLine[]; days: DayLine[]; metric: UsageMetric }) => {
 	const [breakdown, setBreakdown] = useState<Breakdown>("model");
 	const lines = breakdown === "model" ? models : days;
 
 	return (
-		<Paper component="section" aria-label="Usage par modèles" variant="outlined" sx={{ p: 2.5 }}>
+		<Paper component="section" aria-label="Usage by model" variant="outlined" sx={{ p: 2.5 }}>
 			<Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
 				<Typography variant="h6" component="h2">
-					Usage par modèles
+					Usage by model
 				</Typography>
-				<ToggleButtonGroup size="small" exclusive value={breakdown} onChange={(_, value: Breakdown | null) => value && setBreakdown(value)} aria-label="Regroupement">
-					<ToggleButton value="model">Modèle</ToggleButton>
-					<ToggleButton value="day">Jour</ToggleButton>
+				<ToggleButtonGroup size="small" exclusive value={breakdown} onChange={(_, value: Breakdown | null) => value && setBreakdown(value)} aria-label="Group by">
+					<ToggleButton value="model">Model</ToggleButton>
+					<ToggleButton value="day">Day</ToggleButton>
 				</ToggleButtonGroup>
 			</Stack>
 			<Box sx={{ overflowX: "auto" }}>
 				<Table size="small">
 					<TableHead>
 						<TableRow>
-							<TableCell>{breakdown === "model" ? "Modèle" : "Jour"}</TableCell>
-							<TableCell sx={numeric}>Coût</TableCell>
-							<TableCell sx={numeric}>{metric === "cost" ? "Part du coût" : "Part des tokens"}</TableCell>
+							<TableCell>{breakdown === "model" ? "Model" : "Day"}</TableCell>
+							<TableCell sx={numeric}>Cost</TableCell>
+							<TableCell sx={numeric}>{metric === "cost" ? "Cost share" : "Token share"}</TableCell>
 							<TableCell sx={numeric}>Tokens</TableCell>
 						</TableRow>
 					</TableHead>
@@ -52,7 +53,7 @@ export const UsageBreakdown = ({ models, days, metric }: { models: ModelLine[]; 
 									)}
 								</TableCell>
 								<TableCell sx={{ ...numeric, fontWeight: line.priced ? 700 : 400, color: line.priced ? "text.primary" : "text.secondary" }}>
-									{line.priced ? fmtUsd(line.cost) : "Non tarifé"}
+									{line.priced ? fmtUsd(line.cost) : "Unpriced"}
 								</TableCell>
 								<TableCell sx={{ ...numeric, color: "text.secondary" }}>{line.priced || metric === "tokens" ? fmtShare(line.share) : "—"}</TableCell>
 								<TableCell sx={numeric}>{fmtTokens(line.tokens)}</TableCell>

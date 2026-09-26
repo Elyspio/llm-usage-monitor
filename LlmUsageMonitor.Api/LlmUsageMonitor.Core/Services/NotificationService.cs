@@ -48,7 +48,7 @@ public sealed class NotificationService(
 		var settings = (await settingsService.Get(cancellationToken)).Notifications;
 		if (string.IsNullOrWhiteSpace(settings.Topic))
 		{
-			throw new RequestValidationException(new Dictionary<string, string[]> { ["topic"] = ["Renseigner un topic avant d'envoyer un test."] });
+			throw new RequestValidationException(new Dictionary<string, string[]> { ["topic"] = ["Set a topic before sending a test."] });
 		}
 
 		var message = new NotificationMessage("LLM Usage Monitor : test", "Les notifications fonctionnent.", NotificationPriority.Default, ["test_tube"], appConfig.Value.PublicUrl);

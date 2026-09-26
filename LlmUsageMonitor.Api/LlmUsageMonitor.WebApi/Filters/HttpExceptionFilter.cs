@@ -25,13 +25,13 @@ public sealed class HttpExceptionFilter(ProblemDetailsFactory problems) : IExcep
 				context.Result = new BadRequestObjectResult(problems.CreateValidationProblemDetails(context.HttpContext, modelState, StatusCodes.Status400BadRequest));
 				break;
 			case ResourceNotFoundException exception:
-				context.Result = Problem(context, StatusCodes.Status404NotFound, "La ressource demandée n'existe pas.", exception.Message, null);
+				context.Result = Problem(context, StatusCodes.Status404NotFound, "The requested resource does not exist.", exception.Message, null);
 				break;
 			case ProviderException { Code: ProviderErrorCodes.CliBusy } exception:
-				context.Result = Problem(context, StatusCodes.Status409Conflict, "Un process CLI tourne déjà pour ce provider.", exception.Message, exception.Code);
+				context.Result = Problem(context, StatusCodes.Status409Conflict, "A CLI process is already running for this provider.", exception.Message, exception.Code);
 				break;
 			case ProviderException exception:
-				context.Result = Problem(context, StatusCodes.Status502BadGateway, "Le service externe n'a pas répondu correctement.", exception.Message, exception.Code);
+				context.Result = Problem(context, StatusCodes.Status502BadGateway, "The external service did not answer correctly.", exception.Message, exception.Code);
 				break;
 			default:
 				return;

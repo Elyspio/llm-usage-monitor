@@ -7,35 +7,35 @@ export const thresholdBounds = { min: 1, max: 20 };
 
 export function validateInterval(value: number): string | null {
 	if (!Number.isInteger(value) || value < intervalBounds.min || value > intervalBounds.max) {
-		return `Entre ${intervalBounds.min} et ${intervalBounds.max} minutes.`;
+		return `Between ${intervalBounds.min} and ${intervalBounds.max} minutes.`;
 	}
 	// The poll cron restarts every hour: only divisors of 60 keep the gaps even.
 	if (60 % value !== 0) {
-		return "Diviseur de 60 attendu : 1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30 ou 60 minutes.";
+		return "A divisor of 60 is expected: 1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30 or 60 minutes.";
 	}
 	return null;
 }
 
 export function validateModel(value: string): string | null {
 	const model = value.trim();
-	return model.length === 0 || model.length > 100 ? "Modèle obligatoire, 100 caractères au plus." : null;
+	return model.length === 0 || model.length > 100 ? "Model required, 100 characters at most." : null;
 }
 
 export function validateNtfyUrl(value: string): string | null {
 	try {
 		const url = new URL(value);
-		return url.protocol === "http:" || url.protocol === "https:" ? null : "URL http(s) absolue attendue.";
+		return url.protocol === "http:" || url.protocol === "https:" ? null : "Absolute http(s) URL expected.";
 	} catch {
-		return "URL http(s) absolue attendue.";
+		return "Absolute http(s) URL expected.";
 	}
 }
 
 export function validateTopic(value: string): string | null {
-	return value.trim() === "" || /^[A-Za-z0-9_-]{1,64}$/.test(value.trim()) ? null : "Lettres, chiffres, « _ » et « - » uniquement, 64 caractères au plus.";
+	return value.trim() === "" || /^[A-Za-z0-9_-]{1,64}$/.test(value.trim()) ? null : "Letters, digits, _ and - only, 64 characters at most.";
 }
 
 export function validateThreshold(value: number): string | null {
-	return Number.isInteger(value) && value >= thresholdBounds.min && value <= thresholdBounds.max ? null : `Entre ${thresholdBounds.min} et ${thresholdBounds.max}.`;
+	return Number.isInteger(value) && value >= thresholdBounds.min && value <= thresholdBounds.max ? null : `Between ${thresholdBounds.min} and ${thresholdBounds.max}.`;
 }
 
 /** Keeps the fields that have an error. */

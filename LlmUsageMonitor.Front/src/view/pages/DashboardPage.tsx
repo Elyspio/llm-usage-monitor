@@ -10,13 +10,13 @@ export const DashboardPage = () => {
 	const { data, isPending, isError } = useQuery({ ...getDashboardOptions(), refetchInterval: 30_000, refetchOnWindowFocus: true });
 
 	if (isPending) return <CircularProgress />;
-	if (isError) return <Alert severity="error">Impossible de charger le tableau de bord.</Alert>;
+	if (isError) return <Alert severity="error">Could not load the dashboard.</Alert>;
 
 	return (
 		<Stack spacing={4}>
 			<Box>
 				<Typography variant="overline" color="text.secondary">
-					01 / Tableau de bord
+					01 / Dashboard
 				</Typography>
 			</Box>
 			<UsageTimeline providers={data.providers} now={now} />

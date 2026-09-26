@@ -20,15 +20,15 @@ export const HistoryPage = () => {
 	);
 
 	if (isPending) return <CircularProgress />;
-	if (isError) return <Alert severity="error">Impossible de charger l'historique.</Alert>;
+	if (isError) return <Alert severity="error">Could not load the history.</Alert>;
 
 	return (
 		<Stack spacing={3}>
 			<Typography variant="overline" color="text.secondary">
-				02 / Historique
+				02 / History
 			</Typography>
 			<Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
-				Historique
+				History
 			</Typography>
 			<Grid container spacing={3}>
 				<Grid size={{ xs: 12, lg: 7 }}>

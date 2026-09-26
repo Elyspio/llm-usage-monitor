@@ -31,27 +31,27 @@ describe("DashboardPage", () => {
 	it("shows all windows on the shared timeline with the trigger window first", async () => {
 		renderPage();
 
-		const timeline = await screen.findByRole("region", { name: "Chronologie des quotas" });
-		const cards = within(timeline).getAllByText(/Claude · Session 5 h|Claude · Hebdo · tous modèles/);
-		expect(cards.map((card) => card.textContent)).toEqual(["Claude · Session 5 h", "Claude · Hebdo · tous modèles"]);
-		expect(within(timeline).getByText("60 %")).toBeTruthy();
-		expect(within(timeline).getByRole("progressbar", { name: "Claude Session 5 h consommé" }).getAttribute("value")).toBe("40");
+		const timeline = await screen.findByRole("region", { name: "Quota timeline" });
+		const cards = within(timeline).getAllByText(/Claude · 5 h session|Claude · Weekly · all models/);
+		expect(cards.map((card) => card.textContent)).toEqual(["Claude · 5 h session", "Claude · Weekly · all models"]);
+		expect(within(timeline).getByText("60%")).toBeTruthy();
+		expect(within(timeline).getByRole("progressbar", { name: "Claude 5 h session used" }).getAttribute("value")).toBe("40");
 		expect(await screen.findByRole("region", { name: "Codex" })).toBeTruthy();
-		expect(screen.getByText("Déclenchement automatique désactivé dans les réglages.")).toBeTruthy();
-		expect(screen.queryByRole("region", { name: "Historique" })).toBeNull();
-		expect(screen.queryByRole("region", { name: "Journal des déclenchements" })).toBeNull();
+		expect(screen.getByText("Automatic trigger disabled in the settings.")).toBeTruthy();
+		expect(screen.queryByRole("region", { name: "History" })).toBeNull();
+		expect(screen.queryByRole("region", { name: "Trigger log" })).toBeNull();
 	});
 
-	it("keeps the last valid values greyed out with the French error and the raw detail", async () => {
+	it("keeps the last valid values greyed out with the error and the raw detail", async () => {
 		server.use(http.get(`${apiUrl}/api/dashboard`, () => HttpResponse.json({ ...dashboard, providers: [degradedClaude, dashboard.providers[1]] })));
 
 		renderPage();
 
 		const claude = await screen.findByRole("region", { name: "Claude" });
-		expect(within(claude).getAllByText("Connexion expirée").length).toBeGreaterThan(0);
+		expect(within(claude).getAllByText("Login expired").length).toBeGreaterThan(0);
 		expect(within(claude).getByText(/claude auth login/)).toBeTruthy();
 		expect(within(claude).getByText(/AUTH_EXPIRED · The Claude CLI could not refresh its login./)).toBeTruthy();
-		expect(screen.getAllByText(/périmé · lu il y a/).length).toBe(2);
+		expect(screen.getAllByText(/stale · read .* ago/).length).toBe(2);
 	});
 
 	it("queues a manual trigger and follows it until it ends", async () => {
@@ -83,7 +83,7 @@ describe("DashboardPage", () => {
 
 		renderPage();
 		const codex = await screen.findByRole("region", { name: "Codex" });
-		fireEvent.click(within(codex).getByRole("button", { name: /Déclencher maintenant/ }));
+		fireEvent.click(within(codex).getByRole("button", { name: /Trigger now/ }));
 
 		await screen.findByRole("region", { name: "Codex" });
 		await expect.poll(() => [posted, followed]).toEqual([1, 1]);
@@ -94,6 +94,6 @@ describe("DashboardPage", () => {
 
 		renderPage();
 
-		expect(await screen.findByText("Impossible de charger le tableau de bord.")).toBeTruthy();
+		expect(await screen.findByText("Could not load the dashboard.")).toBeTruthy();
 	});
 });

@@ -2,14 +2,14 @@ import { Paper, Typography } from "@mui/material";
 import { LineChart } from "@mui/x-charts/LineChart";
 import type { TokenUsageStep } from "@/core/apis/generated/types.gen";
 import { providerColor, providerLabel } from "@/core/dashboard";
-import { fmtHour } from "@/core/format";
+import { fmtHour, locale } from "@/core/format";
 import { type ChartPoint, fmtMetric, providers, type UsageMetric } from "@/core/usage";
 
-const dayFormat = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" });
+const dayFormat = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" });
 
 /** One smoothed area per provider, by hour over 24 hours and by day otherwise. */
 export const UsageChart = ({ points, step, metric }: { points: ChartPoint[]; step: TokenUsageStep; metric: UsageMetric }) => {
-	const title = `${metric === "cost" ? "Coût" : "Tokens"} par ${step === "hour" ? "heure" : "jour"}`;
+	const title = `${metric === "cost" ? "Cost" : "Tokens"} per ${step === "hour" ? "hour" : "day"}`;
 	return (
 		<Paper component="section" aria-label={title} variant="outlined" sx={{ p: 2.5, height: "100%" }}>
 			<Typography variant="h6" component="h2">

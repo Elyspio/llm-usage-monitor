@@ -42,11 +42,11 @@ export const TriggerButton = ({ provider, runningTrigger }: { provider: Provider
 				onClick={() => trigger.mutate({ path: { provider } })}
 				sx={{ whiteSpace: "nowrap" }}
 			>
-				Déclencher maintenant
+				Trigger now
 			</Button>
 			{trigger.isError && (
 				<Typography variant="caption" sx={{ color: "error.main", mt: 0.5 }}>
-					Déclenchement refusé : un process CLI tourne peut-être déjà.
+					Trigger refused: a CLI process may already be running.
 				</Typography>
 			)}
 		</Stack>

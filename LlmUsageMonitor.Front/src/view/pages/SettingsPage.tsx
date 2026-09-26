@@ -48,7 +48,7 @@ export const SettingsPage = () => {
 	const notifications = useQuery(getNotificationSettingsOptions());
 
 	if (polling.isPending || triggers.isPending || notifications.isPending) return <CircularProgress />;
-	if (polling.isError || triggers.isError || notifications.isError) return <Alert severity="error">Impossible de charger les réglages.</Alert>;
+	if (polling.isError || triggers.isError || notifications.isError) return <Alert severity="error">Could not load the settings.</Alert>;
 
 	return (
 		<Stack spacing={3}>
@@ -56,7 +56,7 @@ export const SettingsPage = () => {
 				04 / Configuration
 			</Typography>
 			<Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
-				Réglages
+				Settings
 			</Typography>
 			<Grid container spacing={3}>
 				<Grid size={{ xs: 12, lg: 6 }}>
@@ -116,17 +116,17 @@ const Section = ({
 const SaveBar = ({ pending, saved, failed, children }: { pending: boolean; saved: boolean; failed: boolean; children?: ReactNode }) => (
 	<Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: { xs: "flex-start", sm: "center" } }}>
 		<Button type="submit" variant="outlined" color="inherit" loading={pending}>
-			Enregistrer
+			Save
 		</Button>
 		{children}
 		{saved && (
 			<Typography variant="body2" sx={{ color: "success.main" }}>
-				Enregistré, appliqué immédiatement.
+				Saved, applied immediately.
 			</Typography>
 		)}
 		{failed && (
 			<Typography variant="body2" sx={{ color: "error.main" }}>
-				Enregistrement refusé : voir les champs.
+				Save refused: see the fields.
 			</Typography>
 		)}
 	</Stack>
@@ -151,17 +151,17 @@ function PollingSection({ initial }: { initial: PollingSettings }) {
 
 	return (
 		<Section
-			title="Lecture de l'usage"
-			subtitle="Fréquence d'interrogation de chaque provider."
+			title="Usage reading"
+			subtitle="How often each provider is polled."
 			icon={<SpeedOutlinedIcon fontSize="small" />}
 			onSubmit={submit}
 			actions={<SaveBar pending={save.isPending} saved={save.isSuccess} failed={save.isError} />}
 		>
-			<Table size="small" aria-label="Intervalles de lecture">
+			<Table size="small" aria-label="Reading intervals">
 				<TableHead>
 					<TableRow>
 						<TableCell sx={{ pl: 0 }}>Provider</TableCell>
-						<TableCell sx={{ pr: 0, width: { xs: 140, sm: 200 } }}>Valeur</TableCell>
+						<TableCell sx={{ pr: 0, width: { xs: 140, sm: 200 } }}>Value</TableCell>
 					</TableRow>
 				</TableHead>
 				<TableBody>
@@ -181,7 +181,7 @@ function PollingSection({ initial }: { initial: PollingSettings }) {
 										error={Boolean(errors[field])}
 										helperText={errors[field]}
 										slotProps={{
-											htmlInput: { min: 1, max: 60, "aria-label": `Intervalle ${providerLabel[provider]} (minutes)` },
+											htmlInput: { min: 1, max: 60, "aria-label": `${providerLabel[provider]} interval (minutes)` },
 											input: { endAdornment: <InputAdornment position="end">min</InputAdornment> },
 										}}
 									/>
@@ -192,7 +192,7 @@ function PollingSection({ initial }: { initial: PollingSettings }) {
 				</TableBody>
 			</Table>
 			<Typography variant="caption" color="text.secondary">
-				Diviseur de 60 (1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30 ou 60 minutes). Un intervalle court augmente le risque de 429.
+				A divisor of 60 (1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30 or 60 minutes). A short interval raises the risk of 429.
 			</Typography>
 		</Section>
 	);
@@ -217,21 +217,21 @@ function TriggerSection({ initial }: { initial: TriggerSettings }) {
 
 	return (
 		<Section
-			title="Déclenchement"
-			subtitle="Relance d'une fenêtre d'usage après un reset."
+			title="Trigger"
+			subtitle="Restarts a usage window after a reset."
 			icon={<BoltOutlinedIcon fontSize="small" />}
 			onSubmit={submit}
 			actions={<SaveBar pending={save.isPending} saved={save.isSuccess} failed={save.isError} />}
 		>
 			<Box sx={{ overflowX: "auto" }}>
-				<Table size="small" aria-label="Déclenchement par provider" sx={{ minWidth: 440 }}>
+				<Table size="small" aria-label="Trigger per provider" sx={{ minWidth: 440 }}>
 					<TableHead>
 						<TableRow>
 							<TableCell sx={{ pl: 0 }}>Provider</TableCell>
 							<TableCell align="center" sx={{ width: 130, whiteSpace: "normal" }}>
-								Automatique après reset
+								Automatic after reset
 							</TableCell>
-							<TableCell sx={{ pr: 0 }}>Modèle</TableCell>
+							<TableCell sx={{ pr: 0 }}>Model</TableCell>
 						</TableRow>
 					</TableHead>
 					<TableBody>
@@ -244,7 +244,7 @@ function TriggerSection({ initial }: { initial: TriggerSettings }) {
 									<Switch
 										checked={values[provider].autoEnabled}
 										onChange={(event) => setValues({ ...values, [provider]: { ...values[provider], autoEnabled: event.target.checked } })}
-										slotProps={{ input: { "aria-label": `${providerLabel[provider]} automatique après reset` } }}
+										slotProps={{ input: { "aria-label": `${providerLabel[provider]} automatic after reset` } }}
 									/>
 								</TableCell>
 								<TableCell sx={{ pr: 0 }}>
@@ -263,7 +263,7 @@ function TriggerSection({ initial }: { initial: TriggerSettings }) {
 												helperText={errors[`${provider}.model`]}
 												slotProps={{
 													...params.slotProps,
-													htmlInput: { ...params.slotProps.htmlInput, "aria-label": `Modèle ${providerLabel[provider]}` },
+													htmlInput: { ...params.slotProps.htmlInput, "aria-label": `${providerLabel[provider]} model` },
 												}}
 											/>
 										)}
@@ -275,19 +275,19 @@ function TriggerSection({ initial }: { initial: TriggerSettings }) {
 				</Table>
 			</Box>
 			<Typography variant="caption" color="text.secondary">
-				Modèle utilisé pour le prompt « 1+1=? ».
+				Model used for the "1+1=?" prompt.
 			</Typography>
 		</Section>
 	);
 }
 
 const eventLabels: Record<keyof NotificationEvents, string> = {
-	triggerFailed: "Déclenchement automatique en échec",
-	authExpired: "Connexion expirée",
-	readFailed: "Lectures en échec",
-	reset: "Reset détecté",
-	triggerSucceeded: "Déclenchement automatique réussi",
-	recovered: "Retour à la normale",
+	triggerFailed: "Automatic trigger failed",
+	authExpired: "Login expired",
+	readFailed: "Readings failing",
+	reset: "Reset detected",
+	triggerSucceeded: "Automatic trigger succeeded",
+	recovered: "Back to normal",
 };
 
 function NotificationSection({ initial }: { initial: NotificationSettingsView }) {
@@ -321,13 +321,13 @@ function NotificationSection({ initial }: { initial: NotificationSettingsView })
 	return (
 		<Section
 			title="Notifications ntfy"
-			subtitle="Destination des alertes et événements notifiés par provider."
+			subtitle="Where the alerts go and which events are notified per provider."
 			icon={<NotificationsOutlinedIcon fontSize="small" />}
 			onSubmit={submit}
 			actions={
 				<SaveBar pending={save.isPending} saved={save.isSuccess} failed={save.isError}>
 					<Button variant="outlined" loading={test.isPending} disabled={!current.topic} onClick={() => test.mutate({})}>
-						Envoyer un test
+						Send a test
 					</Button>
 				</SaveBar>
 			}
@@ -339,7 +339,7 @@ function NotificationSection({ initial }: { initial: NotificationSettingsView })
 							Destination
 						</Typography>
 						<TextField
-							label="Serveur ntfy"
+							label="ntfy server"
 							value={values.url}
 							onChange={(event) => setValues({ ...values, url: event.target.value })}
 							error={Boolean(errors.url)}
@@ -350,27 +350,27 @@ function NotificationSection({ initial }: { initial: NotificationSettingsView })
 							value={values.topic}
 							onChange={(event) => setValues({ ...values, topic: event.target.value })}
 							error={Boolean(errors.topic)}
-							helperText={errors.topic ?? "Vide : notifications désactivées. Choisir un topic long et aléatoire."}
+							helperText={errors.topic ?? "Empty: notifications disabled. Pick a long, random topic."}
 						/>
 						<TextField
 							type="password"
-							label="Token d'accès"
+							label="Access token"
 							value={token}
 							disabled={removeToken}
 							autoComplete="new-password"
 							onChange={(event) => setToken(event.target.value)}
-							helperText={current.tokenDefined ? "Un token est défini : laisser vide pour le conserver." : "Optionnel."}
+							helperText={current.tokenDefined ? "A token is set: leave empty to keep it." : "Optional."}
 						/>
 						{current.tokenDefined && (
-							<FormControlLabel control={<Switch checked={removeToken} onChange={(event) => setRemoveToken(event.target.checked)} />} label="Supprimer le token" />
+							<FormControlLabel control={<Switch checked={removeToken} onChange={(event) => setRemoveToken(event.target.checked)} />} label="Remove the token" />
 						)}
 						<TextField
 							type="number"
-							label="Échecs de lecture avant alerte"
+							label="Read failures before alert"
 							value={values.readFailureThreshold}
 							onChange={(event) => setValues({ ...values, readFailureThreshold: Number(event.target.value) })}
 							error={Boolean(errors.readFailureThreshold)}
-							helperText={errors.readFailureThreshold ?? "Entre 1 et 20 ; les 429 ne comptent pas."}
+							helperText={errors.readFailureThreshold ?? "Between 1 and 20; 429s do not count."}
 							slotProps={{ htmlInput: { min: 1, max: 20 } }}
 						/>
 					</Stack>
@@ -378,13 +378,13 @@ function NotificationSection({ initial }: { initial: NotificationSettingsView })
 				<Grid size={{ xs: 12, lg: 7 }}>
 					<Stack spacing={1.5}>
 						<Typography variant="overline" sx={{ color: "text.secondary" }}>
-							Événements
+							Events
 						</Typography>
 						<Box sx={{ overflowX: "auto" }}>
-							<Table size="small" aria-label="Événements notifiés par provider" sx={{ minWidth: 380 }}>
+							<Table size="small" aria-label="Notified events per provider" sx={{ minWidth: 380 }}>
 								<TableHead>
 									<TableRow>
-										<TableCell sx={{ pl: 0 }}>Événement</TableCell>
+										<TableCell sx={{ pl: 0 }}>Event</TableCell>
 										{providers.map((provider) => (
 											<TableCell key={provider} align="center" sx={{ width: 96 }}>
 												{providerLabel[provider]}
@@ -422,11 +422,11 @@ function NotificationSection({ initial }: { initial: NotificationSettingsView })
 			</Grid>
 			{current.lastSendFailure && (
 				<Alert severity="warning">
-					Dernier échec d'envoi {fmtWhen(current.lastSendFailure.at, now)} : {current.lastSendFailure.message}
+					Last send failure {fmtWhen(current.lastSendFailure.at, now)}: {current.lastSendFailure.message}
 				</Alert>
 			)}
-			{test.isSuccess && <Alert severity="success">Notification de test envoyée.</Alert>}
-			{test.isError && <Alert severity="error">L'envoi de test a échoué.</Alert>}
+			{test.isSuccess && <Alert severity="success">Test notification sent.</Alert>}
+			{test.isError && <Alert severity="error">The test send failed.</Alert>}
 		</Section>
 	);
 }

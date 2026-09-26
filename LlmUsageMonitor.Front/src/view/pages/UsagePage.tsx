@@ -3,14 +3,15 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { getTokenUsageOptions } from "@/core/apis/generated/@tanstack/react-query.gen";
 import { providerColor, providerLabel } from "@/core/dashboard";
+import { locale } from "@/core/format";
 import { browserTimeZone, fmtMetric, fmtShare, fmtTokens, fmtUsd, rangeLabel, summarize, type UsageMetric, type UsageRange } from "@/core/usage";
 import { ProviderLogo } from "@components/dashboard/ProviderLogo";
 import { UsageBreakdown } from "@components/usage/UsageBreakdown";
 import { UsageChart } from "@components/usage/UsageChart";
 
 const ALL_MACHINES = "all";
-const periodFormat = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" });
-const periodHourFormat = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const periodFormat = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" });
+const periodHourFormat = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 export const UsagePage = () => {
 	const [range, setRange] = useState<UsageRange>("7d");
@@ -26,7 +27,7 @@ export const UsagePage = () => {
 
 	const period = data
 		? data.step === "hour"
-			? `${periodHourFormat.format(Date.parse(data.from))} → maintenant`
+			? `${periodHourFormat.format(Date.parse(data.from))} → now`
 			: `${periodFormat.format(Date.parse(data.from))} → ${periodFormat.format(Date.parse(data.to))}`
 		: "";
 
@@ -45,19 +46,19 @@ export const UsagePage = () => {
 					</Typography>
 				</Box>
 				<Stack direction="row" spacing={1.5} useFlexGap sx={{ flexWrap: "wrap", alignItems: "center", opacity: isFetching && !isPending ? 0.7 : 1 }}>
-					<TextField select label="Poste" value={machineId} onChange={(event) => setMachineId(event.target.value)} sx={{ minWidth: 180 }}>
-						<MenuItem value={ALL_MACHINES}>Tous les postes</MenuItem>
+					<TextField select label="Workstation" value={machineId} onChange={(event) => setMachineId(event.target.value)} sx={{ minWidth: 180 }}>
+						<MenuItem value={ALL_MACHINES}>All workstations</MenuItem>
 						{data?.machines.map((machine) => (
 							<MenuItem key={machine.id} value={machine.id}>
 								{machine.name}
 							</MenuItem>
 						))}
 					</TextField>
-					<ToggleButtonGroup size="small" exclusive value={metric} onChange={(_, value: UsageMetric | null) => value && setMetric(value)} aria-label="Mesure">
-						<ToggleButton value="cost">Coût</ToggleButton>
+					<ToggleButtonGroup size="small" exclusive value={metric} onChange={(_, value: UsageMetric | null) => value && setMetric(value)} aria-label="Metric">
+						<ToggleButton value="cost">Cost</ToggleButton>
 						<ToggleButton value="tokens">Tokens</ToggleButton>
 					</ToggleButtonGroup>
-					<ToggleButtonGroup size="small" exclusive value={range} onChange={(_, value: UsageRange | null) => value && setRange(value)} aria-label="Période">
+					<ToggleButtonGroup size="small" exclusive value={range} onChange={(_, value: UsageRange | null) => value && setRange(value)} aria-label="Period">
 						{(Object.keys(rangeLabel) as UsageRange[]).map((key) => (
 							<ToggleButton key={key} value={key}>
 								{rangeLabel[key]}
@@ -70,10 +71,10 @@ export const UsagePage = () => {
 			{isPending ? (
 				<CircularProgress />
 			) : isError || !summary ? (
-				<Alert severity="error">Impossible de charger l'usage.</Alert>
+				<Alert severity="error">Could not load the usage.</Alert>
 			) : summary.total.tokens === 0 ? (
 				<Paper variant="outlined" sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
-					Aucun usage reçu sur la période. Les postes envoient leurs journaux Claude Code et Codex via le collecteur de l'app media-tools.
+					No usage received over the period. Workstations upload their Claude Code and Codex logs through the collector of the media-tools app.
 				</Paper>
 			) : (
 				<>
@@ -86,9 +87,9 @@ export const UsagePage = () => {
 								<Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
 									{metric === "cost"
 										? summary.unpricedShare > 0
-											? `Équivalent API · hors ${fmtShare(summary.unpricedShare)} de tokens non tarifés`
-											: "Équivalent API"
-										: "Tokens traités"}
+											? `API equivalent · excluding ${fmtShare(summary.unpricedShare)} of unpriced tokens`
+											: "API equivalent"
+										: "Tokens processed"}
 								</Typography>
 								<Stack spacing={2.5} sx={{ mt: 3 }}>
 									{summary.providers.map((provider) => (
@@ -101,7 +102,7 @@ export const UsagePage = () => {
 												</Typography>
 											</Stack>
 											<Typography variant="body2" sx={{ color: "text.secondary", pl: 3.25 }}>
-												{fmtShare(provider.share)} {metric === "cost" ? "du coût" : "des tokens"} ·{" "}
+												{fmtShare(provider.share)} {metric === "cost" ? "of the cost" : "of the tokens"} ·{" "}
 												{metric === "cost" ? `${fmtTokens(provider.tokens)} tokens` : fmtUsd(provider.cost)}
 											</Typography>
 										</Box>
@@ -114,17 +115,17 @@ export const UsagePage = () => {
 						</Grid>
 					</Grid>
 
-					<Paper component="section" aria-label="Totaux" variant="outlined" sx={{ p: 2.5 }}>
+					<Paper component="section" aria-label="Totals" variant="outlined" sx={{ p: 2.5 }}>
 						<Typography variant="h6" component="h2" sx={{ mb: 2 }}>
-							Totaux
+							Totals
 						</Typography>
 						<Grid container spacing={2}>
 							{[
-								["Tokens traités", fmtTokens(summary.total.tokens)],
-								["Input en cache", fmtTokens(summary.tokens.cacheRead)],
-								["Input hors cache", fmtTokens(summary.tokens.input + summary.tokens.cacheWrite)],
+								["Tokens processed", fmtTokens(summary.total.tokens)],
+								["Cached input", fmtTokens(summary.tokens.cacheRead)],
+								["Uncached input", fmtTokens(summary.tokens.input + summary.tokens.cacheWrite)],
 								["Output", fmtTokens(summary.tokens.output)],
-								["Économie du cache", fmtUsd(summary.total.savings)],
+								["Cache savings", fmtUsd(summary.total.savings)],
 							].map(([label, value]) => (
 								<Grid key={label} size={{ xs: 6, sm: 4, md: "grow" }}>
 									<Typography variant="body2" sx={{ color: "text.secondary" }}>

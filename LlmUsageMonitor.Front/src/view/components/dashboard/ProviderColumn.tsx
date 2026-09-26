@@ -24,7 +24,7 @@ export const ProviderColumn = ({ provider, now }: { provider: ProviderDashboard;
 						{error ? (
 							<Chip size="small" color={error.severity} label={error.title} />
 						) : (
-							<Chip size="small" variant="outlined" color={lastReading ? "success" : "default"} label={lastReading ? "OK" : "En attente"} />
+							<Chip size="small" variant="outlined" color={lastReading ? "success" : "default"} label={lastReading ? "OK" : "Waiting"} />
 						)}
 					</Stack>
 					<Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
@@ -39,12 +39,10 @@ export const ProviderColumn = ({ provider, now }: { provider: ProviderDashboard;
 					<AlertTitle>{error.title}</AlertTitle>
 					{error.action}
 					<Box sx={{ mt: 0.5 }}>
-						{lastReading
-							? `Valeurs affichées : dernière lecture valide ${fmtWhen(lastReading.fetchedAt, now)} (${fmtAgo(lastReading.fetchedAt, now)}).`
-							: "Aucune lecture valide pour l'instant."}
+						{lastReading ? `Shown values: last valid reading ${fmtWhen(lastReading.fetchedAt, now)} (${fmtAgo(lastReading.fetchedAt, now)}).` : "No valid reading yet."}
 					</Box>
 					<Box component="details" sx={{ mt: 0.5 }}>
-						<summary>Détail technique</summary>
+						<summary>Technical details</summary>
 						<code>
 							{failure.code} · {failure.message}
 						</code>
@@ -62,16 +60,16 @@ export const ProviderColumn = ({ provider, now }: { provider: ProviderDashboard;
 
 function readingLine(provider: ProviderDashboard, now: number): string {
 	const { health, lastReading, pollIntervalMinutes } = provider;
-	const read = lastReading ? `Lu ${fmtAgo(lastReading.fetchedAt, now)}` : "Jamais lu";
-	if (health.backoffUntil) return `${read} · limité (429) : nouvel essai ${fmtIn(health.backoffUntil, now)}`;
-	return `${read} · lecture toutes les ${pollIntervalMinutes} min`;
+	const read = lastReading ? `Read ${fmtAgo(lastReading.fetchedAt, now)}` : "Never read";
+	if (health.backoffUntil) return `${read} · rate limited (429): retry ${fmtIn(health.backoffUntil, now)}`;
+	return `${read} · read every ${pollIntervalMinutes} min`;
 }
 
 function autoLine(provider: ProviderDashboard, now: number): string {
-	if (!provider.autoTriggerEnabled) return "Déclenchement automatique désactivé dans les réglages.";
-	if (!provider.triggerWindowId) return "Déclenchement automatique en attente d'une première lecture.";
+	if (!provider.autoTriggerEnabled) return "Automatic trigger disabled in the settings.";
+	if (!provider.triggerWindowId) return "Automatic trigger waiting for a first reading.";
 	if (provider.nextAutoTriggerAt) {
-		return `Déclenchement automatique vérifié au prochain reset : ${fmtWhen(provider.nextAutoTriggerAt, now)} (${fmtIn(provider.nextAutoTriggerAt, now)}).`;
+		return `Automatic trigger checked at the next reset: ${fmtWhen(provider.nextAutoTriggerAt, now)} (${fmtIn(provider.nextAutoTriggerAt, now)}).`;
 	}
-	return "Déclenchement automatique dès que la fenêtre déclencheuse revient à 0 %.";
+	return "Automatic trigger as soon as the trigger window is back to 0%.";
 }

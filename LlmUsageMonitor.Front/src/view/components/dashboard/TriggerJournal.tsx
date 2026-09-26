@@ -6,26 +6,26 @@ import { providerColor, providerLabel } from "@/core/dashboard";
 import { fmtAgo, fmtWhen } from "@/core/format";
 
 export const TriggerJournal = ({ runs, now }: { runs: TriggerRun[]; now: number }) => (
-	<Paper component="section" aria-label="Journal des déclenchements" variant="outlined" sx={{ p: 2.5, height: "100%" }}>
+	<Paper component="section" aria-label="Trigger log" variant="outlined" sx={{ p: 2.5, height: "100%" }}>
 		<Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
 			<Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
-				Journal des déclenchements
+				Trigger log
 			</Typography>
 			<Typography variant="caption" sx={{ color: "text.secondary" }}>
-				10 derniers
+				Last 10
 			</Typography>
 		</Stack>
 		{runs.length === 0 ? (
-			<Typography sx={{ color: "text.secondary", py: 4, textAlign: "center" }}>Aucun déclenchement pour l'instant.</Typography>
+			<Typography sx={{ color: "text.secondary", py: 4, textAlign: "center" }}>No trigger yet.</Typography>
 		) : (
 			<Box sx={{ overflowX: "auto" }}>
 				<Table size="small">
 					<TableHead>
 						<TableRow>
-							<TableCell>Quand</TableCell>
+							<TableCell>When</TableCell>
 							<TableCell>Provider</TableCell>
 							<TableCell>Mode</TableCell>
-							<TableCell>Résultat</TableCell>
+							<TableCell>Result</TableCell>
 						</TableRow>
 					</TableHead>
 					<TableBody>
@@ -41,7 +41,7 @@ export const TriggerJournal = ({ runs, now }: { runs: TriggerRun[]; now: number 
 								<TableCell sx={{ verticalAlign: "top" }}>
 									<Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
 										{run.manual ? <TouchAppIcon fontSize="small" /> : <AutorenewIcon fontSize="small" />}
-										<span>{run.manual ? "manuel" : "auto"}</span>
+										<span>{run.manual ? "manual" : "auto"}</span>
 									</Stack>
 								</TableCell>
 								<TableCell sx={{ verticalAlign: "top" }}>
@@ -57,17 +57,17 @@ export const TriggerJournal = ({ runs, now }: { runs: TriggerRun[]; now: number 
 );
 
 const Outcome = ({ run }: { run: TriggerRun }) => {
-	if (run.status === "running") return <Chip size="small" icon={<CircularProgress size={12} />} label="en cours" />;
+	if (run.status === "running") return <Chip size="small" icon={<CircularProgress size={12} />} label="running" />;
 	const duration = run.durationMs != null ? `${(run.durationMs / 1000).toFixed(1)} s` : null;
 	return (
 		<>
-			<Chip size="small" color={run.status === "succeeded" ? "success" : "error"} variant="outlined" label={run.status === "succeeded" ? "succès" : "échec"} />
+			<Chip size="small" color={run.status === "succeeded" ? "success" : "error"} variant="outlined" label={run.status === "succeeded" ? "succeeded" : "failed"} />
 			<Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
 				{[run.model, duration].filter(Boolean).join(" · ")}
 			</Typography>
 			{run.error && (
 				<Box component="details" sx={{ typography: "caption", mt: 0.5 }}>
-					<summary>{run.errorCode ?? "erreur"}</summary>
+					<summary>{run.errorCode ?? "error"}</summary>
 					<code>{run.error}</code>
 				</Box>
 			)}

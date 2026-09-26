@@ -1,4 +1,5 @@
 import type { Provider, TokenCounts, TokenUsageReport, TokenUsageRow } from "@/core/apis/generated/types.gen";
+import { locale } from "@/core/format";
 
 export type UsageRange = "24h" | "7d" | "30d" | "90d" | "all";
 export type UsageMetric = "cost" | "tokens";
@@ -116,20 +117,20 @@ export function summarize(report: TokenUsageReport, metric: UsageMetric): UsageS
 	};
 }
 
-const usdFormat = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "USD", currencyDisplay: "narrowSymbol" });
-const compactFormat = new Intl.NumberFormat("fr-FR", { notation: "compact", maximumFractionDigits: 2 });
-const percentFormat = new Intl.NumberFormat("fr-FR", { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const usdFormat = new Intl.NumberFormat(locale, { style: "currency", currency: "USD", currencyDisplay: "narrowSymbol" });
+const compactFormat = new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 2 });
+const percentFormat = new Intl.NumberFormat(locale, { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-/** 283,27 $ */
+/** $283.27 */
 export const fmtUsd = (value: number) => usdFormat.format(value);
-/** 598 M · 1,84 M · 313 k */
+/** 598M · 1.84M · 313K */
 export const fmtTokens = (value: number) => compactFormat.format(value);
-/** 49,9 % */
+/** 49.9% */
 export const fmtShare = (value: number) => percentFormat.format(value);
 
 export const fmtMetric = (value: number, metric: UsageMetric) => (metric === "cost" ? fmtUsd(value) : fmtTokens(value));
 
-export const rangeLabel: Record<UsageRange, string> = { "24h": "24 h", "7d": "7 j", "30d": "30 j", "90d": "90 j", all: "All" };
+export const rangeLabel: Record<UsageRange, string> = { "24h": "24 h", "7d": "7 d", "30d": "30 d", "90d": "90 d", all: "All" };
 
 /** The IANA zone of the browser, so the days of the report are the user's days. */
 export const browserTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
