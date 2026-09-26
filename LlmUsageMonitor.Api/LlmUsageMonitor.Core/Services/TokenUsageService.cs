@@ -48,6 +48,11 @@ public sealed class TokenUsageService(
 		var (from, step) = Period(range, to, zone);
 
 		var buckets = await usage.Get(from, to, string.IsNullOrEmpty(machineId) ? null : machineId, cancellationToken);
+		if (range == TokenUsageRange.All)
+		{
+			// The whole history starts on the day of its first hour, or today when nothing is stored.
+			from = buckets.Count > 0 ? StepStart(buckets.Min(bucket => bucket.Hour), step, zone) : LocalMidnight(TimeZoneInfo.ConvertTime(to, zone).Date, zone);
+		}
 
 		var rows = buckets
 			.GroupBy(bucket => (Start: StepStart(bucket.Hour, step, zone), bucket.Provider, bucket.Model))
@@ -72,13 +77,19 @@ public sealed class TokenUsageService(
 	}
 
 	/// <summary>
-	///     The start of the period: the hour 23 hours before the current one, or the local midnight of the first day.
+	///     The start of the period: the hour 23 hours before the current one, the local midnight of the first day, or the
+	///     Unix epoch for the whole history.
 	/// </summary>
 	internal static (DateTimeOffset From, TokenUsageStep Step) Period(TokenUsageRange range, DateTimeOffset now, TimeZoneInfo zone)
 	{
 		if (range == TokenUsageRange.Last24Hours)
 		{
 			return (TruncateToHour(now).AddHours(-23), TokenUsageStep.Hour);
+		}
+
+		if (range == TokenUsageRange.All)
+		{
+			return (DateTimeOffset.UnixEpoch, TokenUsageStep.Day);
 		}
 
 		var days = range switch

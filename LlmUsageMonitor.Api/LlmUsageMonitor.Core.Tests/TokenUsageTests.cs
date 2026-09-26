@@ -131,6 +131,30 @@ public sealed class TokenUsageTests
 	}
 
 	[Fact]
+	public async Task The_whole_history_starts_on_the_local_day_of_the_first_hour()
+	{
+		// 2025-03-10 23:00 UTC is already the 11th in Paris (UTC+1).
+		await _service.Upload(Upload(
+			Bucket("claude-opus-5", new(2025, 3, 10, 23, 0, 0, TimeSpan.Zero), new(1, 0, 0, 0)),
+			Bucket("claude-opus-5", CurrentHour, new(2, 0, 0, 0))), Token);
+
+		var report = await _service.Get(TokenUsageRange.All, null, "Europe/Paris", Token);
+
+		report.Step.ShouldBe(TokenUsageStep.Day);
+		report.From.ShouldBe(new DateTimeOffset(2025, 3, 11, 0, 0, 0, TimeSpan.FromHours(1)));
+		report.Rows.Select(row => row.Tokens.Input).ShouldBe([1L, 2L]);
+	}
+
+	[Fact]
+	public async Task The_whole_history_without_usage_is_today()
+	{
+		var report = await _service.Get(TokenUsageRange.All, null, "Europe/Paris", Token);
+
+		report.From.ShouldBe(new DateTimeOffset(2026, 9, 25, 0, 0, 0, TimeSpan.FromHours(2)));
+		report.Rows.ShouldBeEmpty();
+	}
+
+	[Fact]
 	public async Task Unpriced_tokens_are_counted_apart_from_the_cost()
 	{
 		await _service.Upload(Upload(Bucket("gpt-unknown", CurrentHour, new(10, 5, 0, 5))), Token);

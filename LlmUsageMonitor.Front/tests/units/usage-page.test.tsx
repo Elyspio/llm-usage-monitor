@@ -69,7 +69,7 @@ describe("UsagePage", () => {
 		expect(within(total).getAllByText(/141,47/).length).toBeGreaterThan(0);
 		expect(within(total).getByText("Codex")).toBeTruthy();
 
-		const breakdown = screen.getByRole("region", { name: "Ventilation" });
+		const breakdown = screen.getByRole("region", { name: "Usage par modèles" });
 		expect(within(breakdown).getByText("claude-opus-5")).toBeTruthy();
 		expect(within(breakdown).getByText("Non tarifé")).toBeTruthy();
 
@@ -79,5 +79,8 @@ describe("UsagePage", () => {
 
 		fireEvent.click(screen.getByRole("button", { name: "30 j" }));
 		await waitFor(() => expect(requests.at(-1)!.searchParams.get("range")).toBe("30d"));
+
+		fireEvent.click(screen.getByRole("button", { name: "All" }));
+		await waitFor(() => expect(requests.at(-1)!.searchParams.get("range")).toBe("all"));
 	});
 });

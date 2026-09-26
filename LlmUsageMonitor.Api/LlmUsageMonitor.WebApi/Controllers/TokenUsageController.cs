@@ -13,8 +13,8 @@ namespace LlmUsageMonitor.Controllers;
 public sealed class TokenUsageController(ITokenUsageService tokenUsage) : ControllerBase
 {
 	/// <summary>
-	///     Tokens and cost of the last 24 hours (<c>24h</c>, by hour) or of the last 7, 30 or 90 days (<c>7d</c>, <c>30d</c>,
-	///     <c>90d</c>, by day of <paramref name="timeZone" />), for every workstation or one.
+	///     Tokens and cost of the last 24 hours (<c>24h</c>, by hour), of the last 7, 30 or 90 days (<c>7d</c>, <c>30d</c>,
+	///     <c>90d</c>) or since the first upload (<c>all</c>), by day of <paramref name="timeZone" />, for every workstation or one.
 	/// </summary>
 	[HttpGet(Name = "GetTokenUsage")]
 	[ProducesResponseType<TokenUsageReport>(StatusCodes.Status200OK)]
@@ -27,7 +27,8 @@ public sealed class TokenUsageController(ITokenUsageService tokenUsage) : Contro
 			"7d" => TokenUsageRange.Last7Days,
 			"30d" => TokenUsageRange.Last30Days,
 			"90d" => TokenUsageRange.Last90Days,
-			_ => throw new RequestValidationException(new Dictionary<string, string[]> { ["range"] = ["Valeurs possibles : 24h, 7d, 30d, 90d."] })
+			"all" => TokenUsageRange.All,
+			_ => throw new RequestValidationException(new Dictionary<string, string[]> { ["range"] = ["Valeurs possibles : 24h, 7d, 30d, 90d, all."] })
 		};
 		return tokenUsage.Get(period, machineId, timeZone, cancellationToken);
 	}

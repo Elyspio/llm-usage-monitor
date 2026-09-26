@@ -1,6 +1,6 @@
 import type { Provider, TokenCounts, TokenUsageReport, TokenUsageRow } from "@/core/apis/generated/types.gen";
 
-export type UsageRange = "24h" | "7d" | "30d" | "90d";
+export type UsageRange = "24h" | "7d" | "30d" | "90d" | "all";
 export type UsageMetric = "cost" | "tokens";
 
 export const providers: Provider[] = ["claude", "codex"];
@@ -129,7 +129,7 @@ export const fmtShare = (value: number) => percentFormat.format(value);
 
 export const fmtMetric = (value: number, metric: UsageMetric) => (metric === "cost" ? fmtUsd(value) : fmtTokens(value));
 
-export const rangeLabel: Record<UsageRange, string> = { "24h": "24 h", "7d": "7 j", "30d": "30 j", "90d": "90 j" };
+export const rangeLabel: Record<UsageRange, string> = { "24h": "24 h", "7d": "7 j", "30d": "30 j", "90d": "90 j", all: "All" };
 
 /** The IANA zone of the browser, so the days of the report are the user's days. */
 export const browserTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;

@@ -82,7 +82,10 @@ public enum TokenUsageRange
 	Last30Days,
 
 	/// <summary>Today and the 89 previous days, by local day.</summary>
-	Last90Days
+	Last90Days,
+
+	/// <summary>From the local day of the first stored hour to today, by local day.</summary>
+	All
 }
 
 public enum TokenUsageStep

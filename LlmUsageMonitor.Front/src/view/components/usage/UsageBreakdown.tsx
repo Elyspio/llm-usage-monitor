@@ -16,12 +16,12 @@ export const UsageBreakdown = ({ models, days, metric }: { models: ModelLine[]; 
 	const lines = breakdown === "model" ? models : days;
 
 	return (
-		<Paper component="section" aria-label="Ventilation" variant="outlined" sx={{ p: 2.5 }}>
+		<Paper component="section" aria-label="Usage par modèles" variant="outlined" sx={{ p: 2.5 }}>
 			<Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
 				<Typography variant="h6" component="h2">
-					Ventilation
+					Usage par modèles
 				</Typography>
-				<ToggleButtonGroup size="small" exclusive value={breakdown} onChange={(_, value: Breakdown | null) => value && setBreakdown(value)} aria-label="Ventilation">
+				<ToggleButtonGroup size="small" exclusive value={breakdown} onChange={(_, value: Breakdown | null) => value && setBreakdown(value)} aria-label="Regroupement">
 					<ToggleButton value="model">Modèle</ToggleButton>
 					<ToggleButton value="day">Jour</ToggleButton>
 				</ToggleButtonGroup>
