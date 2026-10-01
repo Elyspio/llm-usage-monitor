@@ -5,6 +5,7 @@ using LlmUsageMonitor.Abstractions.Exceptions;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
 using LlmUsageMonitor.Abstractions.Interfaces.Repositories;
 using LlmUsageMonitor.Abstractions.Interfaces.Services;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace LlmUsageMonitor.Core.Services;
@@ -17,8 +18,13 @@ public sealed partial class SettingsService(
 	IProviderStateRepository states,
 	IJobScheduler scheduler,
 	ISecretProtector protector,
-	IOptions<AppConfig> appConfig) : ISettingsService
+	IProviderLocks locks,
+	IOptions<AppConfig> appConfig,
+	ILogger<SettingsService> logger) : ISettingsService
 {
+	/// <summary>The wait of a settings save for a provider busy with a CLI process; the request should stay short.</summary>
+	public static readonly TimeSpan ProviderWait = TimeSpan.FromSeconds(10);
+
 	public const int MaxModelLength = 100;
 	public const string IntervalDivisorMessage = "A divisor of 60 is expected: 1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30 or 60 minutes.";
 
@@ -29,9 +35,8 @@ public sealed partial class SettingsService(
 			return settings;
 		}
 
-		var defaults = AppSettings.CreateDefault(appConfig.Value.AutoTriggerEnabledByDefault);
-		await repository.Save(defaults, cancellationToken);
-		return defaults;
+		await repository.Initialize(AppSettings.CreateDefault(appConfig.Value.AutoTriggerEnabledByDefault), cancellationToken);
+		return await repository.Find(cancellationToken) ?? throw new InvalidOperationException("The settings could not be initialized.");
 	}
 
 	public async Task<PollingSettings> UpdatePolling(PollingSettings polling, CancellationToken cancellationToken)
@@ -41,8 +46,8 @@ public sealed partial class SettingsService(
 		ValidateInterval(errors, "codexIntervalMinutes", polling.CodexIntervalMinutes);
 		ThrowIfAny(errors);
 
-		var settings = await Get(cancellationToken);
-		await repository.Save(settings with { Polling = polling }, cancellationToken);
+		await Get(cancellationToken);
+		await repository.SavePolling(polling, cancellationToken);
 		foreach (var provider in Enum.GetValues<Provider>()) scheduler.SetPollInterval(provider, polling.For(provider));
 		return polling;
 	}
@@ -55,8 +60,8 @@ public sealed partial class SettingsService(
 		ThrowIfAny(errors);
 
 		var normalized = new TriggerSettings(triggers.Claude with { Model = triggers.Claude.Model.Trim() }, triggers.Codex with { Model = triggers.Codex.Model.Trim() });
-		var settings = await Get(cancellationToken);
-		await repository.Save(settings with { Triggers = normalized }, cancellationToken);
+		await Get(cancellationToken);
+		await repository.SaveTriggers(normalized, cancellationToken);
 
 		foreach (var provider in Enum.GetValues<Provider>().Where(provider => !normalized.For(provider).AutoEnabled)) await CancelPendingResetCheck(provider, cancellationToken);
 
@@ -104,12 +109,23 @@ public sealed partial class SettingsService(
 			Events = update.Events,
 			ReadFailureThreshold = update.ReadFailureThreshold
 		};
-		await repository.Save(settings with { Notifications = notifications }, cancellationToken);
-		return ToView(notifications);
+		await repository.SaveNotifications(notifications, cancellationToken);
+		return ToView((await Get(cancellationToken)).Notifications);
 	}
 
+	/// <summary>
+	///     Under the provider lock, as every write of the provider state: a poll saves the whole state. When the provider stays
+	///     busy, the next reading cancels the check itself since the automatic trigger is now disabled.
+	/// </summary>
 	private async Task CancelPendingResetCheck(Provider provider, CancellationToken cancellationToken)
 	{
+		using var providerLock = await locks.TryAcquire(provider, ProviderWait, cancellationToken);
+		if (providerLock is null)
+		{
+			logger.LogWarning("{Provider} post-reset check left to the next reading: the provider is busy", provider);
+			return;
+		}
+
 		var state = await states.Get(provider, cancellationToken);
 		if (state.PendingResetCheck is not { } pending)
 		{

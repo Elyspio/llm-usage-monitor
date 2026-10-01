@@ -252,8 +252,13 @@ internal sealed class NotificationsDocument
 			ProtectedToken = settings.ProtectedToken,
 			ProviderEvents = settings.Events,
 			ReadFailureThreshold = settings.ReadFailureThreshold,
-			LastSendFailure = settings.LastSendFailure is { } failure ? new FailureDocument { Code = "SEND_FAILED", Message = failure.Message, At = failure.At.ToUtc() } : null
+			LastSendFailure = FailureFromDomain(settings.LastSendFailure)
 		};
+	}
+
+	public static FailureDocument? FailureFromDomain(NotificationSendFailure? failure)
+	{
+		return failure is null ? null : new FailureDocument { Code = "SEND_FAILED", Message = failure.Message, At = failure.At.ToUtc() };
 	}
 
 	public NotificationSettings ToDomain()

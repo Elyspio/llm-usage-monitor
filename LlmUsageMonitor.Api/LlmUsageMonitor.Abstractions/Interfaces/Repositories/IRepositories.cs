@@ -55,11 +55,25 @@ public interface IProviderStateRepository
 	Task Save(ProviderState state, CancellationToken cancellationToken);
 }
 
+/// <summary>
+///     The settings document, written section by section: concurrent saves of different sections never undo each other.
+/// </summary>
 public interface ISettingsRepository
 {
 	Task<AppSettings?> Find(CancellationToken cancellationToken);
 
-	Task Save(AppSettings settings, CancellationToken cancellationToken);
+	/// <summary>Stores the settings when none exist yet; existing settings are kept.</summary>
+	Task Initialize(AppSettings defaults, CancellationToken cancellationToken);
+
+	Task SavePolling(PollingSettings polling, CancellationToken cancellationToken);
+
+	Task SaveTriggers(TriggerSettings triggers, CancellationToken cancellationToken);
+
+	/// <summary>Saves the notification settings edited by the user; the last delivery failure is left as stored.</summary>
+	Task SaveNotifications(NotificationSettings notifications, CancellationToken cancellationToken);
+
+	/// <summary>Records the last delivery failure, or clears it; nothing else is written.</summary>
+	Task SaveSendFailure(NotificationSendFailure? failure, CancellationToken cancellationToken);
 }
 
 public interface ITokenUsageRepository

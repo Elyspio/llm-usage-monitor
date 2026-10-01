@@ -76,10 +76,10 @@ public sealed class NotificationService(
 		}
 	}
 
-	private async Task SaveSendFailure(NotificationSendFailure? failure, CancellationToken cancellationToken)
+	private Task SaveSendFailure(NotificationSendFailure? failure, CancellationToken cancellationToken)
 	{
-		var settings = await settingsService.Get(cancellationToken);
-		await settingsRepository.Save(settings with { Notifications = settings.Notifications with { LastSendFailure = failure } }, cancellationToken);
+		// Only its own field: a settings save running meanwhile is never undone.
+		return settingsRepository.SaveSendFailure(failure, cancellationToken);
 	}
 
 	private NotificationMessage Build(NotificationKind kind, Provider provider, string detail)

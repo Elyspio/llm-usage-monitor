@@ -134,6 +134,13 @@ public sealed class UsageMonitor(
 			state = state with { PendingResetCheck = null };
 		}
 
+		// The automatic trigger was disabled while a reading ran: the check scheduled meanwhile is dropped.
+		if (!autoEnabled && state.PendingResetCheck is { } obsolete)
+		{
+			scheduler.Delete(obsolete.JobId);
+			return state with { PendingResetCheck = null };
+		}
+
 		if (!autoEnabled || reading.TriggerWindow?.ResetsAt is not { } resetsAt || resetsAt <= now)
 		{
 			return state;
