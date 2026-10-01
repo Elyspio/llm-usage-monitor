@@ -3,7 +3,7 @@
 Origin of the project: these readers are ported to C# in `LlmUsageMonitor.Api/LlmUsageMonitor.Adapters.*`, and kept here as a reference and for one-off checks from a terminal. This folder is a
 standalone pnpm project, unrelated to the front-end workspace.
 
-TypeScript functions to read subscription allowance using existing CLI authentication, without sending prompts or starting model turns. Requires Node.js 22+ and pnpm.
+TypeScript functions to read subscription allowance using existing CLI authentication, without sending prompts or starting model turns. Requires Node.js 26+ and pnpm.
 
 ```powershell
 pnpm install
@@ -65,7 +65,7 @@ There is no automatic polling, retry, or cache. Each function call reads live us
 
 ## Verification
 
-`pnpm check` verifies formatting with Oxfmt, lint rules with Oxlint, and types with TypeScript. Use `pnpm format` to write formatting changes or `pnpm lint:fix` to apply safe lint fixes.
+`pnpm check` (`vp check`) verifies formatting with Oxfmt, lint rules with Oxlint, and types with TypeScript 7 (tsgolint). Use `pnpm fmt` to write formatting changes or `pnpm vp check --fix` to apply them with safe lint fixes.
 `pnpm usage:codex` performs a live Codex-only usage check. Claude live verification is intentionally deferred.
 
 ## Sources

@@ -17,7 +17,7 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 				Timeline · {dateLabel(start)} → {dateLabel(end - 1)}
 			</Typography>
 			<Box sx={{ display: { xs: "none", md: "grid" }, gridTemplateColumns: columns, gap: 3, alignItems: "end", mb: 0.5, pt: 3 }}>
-				<Typography variant="overline" color="text.secondary">
+				<Typography variant="overline" sx={{ color: "text.secondary" }}>
 					Window
 				</Typography>
 				<Box sx={{ position: "relative", height: 34, borderBottom: 1, borderColor: "divider" }}>
@@ -54,7 +54,7 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 						</Box>
 					))}
 				</Box>
-				<Typography variant="overline" color="text.secondary" align="right">
+				<Typography variant="overline" align="right" sx={{ color: "text.secondary" }}>
 					Remaining
 				</Typography>
 			</Box>
@@ -94,12 +94,12 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 										: "Window not started yet"}
 							</Typography>
 							{stale && (
-								<Typography variant="caption" color="warning.main">
+								<Typography variant="caption" sx={{ color: "warning.main" }}>
 									stale · read {fmtAgo(provider.lastReading!.fetchedAt, now)}
 								</Typography>
 							)}
 							{expired && (
-								<Typography variant="caption" color="warning.main" sx={{ display: "block" }}>
+								<Typography variant="caption" sx={{ color: "warning.main", display: "block" }}>
 									Reset passed · waiting for a reading
 								</Typography>
 							)}

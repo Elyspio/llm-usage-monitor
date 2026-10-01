@@ -52,7 +52,7 @@ export const SettingsPage = () => {
 
 	return (
 		<Stack spacing={3}>
-			<Typography variant="overline" color="text.secondary">
+			<Typography variant="overline" sx={{ color: "text.secondary" }}>
 				04 / Configuration
 			</Typography>
 			<Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
@@ -191,7 +191,7 @@ function PollingSection({ initial }: { initial: PollingSettings }) {
 					})}
 				</TableBody>
 			</Table>
-			<Typography variant="caption" color="text.secondary">
+			<Typography variant="caption" sx={{ color: "text.secondary" }}>
 				A divisor of 60 (1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30 or 60 minutes). A short interval raises the risk of 429.
 			</Typography>
 		</Section>
@@ -274,7 +274,7 @@ function TriggerSection({ initial }: { initial: TriggerSettings }) {
 					</TableBody>
 				</Table>
 			</Box>
-			<Typography variant="caption" color="text.secondary">
+			<Typography variant="caption" sx={{ color: "text.secondary" }}>
 				Model used for the "1+1=?" prompt.
 			</Typography>
 		</Section>

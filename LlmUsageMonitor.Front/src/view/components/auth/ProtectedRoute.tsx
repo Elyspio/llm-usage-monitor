@@ -33,7 +33,7 @@ export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
 					<Button variant="contained" onClick={signIn} size="large">
 						Sign in
 					</Button>
-					<Typography variant="caption" color="text.secondary">
+					<Typography variant="caption" sx={{ color: "text.secondary" }}>
 						Sign in required to access the dashboard.
 					</Typography>
 				</Stack>

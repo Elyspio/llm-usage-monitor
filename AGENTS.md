@@ -14,7 +14,7 @@ Spec : [PRD](https://github.com/Elyspio/llm-usage-monitor/issues/19) — fermé,
   - Usage en tokens : `POST /api/token-usage` reçoit les totaux horaires (poste × fournisseur × modèle) envoyés par le collecteur `LlmUsageMonitor.Collector/`, qui lit les journaux de session locaux : importé par l'app desktop Elytools ([Elyspio/elytools](https://github.com/Elyspio/elytools)), ou installé seul (CLI `llm-usage`). Le coût est calculé à l'envoi et stocké ; un modèle sans prix reste « Unpriced ».
   - `Core.Tests` (services réels sur stockage en mémoire, `FakeTimeProvider`), `Adapters.Tests` (fixtures anonymisées dans `Fixtures/`, repositories sur Mongo Testcontainers), `WebApi.Tests` (`WebApplicationFactory` sur Mongo Testcontainers, JWT signés localement, Hangfire désactivé).
   - Toutes les routes sont sous `/api` et exigent le rôle client `llm-usage-monitor:admin` ; `/hangfire` passe par cookie + OIDC avec le même rôle.
-- `LlmUsageMonitor.Front/` : SPA Vite+ (`@elyspio/vite-eslint-config` v6, React Router 8, MUI 9, TanStack Query, `oidc-client-ts`).
+- `LlmUsageMonitor.Front/` : SPA Vite+ 1.0 (`@elyspio/vite-eslint-config` v8, React Router 8, MUI 9, TanStack Query, `oidc-client-ts`).
   - `openapi/llm-usage-monitor.json` : document OpenAPI écrit par le build de `WebApi`, commité.
   - `src/core/apis/generated/` : client `@hey-api/openapi-ts` généré depuis ce document, commité, exclu du lint et du formatage.
 - `LlmUsageMonitor.Collector/` : package npm public `@elyspio/llm-usage-collector` (pnpm, vite-plus). Cœur du collecteur importé par Elytools, et CLI `llm-usage` livré en exécutable Node SEA win-x64 / linux-x64 (`vp pack -F exe`). Device flow sur le client Keycloak public `i-llm-usage-collector`, dossier de données partagé avec Elytools. Détails : [`LlmUsageMonitor.Collector/README.md`](LlmUsageMonitor.Collector/README.md).
@@ -59,7 +59,7 @@ Prérequis : Docker démarré (MongoDB via Testcontainers dans les tests backend
 - Scripts TypeScript (dans `LlmUsageMonitor.Scripts/`) :
   ```sh
   pnpm install
-  pnpm check    # Oxfmt, Oxlint, tsc
+  pnpm check    # Oxfmt, Oxlint, typecheck
   ```
 - Contrat API : le build de `WebApi` réécrit `LlmUsageMonitor.Front/openapi/llm-usage-monitor.json`, puis `pnpm gen:api` régénère le client. Après un changement d'API, commiter les deux ; `git status` ne doit plus montrer de diff.
 

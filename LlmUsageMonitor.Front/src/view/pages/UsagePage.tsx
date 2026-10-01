@@ -33,7 +33,7 @@ export const UsagePage = () => {
 
 	return (
 		<Stack spacing={3}>
-			<Typography variant="overline" color="text.secondary">
+			<Typography variant="overline" sx={{ color: "text.secondary" }}>
 				03 / Usage
 			</Typography>
 			<Stack direction={{ xs: "column", lg: "row" }} spacing={2} sx={{ justifyContent: "space-between", alignItems: { lg: "flex-end" } }}>
