@@ -43,15 +43,18 @@ internal static class CliProcess
 			var standardOutput = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
 			var standardError = process.StandardError.ReadToEndAsync(CancellationToken.None);
 
+			// One deadline for the process and its output: a child (an MCP server, for instance) may keep the pipes open after
+			// the CLI exits, and reading to the end would then never finish.
 			using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 			deadline.CancelAfter(timeout);
 			try
 			{
 				await process.WaitForExitAsync(deadline.Token);
+				await Task.WhenAll(standardOutput, standardError).WaitAsync(deadline.Token);
 			}
 			catch (OperationCanceledException)
 			{
-				process.Kill(true);
+				KillTree(process);
 				if (cancellationToken.IsCancellationRequested)
 				{
 					throw;
@@ -61,6 +64,25 @@ internal static class CliProcess
 			}
 
 			return new(process.ExitCode, await standardOutput, await standardError);
+		}
+	}
+
+	/// <summary>
+	///     Kills the process and its descendants; a process that already exited is not an error.
+	/// </summary>
+	public static void KillTree(Process process)
+	{
+		try
+		{
+			process.Kill(true);
+		}
+		catch (InvalidOperationException)
+		{
+			// Exited between the deadline and the kill.
+		}
+		catch (Win32Exception)
+		{
+			// A descendant exited while the tree was walked.
 		}
 	}
 }

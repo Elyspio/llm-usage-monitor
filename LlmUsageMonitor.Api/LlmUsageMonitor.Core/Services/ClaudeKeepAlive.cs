@@ -50,7 +50,13 @@ public sealed class ClaudeKeepAlive(
 
 	public async Task Run(CancellationToken cancellationToken)
 	{
-		using var providerLock = await locks.Acquire(Provider.Claude, cancellationToken);
+		using var providerLock = await locks.TryAcquire(Provider.Claude, ProviderLocks.JobWait, cancellationToken);
+		if (providerLock is null)
+		{
+			// The holder is a reading or a prompt: a reading refreshes the token itself.
+			logger.LogWarning("Claude keep-alive skipped: the provider is still busy after {Wait}", ProviderLocks.JobWait);
+			return;
+		}
 
 		var state = await states.Get(Provider.Claude, cancellationToken);
 		try

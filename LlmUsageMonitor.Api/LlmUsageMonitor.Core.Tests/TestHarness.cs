@@ -19,6 +19,7 @@ internal sealed class TestHarness
 
 	public TestHarness(bool autoTriggerEnabled = true)
 	{
+		Locks = new(Time);
 		var defaults = AppSettings.CreateDefault(autoTriggerEnabled);
 		SettingsRepository.Stored = defaults with
 		{
@@ -53,7 +54,7 @@ internal sealed class TestHarness
 	public FakeSession Session { get; } = new();
 	public RecordingSender Sender { get; } = new();
 	public ReversibleProtector Protector { get; } = new();
-	public ProviderLocks Locks { get; } = new();
+	public ProviderLocks Locks { get; }
 
 	public SettingsService Settings { get; }
 	public NotificationService Notifications { get; }

@@ -7,20 +7,48 @@ namespace LlmUsageMonitor.Core.Services;
 /// </summary>
 public interface IProviderLocks
 {
-	Task<IDisposable> Acquire(Provider provider, CancellationToken cancellationToken);
+	/// <summary>
+	///     Waits for the lock at most <paramref name="timeout" />; <c>null</c> when it stays held. A bounded wait keeps a stuck
+	///     holder from piling up waiting jobs on every Hangfire worker.
+	/// </summary>
+	Task<IDisposable?> TryAcquire(Provider provider, TimeSpan timeout, CancellationToken cancellationToken);
 
 	bool IsBusy(Provider provider);
 }
 
-public sealed class ProviderLocks : IProviderLocks
+public sealed class ProviderLocks(TimeProvider time) : IProviderLocks
 {
+	/// <summary>
+	///     The wait of a reading: the next scheduled one covers a skipped reading.
+	/// </summary>
+	public static readonly TimeSpan PollWait = TimeSpan.FromMinutes(1);
+
+	/// <summary>
+	///     The wait of a prompt or a keep-alive: more than a reading and a prompt, both bounded by their CLI timeouts.
+	/// </summary>
+	public static readonly TimeSpan JobWait = TimeSpan.FromMinutes(5);
+
 	private readonly Dictionary<Provider, SemaphoreSlim> _locks = Enum.GetValues<Provider>().ToDictionary(provider => provider, _ => new SemaphoreSlim(1, 1));
 
-	public async Task<IDisposable> Acquire(Provider provider, CancellationToken cancellationToken)
+	public async Task<IDisposable?> TryAcquire(Provider provider, TimeSpan timeout, CancellationToken cancellationToken)
 	{
 		var semaphore = _locks[provider];
-		await semaphore.WaitAsync(cancellationToken);
-		return new Releaser(semaphore);
+		if (semaphore.Wait(0, CancellationToken.None))
+		{
+			return new Releaser(semaphore);
+		}
+
+		using var deadline = new CancellationTokenSource(timeout, time);
+		using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
+		try
+		{
+			await semaphore.WaitAsync(linked.Token);
+			return new Releaser(semaphore);
+		}
+		catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+		{
+			return null;
+		}
 	}
 
 	public bool IsBusy(Provider provider)
