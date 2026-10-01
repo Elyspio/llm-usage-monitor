@@ -28,6 +28,7 @@ public static class ProviderErrorCodes
 	public const string Interrupted = "INTERRUPTED";
 	public const string Overloaded = "OVERLOADED";
 	public const string Cancelled = "CANCELLED";
+	public const string Unexpected = "UNEXPECTED_ERROR";
 }
 
 /// <summary>

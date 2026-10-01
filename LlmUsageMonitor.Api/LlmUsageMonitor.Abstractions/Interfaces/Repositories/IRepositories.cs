@@ -11,7 +11,12 @@ public interface IUsageSnapshotRepository
 
 public interface IResetRepository
 {
-	Task<ResetEvent> Add(Provider provider, string windowId, DateTimeOffset detectedAt, double usedBefore, double usedAfter, DateTimeOffset? previousResetsAt, CancellationToken cancellationToken);
+	/// <summary>
+	///     Stores the reset seen between the reading of <paramref name="previousFetchedAt" /> and the current one; <c>null</c> when
+	///     that transition is already stored (a poll that stopped before saving its state reads it again).
+	/// </summary>
+	Task<ResetEvent?> TryAdd(Provider provider, string windowId, DateTimeOffset previousFetchedAt, DateTimeOffset detectedAt, double usedBefore, double usedAfter,
+		DateTimeOffset? previousResetsAt, CancellationToken cancellationToken);
 
 	Task<ResetEvent?> GetLast(Provider provider, string windowId, CancellationToken cancellationToken);
 }

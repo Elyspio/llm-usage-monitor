@@ -58,27 +58,40 @@ public sealed class UsageMonitor(
 				throw new ProviderException(ProviderErrorCodes.NoUsageData, "The provider returned no percentage-based usage windows.");
 			}
 
-			var reading = new UsageReading(now, windows);
+			// The refresh and the reading may take a while: the reading is dated when it is received.
+			var readAt = time.GetUtcNow();
+			var reading = new UsageReading(readAt, windows);
 			await snapshots.Add(provider, reading, cancellationToken);
-			await RecordResets(provider, state.LastReading, reading, now, cancellationToken);
+			await RecordResets(provider, state.LastReading, reading, cancellationToken);
 
 			var triggerWindow = reading.TriggerWindow;
 			var lastReset = triggerWindow is null ? null : await resets.GetLast(provider, triggerWindow.Id, cancellationToken);
-			cycleKey = UsageRules.CycleKey(state, reading, lastReset, now);
+			cycleKey = UsageRules.CycleKey(state, reading, lastReset, readAt);
 
-			state = await health.RecordSuccess(state, now, cancellationToken) with
+			state = await health.RecordSuccess(state, readAt, cancellationToken) with
 			{
 				LastReading = reading,
-				LastSuccessAt = now,
+				LastSuccessAt = readAt,
 				CurrentCycleKey = cycleKey
 			};
-			state = SchedulePostResetCheck(state, reading, settings.Triggers.For(provider).AutoEnabled, now);
+			state = SchedulePostResetCheck(state, reading, settings.Triggers.For(provider).AutoEnabled, readAt);
 			await states.Save(state, cancellationToken);
 		}
-		catch (ProviderException exception)
+		// Any failure counts, not only the provider ones (storage, CLI process): the health, the alerts and the state follow.
+		catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
 		{
-			logger.LogWarning("{Provider} reading failed: {Code} {Message}", provider, exception.Code, exception.Message);
-			state = await health.RecordFailure(state, exception, now, settings.Notifications.ReadFailureThreshold, cancellationToken);
+			var failure = exception as ProviderException;
+			if (failure is null)
+			{
+				logger.LogError(exception, "{Provider} reading failed unexpectedly", provider);
+				failure = new(ProviderErrorCodes.Unexpected, exception.Message, exception);
+			}
+			else
+			{
+				logger.LogWarning("{Provider} reading failed: {Code} {Message}", provider, failure.Code, failure.Message);
+			}
+
+			state = await health.RecordFailure(state, failure, time.GetUtcNow(), settings.Notifications.ReadFailureThreshold, cancellationToken);
 			await states.Save(state, cancellationToken);
 			return;
 		}
@@ -90,11 +103,20 @@ public sealed class UsageMonitor(
 		}
 	}
 
-	private async Task RecordResets(Provider provider, UsageReading? previous, UsageReading current, DateTimeOffset now, CancellationToken cancellationToken)
+	/// <summary>
+	///     A reset is stored once per transition from the previous reading: a poll that stops before saving its state finds the
+	///     same transition again, which the repository recognizes and neither stores nor notifies twice.
+	/// </summary>
+	private async Task RecordResets(Provider provider, UsageReading? previous, UsageReading current, CancellationToken cancellationToken)
 	{
 		foreach (var (before, after) in UsageRules.DetectResets(previous, current))
 		{
-			await resets.Add(provider, after.Id, now, before.UsedPercent, after.UsedPercent, before.ResetsAt, cancellationToken);
+			var reset = await resets.TryAdd(provider, after.Id, previous!.FetchedAt, current.FetchedAt, before.UsedPercent, after.UsedPercent, before.ResetsAt, cancellationToken);
+			if (reset is null)
+			{
+				continue;
+			}
+
 			var detail = string.Create(CultureInfo.InvariantCulture, $"{after.Id} : {before.UsedPercent:0.#} % → {after.UsedPercent:0.#} % consommé");
 			await notifications.Notify(NotificationKind.Reset, provider, detail, cancellationToken);
 		}
@@ -105,6 +127,13 @@ public sealed class UsageMonitor(
 	/// </summary>
 	private ProviderState SchedulePostResetCheck(ProviderState state, UsageReading reading, bool autoEnabled, DateTimeOffset now)
 	{
+		// A check whose time has come is running (this very poll, maybe) or done: it is forgotten, never deleted, since deleting
+		// the running job would abort it.
+		if (state.PendingResetCheck is { } due && due.RunAt <= now)
+		{
+			state = state with { PendingResetCheck = null };
+		}
+
 		if (!autoEnabled || reading.TriggerWindow?.ResetsAt is not { } resetsAt || resetsAt <= now)
 		{
 			return state;

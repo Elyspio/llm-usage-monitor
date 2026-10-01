@@ -73,6 +73,9 @@ internal sealed class InMemoryStates : IProviderStateRepository
 {
 	public Dictionary<Provider, ProviderState> Stored { get; } = [];
 
+	/// <summary>The next saves that fail, as a storage outage would.</summary>
+	public int FailingSaves { get; set; }
+
 	public Task<ProviderState> Get(Provider provider, CancellationToken cancellationToken)
 	{
 		return Task.FromResult(Stored.TryGetValue(provider, out var state) ? state : new(provider));
@@ -80,6 +83,12 @@ internal sealed class InMemoryStates : IProviderStateRepository
 
 	public Task Save(ProviderState state, CancellationToken cancellationToken)
 	{
+		if (FailingSaves > 0)
+		{
+			FailingSaves--;
+			return Task.FromException(new TimeoutException("A timeout occurred after 30000ms selecting a server."));
+		}
+
 		Stored[state.Provider] = state;
 		return Task.CompletedTask;
 	}
@@ -103,14 +112,21 @@ internal sealed class InMemorySnapshots : IUsageSnapshotRepository
 
 internal sealed class InMemoryResets : IResetRepository
 {
+	private readonly HashSet<(Provider, string, DateTimeOffset)> _keys = [];
+
 	public List<ResetEvent> Added { get; } = [];
 
-	public Task<ResetEvent> Add(Provider provider, string windowId, DateTimeOffset detectedAt, double usedBefore, double usedAfter, DateTimeOffset? previousResetsAt,
-		CancellationToken cancellationToken)
+	public Task<ResetEvent?> TryAdd(Provider provider, string windowId, DateTimeOffset previousFetchedAt, DateTimeOffset detectedAt, double usedBefore, double usedAfter,
+		DateTimeOffset? previousResetsAt, CancellationToken cancellationToken)
 	{
+		if (!_keys.Add((provider, windowId, previousFetchedAt)))
+		{
+			return Task.FromResult<ResetEvent?>(null);
+		}
+
 		var reset = new ResetEvent($"reset-{Added.Count + 1}", provider, windowId, detectedAt, usedBefore, usedAfter, previousResetsAt);
 		Added.Add(reset);
-		return Task.FromResult(reset);
+		return Task.FromResult<ResetEvent?>(reset);
 	}
 
 	public Task<ResetEvent?> GetLast(Provider provider, string windowId, CancellationToken cancellationToken)

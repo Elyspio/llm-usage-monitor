@@ -122,6 +122,24 @@ public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<Mon
 	}
 
 	[Fact]
+	public async Task A_reset_is_stored_once_per_transition()
+	{
+		await using var services = await mongo.CreateServices();
+		var resets = services.GetRequiredService<IResetRepository>();
+
+		var first = await resets.TryAdd(Provider.Codex, "codex/primary", Now.AddMinutes(-3), Now, 40, 5, Now.AddMinutes(-1), Token);
+		var replayed = await resets.TryAdd(Provider.Codex, "codex/primary", Now.AddMinutes(-3), Now.AddMinutes(3), 40, 5, Now.AddMinutes(-1), Token);
+		var otherWindow = await resets.TryAdd(Provider.Codex, "codex/secondary", Now.AddMinutes(-3), Now, 40, 5, null, Token);
+		var next = await resets.TryAdd(Provider.Codex, "codex/primary", Now.AddHours(5), Now.AddHours(5).AddMinutes(3), 30, 0, Now.AddHours(5), Token);
+
+		first.ShouldNotBeNull();
+		replayed.ShouldBeNull();
+		otherWindow.ShouldNotBeNull();
+		next.ShouldNotBeNull();
+		(await resets.GetLast(Provider.Codex, "codex/primary", Token))!.Id.ShouldBe(next.Id);
+	}
+
+	[Fact]
 	public async Task Snapshots_live_in_a_time_series_collection_kept_30_days()
 	{
 		await using var services = await mongo.CreateServices();
