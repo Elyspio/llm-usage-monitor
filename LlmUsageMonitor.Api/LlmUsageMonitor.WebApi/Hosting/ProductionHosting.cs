@@ -14,7 +14,7 @@ public static class ProductionHosting
 	/// <summary>Environment variable naming the production settings file (outside the directory each deployment overwrites).</summary>
 	public const string SettingsFileVariable = "LLM_USAGE_MONITOR_SETTINGS";
 
-	private const string ApiPaths = "api/|hangfire|swagger|openapi|signin-oidc|conf\\.js";
+	private const string ApiPaths = "api/|health/|hangfire|swagger|openapi|signin-oidc|conf\\.js";
 
 	public static WebApplicationBuilder AddProductionHosting(this WebApplicationBuilder builder)
 	{

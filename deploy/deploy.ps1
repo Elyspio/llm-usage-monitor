@@ -72,8 +72,13 @@ tar -xzf /tmp/llm-usage-monitor.tar.gz -C $InstallDirectory
 chmod 755 $InstallDirectory/LlmUsageMonitor.WebApi
 rm -f /tmp/llm-usage-monitor.tar.gz /tmp/llm-usage-monitor.service
 systemctl start llm-usage-monitor
-sleep 5
+# The process must answer its liveness probe; the readiness is printed only, a degraded provider does not fail the deployment.
+if ! curl -fsS --retry 15 --retry-delay 2 --retry-all-errors --max-time 5 -o /dev/null http://127.0.0.1:5000/health/live; then
+	systemctl --no-pager --lines=40 status llm-usage-monitor
+	exit 1
+fi
+echo "readiness: `$(curl -sS --max-time 15 http://127.0.0.1:5000/health/ready)"
 systemctl --no-pager --lines=20 status llm-usage-monitor
-"@
+"@ "deployment on the host failed (or the service does not answer /health/live): see the output above"
 
 Write-Host "Deployed to ${Target}:$InstallDirectory"

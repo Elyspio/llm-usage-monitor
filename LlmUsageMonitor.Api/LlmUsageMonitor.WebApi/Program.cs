@@ -5,6 +5,7 @@ using Elyspio.Utils.Telemetry.Tracing.Builder;
 using Hangfire;
 using LlmUsageMonitor.Abstractions.Configurations;
 using LlmUsageMonitor.Abstractions.Extensions;
+using LlmUsageMonitor.Abstractions.Helpers;
 using LlmUsageMonitor.Adapters.Claude;
 using LlmUsageMonitor.Adapters.Codex;
 using LlmUsageMonitor.Adapters.Hangfire;
@@ -116,6 +117,10 @@ app.UseSwaggerUI(options =>
 });
 
 app.MapControllers();
+
+// Probes for the supervision (Uptime Kuma) and the AppHost: anonymous, the body is the status alone.
+app.MapHealthChecks("/health/live", new() { Predicate = _ => false }).AllowAnonymous();
+app.MapHealthChecks("/health/ready", new() { Predicate = check => check.Tags.Contains(HealthCheckTags.Ready) }).AllowAnonymous();
 
 if (HangfireAdapterModule.IsEnabled(app.Configuration))
 	// Signed in with the cookie + OIDC scheme: the SPA bearer token does not follow the dashboard navigation.
