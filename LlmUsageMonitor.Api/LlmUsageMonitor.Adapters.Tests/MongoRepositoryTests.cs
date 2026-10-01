@@ -195,7 +195,8 @@ public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<Mon
 		};
 
 		await states.Save(state, Token);
-		await settingsRepository.Save(settings, Token);
+		await settingsRepository.Initialize(settings, Token);
+		await settingsRepository.Initialize(defaults, Token);
 		var loaded = await states.Get(Provider.Claude, Token);
 
 		loaded.LastReading!.Windows.ShouldHaveSingleItem().Id.ShouldBe("five_hour");
@@ -206,6 +207,35 @@ public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<Mon
 		savedSettings!.Notifications.Events.Claude.Reset.ShouldBeFalse();
 		savedSettings.Notifications.Events.Codex.Reset.ShouldBeTrue();
 		(await states.Get(Provider.Codex, Token)).ShouldBe(new(Provider.Codex));
+	}
+
+	[Fact]
+	public async Task Each_settings_section_is_written_alone()
+	{
+		await using var services = await mongo.CreateServices();
+		var repository = services.GetRequiredService<ISettingsRepository>();
+		var defaults = AppSettings.CreateDefault(true);
+		await repository.Initialize(defaults, Token);
+		var failure = new NotificationSendFailure(Now, "ntfy returned HTTP 502.");
+
+		// Saves of different sections, all at once, as a user save racing with background delivery failures.
+		var writes = Enumerable.Range(0, 20).SelectMany(i => new[]
+		{
+			repository.SaveSendFailure(failure with { At = Now.AddSeconds(i) }, Token),
+			repository.SavePolling(new(5, 10), Token),
+			repository.SaveTriggers(new(new(false, "sonnet"), new(true, "luna")), Token),
+			repository.SaveNotifications(defaults.Notifications with { Topic = "topic_1", ReadFailureThreshold = 7 }, Token)
+		});
+		await Task.WhenAll(writes);
+
+		var saved = (await repository.Find(Token))!;
+		saved.Polling.ShouldBe(new(5, 10));
+		saved.Triggers.Claude.ShouldBe(new(false, "sonnet"));
+		(saved.Notifications.Topic, saved.Notifications.ReadFailureThreshold).ShouldBe(("topic_1", 7));
+		saved.Notifications.LastSendFailure!.Message.ShouldBe(failure.Message);
+
+		await repository.SaveSendFailure(null, Token);
+		(await repository.Find(Token))!.Notifications.LastSendFailure.ShouldBeNull();
 	}
 
 	[Fact]
@@ -244,5 +274,10 @@ public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<Mon
 		loaded.ShouldNotBeNull();
 		loaded.Notifications.Events.Claude.ShouldBe(loaded.Notifications.Events.Codex);
 		loaded.Notifications.Events.Claude.TriggerFailed.ShouldBeFalse();
+
+		await services.GetRequiredService<ISettingsRepository>().SaveNotifications(loaded.Notifications, Token);
+		var raw = await settings.Find(new BsonDocument("_id", "global")).SingleAsync(Token);
+		raw["notifications"].AsBsonDocument.Contains("events").ShouldBeFalse();
+		raw["notifications"]["providerEvents"]["codex"]["triggerFailed"].AsBoolean.ShouldBeFalse();
 	}
 }

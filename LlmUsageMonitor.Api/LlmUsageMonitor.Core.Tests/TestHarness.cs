@@ -31,7 +31,7 @@ internal sealed class TestHarness
 		};
 
 		var appConfig = Options.Create(new AppConfig { PublicUrl = "https://monitor.test", AutoTriggerEnabledByDefault = autoTriggerEnabled });
-		Settings = new(SettingsRepository, States, Scheduler, Protector, appConfig);
+		Settings = new(SettingsRepository, States, Scheduler, Protector, Locks, appConfig, NullLogger<SettingsService>.Instance);
 		Notifications = new(Sender, SettingsRepository, Settings, Protector, appConfig, Time, NullLogger<NotificationService>.Instance);
 		Health = new(Notifications);
 		Triggers = new([ClaudeRunner, CodexRunner], Runs, Locks, Settings, Notifications, Scheduler, Time, NullLogger<TriggerService>.Instance);
@@ -218,14 +218,48 @@ internal sealed class InMemorySettings : ISettingsRepository
 {
 	public AppSettings? Stored { get; set; }
 
-	public Task<AppSettings?> Find(CancellationToken cancellationToken)
+	/// <summary>Runs once after the next read, before its result is returned: a write racing with a read-modify-write.</summary>
+	public Func<Task>? AfterNextFind { get; set; }
+
+	public async Task<AppSettings?> Find(CancellationToken cancellationToken)
 	{
-		return Task.FromResult(Stored);
+		var found = Stored;
+		if (AfterNextFind is { } hook)
+		{
+			AfterNextFind = null;
+			await hook();
+		}
+
+		return found;
 	}
 
-	public Task Save(AppSettings settings, CancellationToken cancellationToken)
+	public Task Initialize(AppSettings defaults, CancellationToken cancellationToken)
 	{
-		Stored = settings;
+		Stored ??= defaults;
+		return Task.CompletedTask;
+	}
+
+	public Task SavePolling(PollingSettings polling, CancellationToken cancellationToken)
+	{
+		Stored = Stored! with { Polling = polling };
+		return Task.CompletedTask;
+	}
+
+	public Task SaveTriggers(TriggerSettings triggers, CancellationToken cancellationToken)
+	{
+		Stored = Stored! with { Triggers = triggers };
+		return Task.CompletedTask;
+	}
+
+	public Task SaveNotifications(NotificationSettings notifications, CancellationToken cancellationToken)
+	{
+		Stored = Stored! with { Notifications = notifications with { LastSendFailure = Stored.Notifications.LastSendFailure } };
+		return Task.CompletedTask;
+	}
+
+	public Task SaveSendFailure(NotificationSendFailure? failure, CancellationToken cancellationToken)
+	{
+		Stored = Stored! with { Notifications = Stored.Notifications with { LastSendFailure = failure } };
 		return Task.CompletedTask;
 	}
 }
