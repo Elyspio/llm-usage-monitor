@@ -36,6 +36,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
 	public StubNotificationSender NotificationSender { get; } = new();
 
+	public StubJobServerMonitor JobServer { get; } = new();
+
 	/// <summary>Stands in for the published SPA: one index.html and one asset, as the front-end build produces them.</summary>
 	private string WebRoot { get; } = Path.Combine(Path.GetTempPath(), $"llm-usage-monitor-webroot-{Guid.NewGuid():N}");
 
@@ -73,6 +75,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 			services.AddSingleton<IJobScheduler>(Scheduler);
 			services.RemoveAll<INotificationSender>();
 			services.AddSingleton<INotificationSender>(NotificationSender);
+			services.RemoveAll<IJobServerMonitor>();
+			services.AddSingleton<IJobServerMonitor>(JobServer);
 			services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
 			{
 				// Set before the JwtBearer post-configuration, a static configuration keeps the handler from fetching Keycloak metadata.
@@ -117,6 +121,17 @@ public sealed class StubNotificationSender : INotificationSender
 	public Task Send(NotificationMessage message, string serverUrl, string topic, string? token, CancellationToken cancellationToken)
 	{
 		return Failure is { } failure ? Task.FromException(failure) : Task.CompletedTask;
+	}
+}
+
+/// <summary>Stands in for the Hangfire heartbeats; a live server by default.</summary>
+public sealed class StubJobServerMonitor : IJobServerMonitor
+{
+	public Func<DateTimeOffset?> LastHeartbeat { get; set; } = () => DateTimeOffset.UtcNow;
+
+	public Task<DateTimeOffset?> GetLastHeartbeat(CancellationToken cancellationToken)
+	{
+		return Task.FromResult(LastHeartbeat());
 	}
 }
 

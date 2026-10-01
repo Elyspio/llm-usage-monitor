@@ -58,6 +58,29 @@ mv /etc/cron.hourly/llm-wake-up.disabled /etc/cron.hourly/llm-wake-up
 
 Le cron tourne sous `root`, avec les logins CLI de `root` : ils doivent donc exister tant que ce retour arrière reste une option.
 
+## Supervision
+
+Toutes les alertes de l'application partent d'elle-même via ntfy : si le process, Hangfire ou MongoDB tombent, elle ne prévient personne. Uptime Kuma la surveille donc de l'extérieur, par deux sondes anonymes dont la réponse est le statut seul (`Healthy`, `Degraded` ou `Unhealthy`) :
+
+| Sonde | Vérifie | Statut HTTP |
+| --- | --- | --- |
+| `/health/live` | le process répond | 200 |
+| `/health/ready` | ping MongoDB ; heartbeat Hangfire de moins de 2 min ; par provider, une lecture réussie depuis moins de 3 intervalles de poll (la fin d'un backoff 429 compte comme point de départ) | 200 `Healthy` ; 200 `Degraded` si un seul provider est en retard (ses échecs sont déjà notifiés par l'app) ; 503 `Unhealthy` si MongoDB, Hangfire ou les deux providers sont KO |
+
+`deploy.ps1` attend `/health/live` après le redémarrage (échec du déploiement sinon) et affiche `/health/ready`.
+
+Moniteur dans l'Uptime Kuma existant (une fois) :
+
+1. Paramètres > Notifications : une notification ntfy sur un topic **distinct** de celui de l'application (canal indépendant : il doit fonctionner quand l'app est morte), priorité haute.
+2. Ajouter un moniteur :
+   - type **HTTP(s) - Mot-clé**, nom `LLM Usage Monitor`, URL `https://monitor.llm.elyspio.fr/health/ready` ;
+   - mot-clé `Healthy` (sensible à la casse) : un `Degraded` ou un 503 passe le moniteur en panne ;
+   - intervalle 60 s, 2 nouvelles tentatives à 60 s (un redémarrage ou un poll en cours ne doit pas alerter), délai d'expiration 30 s ;
+   - codes HTTP acceptés `200-299` ; notification : celle du point 1.
+3. Vérifier : `systemctl stop llm-usage-monitor` sur le LXC fait passer le moniteur en panne et envoie la notification en 3 minutes environ, puis `systemctl start llm-usage-monitor` le rétablit.
+
+Pour ne surveiller que les pannes franches (sans les `Degraded`), un moniteur **HTTP(s)** simple sur la même URL suffit : seul le 503 le fait échouer.
+
 
 ## Notes
 

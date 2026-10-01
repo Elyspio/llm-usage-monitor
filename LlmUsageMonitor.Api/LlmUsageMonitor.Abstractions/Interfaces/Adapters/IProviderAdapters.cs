@@ -76,6 +76,15 @@ public interface IJobScheduler
 }
 
 /// <summary>
+///     The background job server, watched by the readiness probe.
+/// </summary>
+public interface IJobServerMonitor
+{
+	/// <summary>The latest heartbeat of a running job server, or <c>null</c> when none runs.</summary>
+	Task<DateTimeOffset?> GetLastHeartbeat(CancellationToken cancellationToken);
+}
+
+/// <summary>
 ///     Downloads the per-token prices of the Anthropic and OpenAI models.
 /// </summary>
 public interface IModelPriceSource

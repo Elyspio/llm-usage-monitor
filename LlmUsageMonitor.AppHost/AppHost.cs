@@ -53,7 +53,8 @@ var api = builder.AddProject<LlmUsageMonitor_WebApi>("api")
 	.WaitFor(mongoDatabase)
 	.WaitFor(keycloak)
 	.WithEnvironment("Oidc__Authority", oidcAuthority)
-	.WithEnvironment("Oidc__ClientId", oidcClientId);
+	.WithEnvironment("Oidc__ClientId", oidcClientId)
+	.WithHttpHealthCheck("/health/ready");
 
 builder.AddViteApp("front", "../LlmUsageMonitor.Front")
 	.WithPnpm()

@@ -1,6 +1,7 @@
 using LlmUsageMonitor.Abstractions.Configurations;
 using LlmUsageMonitor.Abstractions.Helpers;
 using LlmUsageMonitor.Abstractions.Injections;
+using LlmUsageMonitor.Core.Health;
 using LlmUsageMonitor.Core.Hosting;
 using LlmUsageMonitor.Core.Services;
 using Microsoft.AspNetCore.DataProtection;
@@ -28,6 +29,10 @@ public sealed class CoreModule : IModule
 			.AsImplementedInterfaces()
 			.WithSingletonLifetime()
 		);
+
+		services.AddHealthChecks()
+			.AddCheck<JobServerHealthCheck>("jobs", tags: [HealthCheckTags.Ready], timeout: TimeSpan.FromSeconds(5))
+			.AddCheck<PollingHealthCheck>("polling", tags: [HealthCheckTags.Ready], timeout: TimeSpan.FromSeconds(5));
 
 		// The build-time OpenAPI generation starts the host: it must not reach MongoDB nor schedule jobs.
 		if (!OpenApiGeneration.IsRunning)

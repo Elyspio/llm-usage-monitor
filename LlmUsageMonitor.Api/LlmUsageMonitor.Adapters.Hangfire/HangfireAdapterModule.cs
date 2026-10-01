@@ -27,6 +27,7 @@ public sealed class HangfireAdapterModule : IModule
 		if (!IsEnabled(configuration))
 		{
 			services.AddSingleton<IJobScheduler, LoggingJobScheduler>();
+			services.AddSingleton<IJobServerMonitor, DisabledJobServerMonitor>();
 			return;
 		}
 
@@ -55,11 +56,39 @@ public sealed class HangfireAdapterModule : IModule
 
 		services.AddTransient<ProviderJobs>();
 		services.AddSingleton<IJobScheduler, HangfireJobScheduler>();
+		services.AddSingleton<IJobServerMonitor, HangfireServerMonitor>();
 	}
 
 	public static bool IsEnabled(IConfiguration configuration)
 	{
 		return configuration.GetValue("Hangfire:Enabled", true) && !OpenApiGeneration.IsRunning;
+	}
+}
+
+/// <summary>
+///     The heartbeats the Hangfire servers write in the storage (every 30 s by default).
+/// </summary>
+internal sealed class HangfireServerMonitor(JobStorage storage) : IJobServerMonitor
+{
+	public Task<DateTimeOffset?> GetLastHeartbeat(CancellationToken cancellationToken)
+	{
+		// The monitoring API is synchronous.
+		return Task.Run(() =>
+		{
+			var heartbeats = storage.GetMonitoringApi().Servers().Where(server => server.Heartbeat is { }).Select(server => server.Heartbeat!.Value).ToList();
+			return heartbeats.Count == 0 ? (DateTimeOffset?)null : new DateTimeOffset(DateTime.SpecifyKind(heartbeats.Max(), DateTimeKind.Utc));
+		}, cancellationToken);
+	}
+}
+
+/// <summary>
+///     Without Hangfire, no job is expected to run: the job server always looks alive.
+/// </summary>
+internal sealed class DisabledJobServerMonitor(TimeProvider time) : IJobServerMonitor
+{
+	public Task<DateTimeOffset?> GetLastHeartbeat(CancellationToken cancellationToken)
+	{
+		return Task.FromResult<DateTimeOffset?>(time.GetUtcNow());
 	}
 }
 

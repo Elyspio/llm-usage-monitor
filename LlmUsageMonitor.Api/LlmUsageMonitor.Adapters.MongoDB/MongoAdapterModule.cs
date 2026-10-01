@@ -23,6 +23,8 @@ public sealed class MongoAdapterModule : IModule
 		services.AddSingleton<IMongoClient>(_ => new MongoClient(connectionString));
 		services.AddSingleton(sp => sp.GetRequiredService<IMongoClient>().GetDatabase(databaseName));
 
+		services.AddHealthChecks().AddCheck<MongoHealthCheck>("mongodb", tags: [HealthCheckTags.Ready], timeout: TimeSpan.FromSeconds(5));
+
 		services.AddSingleton<IStorageInitializer, MongoStorageInitializer>();
 		services.AddSingleton<IUsageSnapshotRepository, UsageSnapshotRepository>();
 		services.AddSingleton<IResetRepository, ResetRepository>();
