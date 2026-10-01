@@ -5,6 +5,8 @@ using LlmUsageMonitor.Abstractions.Exceptions;
 using LlmUsageMonitor.Abstractions.Helpers;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
 using Microsoft.Extensions.Options;
+using Polly.CircuitBreaker;
+using Polly.Timeout;
 
 namespace LlmUsageMonitor.Adapters.Claude;
 
@@ -49,9 +51,13 @@ internal sealed class ClaudeUsageReader(IHttpClientFactory httpClients, IOptions
 			using var document = await JsonDocument.ParseAsync(body, cancellationToken: timeout.Token);
 			return ClaudeUsageParser.Parse(document.RootElement);
 		}
-		catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+		catch (Exception exception) when (exception is TimeoutRejectedException || (exception is OperationCanceledException && !cancellationToken.IsCancellationRequested))
 		{
-			throw new ProviderException(ProviderErrorCodes.Timeout, "Claude usage request timed out.");
+			throw new ProviderException(ProviderErrorCodes.Timeout, "Claude usage request timed out.", exception);
+		}
+		catch (BrokenCircuitException exception)
+		{
+			throw new ProviderException(ProviderErrorCodes.FetchFailed, "The Claude usage endpoint keeps failing: requests are paused for a moment.", exception);
 		}
 		catch (HttpRequestException exception)
 		{

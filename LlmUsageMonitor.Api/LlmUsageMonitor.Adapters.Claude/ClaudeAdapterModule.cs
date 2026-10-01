@@ -1,7 +1,9 @@
+using System.Net;
 using LlmUsageMonitor.Abstractions.Injections;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http.Resilience;
 
 namespace LlmUsageMonitor.Adapters.Claude;
 
@@ -16,7 +18,16 @@ public sealed class ClaudeAdapterModule : IModule
 	{
 		services.Configure<ClaudeOptions>(configuration.GetSection(ClaudeOptions.Section));
 		services.AddHttpClient(HttpClientName, client => client.BaseAddress = new("https://api.anthropic.com/"))
-			.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+			.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false })
+			.AddStandardResilienceHandler(options =>
+			{
+				// A 429 goes to the reading backoff: retrying it would only extend the rate limiting.
+				options.Retry.ShouldHandle = arguments => ValueTask.FromResult(
+					arguments.Outcome.Result?.StatusCode != HttpStatusCode.TooManyRequests && HttpClientResiliencePredicates.IsTransient(arguments.Outcome));
+				options.Retry.MaxRetryAttempts = 2;
+				options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(8);
+				options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(30);
+			});
 
 		services.AddSingleton<IClaudeSession, ClaudeSession>();
 		services.AddSingleton<IUsageReader, ClaudeUsageReader>();

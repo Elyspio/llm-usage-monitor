@@ -34,6 +34,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
 	public RecordingScheduler Scheduler { get; } = new();
 
+	public StubNotificationSender NotificationSender { get; } = new();
+
 	/// <summary>Stands in for the published SPA: one index.html and one asset, as the front-end build produces them.</summary>
 	private string WebRoot { get; } = Path.Combine(Path.GetTempPath(), $"llm-usage-monitor-webroot-{Guid.NewGuid():N}");
 
@@ -69,6 +71,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 		{
 			services.RemoveAll<IJobScheduler>();
 			services.AddSingleton<IJobScheduler>(Scheduler);
+			services.RemoveAll<INotificationSender>();
+			services.AddSingleton<INotificationSender>(NotificationSender);
 			services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
 			{
 				// Set before the JwtBearer post-configuration, a static configuration keeps the handler from fetching Keycloak metadata.
@@ -102,6 +106,17 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 			},
 			SigningCredentials = new(SigningKey, SecurityAlgorithms.RsaSha256)
 		});
+	}
+}
+
+/// <summary>Stands in for ntfy: records the messages, or fails with the configured exception.</summary>
+public sealed class StubNotificationSender : INotificationSender
+{
+	public Exception? Failure { get; set; }
+
+	public Task Send(NotificationMessage message, string serverUrl, string topic, string? token, CancellationToken cancellationToken)
+	{
+		return Failure is { } failure ? Task.FromException(failure) : Task.CompletedTask;
 	}
 }
 

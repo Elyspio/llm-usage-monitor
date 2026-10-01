@@ -22,24 +22,27 @@ public sealed class NotificationService(
 {
 	public const string DeliveryFailedCode = "NOTIFICATION_FAILED";
 
-	public async Task Notify(NotificationKind kind, Provider provider, string detail, CancellationToken cancellationToken)
+	public async Task<bool> Notify(NotificationKind kind, Provider provider, string detail, CancellationToken cancellationToken)
 	{
 		var settings = (await settingsService.Get(cancellationToken)).Notifications;
 		if (string.IsNullOrWhiteSpace(settings.Topic) || !settings.Events.For(provider).IsEnabled(kind))
 		{
-			return;
+			return true;
 		}
 
 		try
 		{
 			await Deliver(Build(kind, provider, detail), settings, cancellationToken);
+			return true;
 		}
-		catch (Exception exception) when (exception is not OperationCanceledException)
+		// An HTTP timeout is an OperationCanceledException too: only the cancellation of the caller is let through.
+		catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
 		{
-			// Neither retry nor queue: the failure is logged, traced and shown in the settings.
+			// No queue: the failure is logged, traced and shown in the settings; the alerts are sent again by the next poll.
 			logger.LogWarning(exception, "ntfy delivery failed for {Kind} ({Provider})", kind, provider);
 			Activity.Current?.SetStatus(ActivityStatusCode.Error, exception.Message);
-			await RecordFailure(exception.Message, cancellationToken);
+			await SaveSendFailure(new(time.GetUtcNow(), exception.Message), cancellationToken);
+			return false;
 		}
 	}
 
@@ -56,23 +59,26 @@ public sealed class NotificationService(
 		{
 			await Deliver(message, settings, cancellationToken);
 		}
-		catch (Exception exception) when (exception is not OperationCanceledException)
+		catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
 		{
-			await RecordFailure(exception.Message, cancellationToken);
+			await SaveSendFailure(new(time.GetUtcNow(), exception.Message), cancellationToken);
 			throw new ProviderException(DeliveryFailedCode, exception.Message, exception);
 		}
 	}
 
-	private Task Deliver(NotificationMessage message, NotificationSettings settings, CancellationToken cancellationToken)
+	private async Task Deliver(NotificationMessage message, NotificationSettings settings, CancellationToken cancellationToken)
 	{
 		var token = settings.ProtectedToken is { } protectedToken ? protector.Unprotect(protectedToken) : null;
-		return sender.Send(message, settings.Url, settings.Topic!, token, cancellationToken);
+		await sender.Send(message, settings.Url, settings.Topic!, token, cancellationToken);
+		if (settings.LastSendFailure is { })
+		{
+			await SaveSendFailure(null, cancellationToken);
+		}
 	}
 
-	private async Task RecordFailure(string message, CancellationToken cancellationToken)
+	private async Task SaveSendFailure(NotificationSendFailure? failure, CancellationToken cancellationToken)
 	{
 		var settings = await settingsService.Get(cancellationToken);
-		var failure = new NotificationSendFailure(time.GetUtcNow(), message);
 		await settingsRepository.Save(settings with { Notifications = settings.Notifications with { LastSendFailure = failure } }, cancellationToken);
 	}
 
