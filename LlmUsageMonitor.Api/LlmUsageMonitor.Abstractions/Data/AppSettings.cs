@@ -19,6 +19,23 @@ public sealed record PollingSettings(int ClaudeIntervalMinutes, int CodexInterva
 	public const int MinIntervalMinutes = 1;
 	public const int MaxIntervalMinutes = 60;
 
+	/// <summary>
+	///     The poll job runs on a <c>*/N</c> minute cron, which restarts at each hour: only divisors of 60 keep the gaps even
+	///     (45 would run at :00 and :45, 15 minutes apart).
+	/// </summary>
+	public static bool DividesHour(int minutes)
+	{
+		return minutes is >= MinIntervalMinutes and <= MaxIntervalMinutes && MaxIntervalMinutes % minutes == 0;
+	}
+
+	/// <summary>The largest divisor of 60 not above <paramref name="minutes" />, for intervals saved before that rule.</summary>
+	public static int ToHourDivisor(int minutes)
+	{
+		var divisor = Math.Clamp(minutes, MinIntervalMinutes, MaxIntervalMinutes);
+		while (!DividesHour(divisor)) divisor--;
+		return divisor;
+	}
+
 	public int For(Provider provider)
 	{
 		return provider == Provider.Claude ? ClaudeIntervalMinutes : CodexIntervalMinutes;

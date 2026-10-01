@@ -94,6 +94,52 @@ export type ProviderTriggerSettings = {
     model: string;
 };
 
+export type TokenCounts = {
+    input: number;
+    cacheRead: number;
+    cacheWrite: number;
+    output: number;
+};
+
+export type TokenUsageBucketUpload = {
+    provider: Provider;
+    model: string;
+    hour: string;
+    tokens: TokenCounts;
+};
+
+export type TokenUsageReport = {
+    from: string;
+    to: string;
+    step: TokenUsageStep;
+    timeZone: string;
+    rows: Array<TokenUsageRow>;
+    machines: Array<UsageMachine>;
+};
+
+export type TokenUsageRow = {
+    start: string;
+    provider: Provider;
+    model: string;
+    tokens: TokenCounts;
+    costUsd: null | number;
+    cacheSavingsUsd: null | number;
+    unpricedTokens: number;
+};
+
+export type TokenUsageStep = 'hour' | 'day';
+
+export type TokenUsageUpload = {
+    machineId: string;
+    machineName: string;
+    buckets: Array<TokenUsageBucketUpload>;
+};
+
+export type TokenUsageUploadResult = {
+    stored: number;
+    unpriced: number;
+};
+
 export type TriggerRun = {
     id: string;
     provider: Provider;
@@ -120,6 +166,12 @@ export type UsageHistory = {
     to: string;
     series: Array<UsageSeries>;
     triggerRuns: Array<TriggerRun>;
+};
+
+export type UsageMachine = {
+    id: string;
+    name: string;
+    lastUploadAt: string;
 };
 
 export type UsagePoint = {
@@ -396,3 +448,57 @@ export type GetDashboardResponses = {
 };
 
 export type GetDashboardResponse = GetDashboardResponses[keyof GetDashboardResponses];
+
+export type GetTokenUsageData = {
+    body?: never;
+    path?: never;
+    query?: {
+        range?: string;
+        machineId?: string;
+        timeZone?: string;
+    };
+    url: '/api/token-usage';
+};
+
+export type GetTokenUsageErrors = {
+    /**
+     * Bad Request
+     */
+    400: ValidationProblemDetails;
+};
+
+export type GetTokenUsageError = GetTokenUsageErrors[keyof GetTokenUsageErrors];
+
+export type GetTokenUsageResponses = {
+    /**
+     * OK
+     */
+    200: TokenUsageReport;
+};
+
+export type GetTokenUsageResponse = GetTokenUsageResponses[keyof GetTokenUsageResponses];
+
+export type UploadTokenUsageData = {
+    body: TokenUsageUpload;
+    path?: never;
+    query?: never;
+    url: '/api/token-usage';
+};
+
+export type UploadTokenUsageErrors = {
+    /**
+     * Bad Request
+     */
+    400: ValidationProblemDetails;
+};
+
+export type UploadTokenUsageError = UploadTokenUsageErrors[keyof UploadTokenUsageErrors];
+
+export type UploadTokenUsageResponses = {
+    /**
+     * OK
+     */
+    200: TokenUsageUploadResult;
+};
+
+export type UploadTokenUsageResponse = UploadTokenUsageResponses[keyof UploadTokenUsageResponses];

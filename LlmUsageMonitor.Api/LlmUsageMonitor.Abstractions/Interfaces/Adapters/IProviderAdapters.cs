@@ -67,7 +67,20 @@ public interface IJobScheduler
 
 	void EnqueueTrigger(string runId);
 
+	/// <summary>Schedules the daily refresh of the model prices.</summary>
+	void SchedulePriceRefresh();
+
+	void EnqueuePriceRefresh();
+
 	void Delete(string jobId);
+}
+
+/// <summary>
+///     Downloads the per-token prices of the Anthropic and OpenAI models.
+/// </summary>
+public interface IModelPriceSource
+{
+	Task<IReadOnlyList<ModelPrice>> Fetch(CancellationToken cancellationToken);
 }
 
 /// <summary>

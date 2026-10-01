@@ -233,6 +233,14 @@ internal sealed class FakeScheduler : IJobScheduler
 		EnqueuedTriggers.Add(runId);
 	}
 
+	public void SchedulePriceRefresh()
+	{
+	}
+
+	public void EnqueuePriceRefresh()
+	{
+	}
+
 	public void Delete(string jobId)
 	{
 		Deleted.Add(jobId);

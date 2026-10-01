@@ -32,15 +32,15 @@ export const AuthCallback = () => {
 		<Stack spacing={2} sx={{ minHeight: "100vh", alignItems: "center", justifyContent: "center", px: 3 }}>
 			{failed ? (
 				<>
-					<Typography variant="h6">Échec de la connexion</Typography>
+					<Typography variant="h6">Sign in failed</Typography>
 					<Button variant="contained" onClick={signIn}>
-						Réessayer
+						Try again
 					</Button>
 				</>
 			) : (
 				<>
 					<CircularProgress />
-					<Typography sx={{ color: "text.secondary" }}>Connexion en cours…</Typography>
+					<Typography sx={{ color: "text.secondary" }}>Signing in…</Typography>
 				</>
 			)}
 		</Stack>

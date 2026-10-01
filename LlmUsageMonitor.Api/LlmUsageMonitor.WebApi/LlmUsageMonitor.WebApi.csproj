@@ -25,6 +25,7 @@
         <ProjectReference Include="..\LlmUsageMonitor.Adapters.Claude\LlmUsageMonitor.Adapters.Claude.csproj"/>
         <ProjectReference Include="..\LlmUsageMonitor.Adapters.Codex\LlmUsageMonitor.Adapters.Codex.csproj"/>
         <ProjectReference Include="..\LlmUsageMonitor.Adapters.Hangfire\LlmUsageMonitor.Adapters.Hangfire.csproj"/>
+        <ProjectReference Include="..\LlmUsageMonitor.Adapters.LiteLlm\LlmUsageMonitor.Adapters.LiteLlm.csproj"/>
         <ProjectReference Include="..\LlmUsageMonitor.Adapters.MongoDB\LlmUsageMonitor.Adapters.MongoDB.csproj"/>
         <ProjectReference Include="..\LlmUsageMonitor.Adapters.Ntfy\LlmUsageMonitor.Adapters.Ntfy.csproj"/>
         <ProjectReference Include="..\LlmUsageMonitor.Core\LlmUsageMonitor.Core.csproj"/>

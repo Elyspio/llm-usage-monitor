@@ -137,6 +137,14 @@ public sealed class RecordingScheduler : IJobScheduler
 		}
 	}
 
+	public void SchedulePriceRefresh()
+	{
+	}
+
+	public void EnqueuePriceRefresh()
+	{
+	}
+
 	public void Delete(string jobId)
 	{
 	}

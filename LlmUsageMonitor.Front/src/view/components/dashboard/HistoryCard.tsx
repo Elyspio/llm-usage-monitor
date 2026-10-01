@@ -45,22 +45,22 @@ export const HistoryCard = ({ durations, now }: { durations: Record<string, numb
 	const toggle = (key: string) => setHidden((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
 
 	return (
-		<Paper component="section" aria-label="Historique" variant="outlined" sx={{ p: 2.5, height: "100%" }}>
+		<Paper component="section" aria-label="History" variant="outlined" sx={{ p: 2.5, height: "100%" }}>
 			<Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
 				<Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
-					Historique · % restant
+					History · % remaining
 				</Typography>
 				<ToggleButtonGroup size="small" exclusive value={range} onChange={(_, value: Range | null) => value && setRange(value)}>
 					<ToggleButton value="24h">24 h</ToggleButton>
-					<ToggleButton value="7d">7 j</ToggleButton>
+					<ToggleButton value="7d">7 d</ToggleButton>
 				</ToggleButtonGroup>
 			</Stack>
 			{isError ? (
-				<Alert severity="error">Impossible de charger l'historique.</Alert>
+				<Alert severity="error">Could not load the history.</Alert>
 			) : isPending || !chart ? (
 				<CircularProgress />
 			) : chart.series.length === 0 ? (
-				<Typography sx={{ color: "text.secondary", py: 8, textAlign: "center" }}>Aucune lecture sur la période.</Typography>
+				<Typography sx={{ color: "text.secondary", py: 8, textAlign: "center" }}>No reading over the period.</Typography>
 			) : (
 				<>
 					<Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", mb: 1 }}>
@@ -87,7 +87,7 @@ export const HistoryCard = ({ durations, now }: { durations: Record<string, numb
 								valueFormatter: (date: Date) => (range === "24h" ? fmtHour(date) : `${fmtDayLabel(date, now)} ${fmtHour(date)}`),
 							},
 						]}
-						yAxis={[{ min: 0, max: 100, valueFormatter: (value: number) => `${value} %` }]}
+						yAxis={[{ min: 0, max: 100, valueFormatter: (value: number) => `${value}%` }]}
 						series={visible.map((series) => ({ id: series.key, label: series.label, data: series.data, color: series.color, showMark: false, connectNulls: false }))}
 					>
 						{data!.triggerRuns.map((run) => (
@@ -99,7 +99,7 @@ export const HistoryCard = ({ durations, now }: { durations: Record<string, numb
 						))}
 					</LineChart>
 					<Typography variant="caption" sx={{ color: "text.secondary" }}>
-						La dernière valeur connue est prolongée entre les lectures. Lignes verticales : déclenchements (pointillés : manuels, rouge : échec).
+						The last known value is carried over between readings. Vertical lines: triggers (dashed: manual, red: failed).
 					</Typography>
 				</>
 			)}

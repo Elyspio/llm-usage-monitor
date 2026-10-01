@@ -10,12 +10,14 @@ Spec : [PRD](https://github.com/Elyspio/llm-usage-monitor/issues/19) — fermé,
 - `LlmUsageMonitor.AppHost/` : AppHost Aspire 13.5 (C#). MongoDB, Keycloak de dev (realm importé depuis `Realms/`, comptes `admin`/`admin` avec le rôle et `norole`/`norole` sans rôle), API, front sur `https://localhost:3000`.
 - `LlmUsageMonitor.Api/` : ASP.NET Core 10.
   - `Abstractions` (contrats, config), `Core` (règles de cycle et de reset, lecture, déclenchements, keep-alive, santé, notifications, réglages), `WebApi` (contrôleurs, auth, OpenAPI).
-  - Adapters : `Claude` (`/api/oauth/usage`, prompt `claude -p`, rafraîchissement par `claude mcp list`), `Codex` (JSON-RPC `codex app-server`), `MongoDB` (5 collections + clés Data Protection), `Hangfire` (jobs dans le process de l'API, collections préfixées `hangfire.` dans la base de l'application), `Ntfy`.
+  - Adapters : `Claude` (`/api/oauth/usage`, prompt `claude -p`, rafraîchissement par `claude mcp list`), `Codex` (JSON-RPC `codex app-server`), `MongoDB` (8 collections + clés Data Protection), `Hangfire` (jobs dans le process de l'API, collections préfixées `hangfire.` dans la base de l'application), `Ntfy`, `LiteLlm` (table de prix publique, rechargée chaque jour).
+  - Usage en tokens : `POST /api/token-usage` reçoit les totaux horaires (poste × fournisseur × modèle) envoyés par le collecteur `LlmUsageMonitor.Collector/`, qui lit les journaux de session locaux : importé par l'app desktop Elytools ([Elyspio/elytools](https://github.com/Elyspio/elytools)), ou installé seul (CLI `llm-usage`). Le coût est calculé à l'envoi et stocké ; un modèle sans prix reste « Unpriced ».
   - `Core.Tests` (services réels sur stockage en mémoire, `FakeTimeProvider`), `Adapters.Tests` (fixtures anonymisées dans `Fixtures/`, repositories sur Mongo Testcontainers), `WebApi.Tests` (`WebApplicationFactory` sur Mongo Testcontainers, JWT signés localement, Hangfire désactivé).
   - Toutes les routes sont sous `/api` et exigent le rôle client `llm-usage-monitor:admin` ; `/hangfire` passe par cookie + OIDC avec le même rôle.
 - `LlmUsageMonitor.Front/` : SPA Vite+ 1.0 (`@elyspio/vite-eslint-config` v8, React Router 8, MUI 9, TanStack Query, `oidc-client-ts`).
   - `openapi/llm-usage-monitor.json` : document OpenAPI écrit par le build de `WebApi`, commité.
   - `src/core/apis/generated/` : client `@hey-api/openapi-ts` généré depuis ce document, commité, exclu du lint et du formatage.
+- `LlmUsageMonitor.Collector/` : package npm public `@elyspio/llm-usage-collector` (pnpm, vite-plus). Cœur du collecteur importé par Elytools, et CLI `llm-usage` livré en exécutable Node SEA win-x64 / linux-x64 (`vp pack -F exe`). Device flow sur le client Keycloak public `i-llm-usage-collector`, dossier de données partagé avec Elytools. Détails : [`LlmUsageMonitor.Collector/README.md`](LlmUsageMonitor.Collector/README.md).
 - `LlmUsageMonitor.Scripts/` : lecteurs d'usage TypeScript d'origine (`src/`, `examples/`) et leur outillage (pnpm, Oxlint, Oxfmt, TypeScript 7). Projet indépendant du front, portés en C# dans les adapters ; les fixtures des tests d'adapters viennent de ces lecteurs.
 
 ## Lancer
@@ -46,6 +48,14 @@ Prérequis : Docker démarré (MongoDB via Testcontainers dans les tests backend
   pnpm test     # Vitest + Testing Library + MSW
   pnpm build
   ```
+- Collecteur (dans `LlmUsageMonitor.Collector/`) :
+  ```sh
+  pnpm install
+  pnpm check    # Oxfmt, Oxlint, types
+  pnpm test
+  pnpm build    # lib npm ; pnpm build:exe pour les exécutables (depuis PowerShell)
+  ```
+  Publication (npm + GitHub Release `collector-vX.Y.Z`) : `./release.ps1` en local, après avoir monté la version.
 - Scripts TypeScript (dans `LlmUsageMonitor.Scripts/`) :
   ```sh
   pnpm install

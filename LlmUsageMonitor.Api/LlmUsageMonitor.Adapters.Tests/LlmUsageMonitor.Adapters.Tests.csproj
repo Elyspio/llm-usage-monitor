@@ -19,6 +19,7 @@
     <ItemGroup>
         <ProjectReference Include="..\LlmUsageMonitor.Adapters.Claude\LlmUsageMonitor.Adapters.Claude.csproj"/>
         <ProjectReference Include="..\LlmUsageMonitor.Adapters.Codex\LlmUsageMonitor.Adapters.Codex.csproj"/>
+        <ProjectReference Include="..\LlmUsageMonitor.Adapters.LiteLlm\LlmUsageMonitor.Adapters.LiteLlm.csproj"/>
         <ProjectReference Include="..\LlmUsageMonitor.Adapters.MongoDB\LlmUsageMonitor.Adapters.MongoDB.csproj"/>
     </ItemGroup>
 

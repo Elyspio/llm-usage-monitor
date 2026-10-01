@@ -26,8 +26,8 @@ describe("HistoryPage", () => {
 			</QueryClientProvider>
 		);
 
-		expect(await screen.findByRole("heading", { name: "Historique" })).toBeTruthy();
-		expect(screen.getByRole("region", { name: "Historique" })).toBeTruthy();
-		expect(screen.getByRole("region", { name: "Journal des déclenchements" })).toBeTruthy();
+		expect(await screen.findByRole("heading", { name: "History" })).toBeTruthy();
+		expect(screen.getByRole("region", { name: "History" })).toBeTruthy();
+		expect(screen.getByRole("region", { name: "Trigger log" })).toBeTruthy();
 	});
 });

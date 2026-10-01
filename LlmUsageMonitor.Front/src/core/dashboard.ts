@@ -16,17 +16,17 @@ export const modelSuggestions: Record<Provider, string[]> = {
 };
 
 const windowLabels: Record<string, string> = {
-	five_hour: "Session 5 h",
-	seven_day: "Hebdo · tous modèles",
-	seven_day_opus: "Hebdo · Opus",
-	seven_day_sonnet: "Hebdo · Sonnet",
+	five_hour: "5 h session",
+	seven_day: "Weekly · all models",
+	seven_day_opus: "Weekly · Opus",
+	seven_day_sonnet: "Weekly · Sonnet",
 };
 
 /** Known Claude windows by id; the others (Codex slots) by duration. */
 export function windowLabel(window: Pick<UsageWindow, "id" | "windowDurationMinutes">): string {
 	if (windowLabels[window.id]) return windowLabels[window.id];
-	if (window.windowDurationMinutes === 300) return "Fenêtre 5 h";
-	if (window.windowDurationMinutes === 10_080) return "Hebdo";
+	if (window.windowDurationMinutes === 300) return "5 h window";
+	if (window.windowDurationMinutes === 10_080) return "Weekly";
 	return window.id;
 }
 
@@ -46,25 +46,25 @@ export function errorInfo(code: string, provider: Provider): ErrorInfo {
 	switch (code) {
 		case "AUTH_EXPIRED":
 		case "AUTH_REQUIRED":
-			return { title: "Connexion expirée", action: `Relancer « ${login} » sur l'hôte du service.`, severity: "error" };
+			return { title: "Login expired", action: `Run "${login}" again on the service host.`, severity: "error" };
 		case "CREDENTIALS_UNAVAILABLE":
-			return { title: "Identifiants introuvables", action: `Se connecter avec « ${login} » sur l'hôte du service.`, severity: "error" };
+			return { title: "Credentials not found", action: `Log in with "${login}" on the service host.`, severity: "error" };
 		case "RATE_LIMITED":
-			return { title: "Limité par le provider (429)", action: "Pas de nouvel essai immédiat : attente de 15, 30 puis 60 min.", severity: "warning" };
+			return { title: "Rate limited by the provider (429)", action: "No immediate retry: waiting 15, 30 then 60 min.", severity: "warning" };
 		case "CLI_UNAVAILABLE":
-			return { title: "CLI introuvable", action: "Installer le CLI ou corriger son chemin dans la configuration du service.", severity: "error" };
+			return { title: "CLI not found", action: "Install the CLI or fix its path in the service configuration.", severity: "error" };
 		case "TIMEOUT":
-			return { title: "Délai dépassé", action: "Le provider n'a pas répondu à temps ; la prochaine lecture réessaiera.", severity: "warning" };
+			return { title: "Timed out", action: "The provider did not answer in time; the next read will retry.", severity: "warning" };
 		case "FETCH_FAILED":
 		case "HTTP_ERROR":
-			return { title: "Provider injoignable", action: "Vérifier la connexion réseau de l'hôte du service.", severity: "warning" };
+			return { title: "Provider unreachable", action: "Check the network connection of the service host.", severity: "warning" };
 		case "ACCESS_DENIED":
-			return { title: "Accès refusé", action: "Le compte n'a pas accès à l'usage : vérifier l'abonnement.", severity: "error" };
+			return { title: "Access denied", action: "The account has no access to its usage: check the subscription.", severity: "error" };
 		case "INVALID_RESPONSE":
 		case "NO_USAGE_DATA":
-			return { title: "Réponse inattendue", action: "Le format du provider a peut-être changé : voir les logs du service.", severity: "error" };
+			return { title: "Unexpected response", action: "The provider format may have changed: see the service logs.", severity: "error" };
 		default:
-			return { title: code, action: "Voir les logs du service.", severity: "error" };
+			return { title: code, action: "See the service logs.", severity: "error" };
 	}
 }
 

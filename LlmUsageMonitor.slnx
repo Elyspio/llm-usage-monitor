@@ -8,6 +8,7 @@
         <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Adapters.Claude\LlmUsageMonitor.Adapters.Claude.csproj"/>
         <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Adapters.Codex\LlmUsageMonitor.Adapters.Codex.csproj"/>
         <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Adapters.Hangfire\LlmUsageMonitor.Adapters.Hangfire.csproj"/>
+        <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Adapters.LiteLlm\LlmUsageMonitor.Adapters.LiteLlm.csproj"/>
         <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Adapters.MongoDB\LlmUsageMonitor.Adapters.MongoDB.csproj"/>
         <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Adapters.Ntfy\LlmUsageMonitor.Adapters.Ntfy.csproj"/>
     </Folder>

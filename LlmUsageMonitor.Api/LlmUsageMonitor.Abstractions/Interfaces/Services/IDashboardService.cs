@@ -68,6 +68,26 @@ public interface ISettingsService
 	Task<NotificationSettingsView> UpdateNotifications(NotificationSettingsUpdate update, CancellationToken cancellationToken);
 }
 
+/// <summary>
+///     Token usage uploaded by the workstations: storage with its cost, and the report of the Usage page.
+/// </summary>
+public interface ITokenUsageService
+{
+	/// <summary>Validates, prices and stores the buckets, then records the workstation. Throws a <c>RequestValidationException</c> on invalid input.</summary>
+	Task<TokenUsageUploadResult> Upload(TokenUsageUpload upload, CancellationToken cancellationToken);
+
+	/// <summary>Returns the usage of the period, grouped by hour or by day of <paramref name="timeZone" /> (IANA id, UTC when omitted).</summary>
+	Task<TokenUsageReport> Get(TokenUsageRange range, string? machineId, string? timeZone, CancellationToken cancellationToken);
+}
+
+/// <summary>
+///     Keeps the model prices up to date from the public price table.
+/// </summary>
+public interface IModelPriceService
+{
+	Task Refresh(CancellationToken cancellationToken);
+}
+
 public interface INotificationService
 {
 	/// <summary>Sends an event if it is enabled; delivery failures are recorded, never thrown.</summary>

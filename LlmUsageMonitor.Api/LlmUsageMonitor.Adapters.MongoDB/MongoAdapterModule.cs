@@ -29,6 +29,9 @@ public sealed class MongoAdapterModule : IModule
 		services.AddSingleton<ITriggerRunRepository, TriggerRunRepository>();
 		services.AddSingleton<IProviderStateRepository, ProviderStateRepository>();
 		services.AddSingleton<ISettingsRepository, SettingsRepository>();
+		services.AddSingleton<ITokenUsageRepository, TokenUsageRepository>();
+		services.AddSingleton<IUsageMachineRepository, UsageMachineRepository>();
+		services.AddSingleton<IModelPriceRepository, ModelPriceRepository>();
 
 		// Data Protection keys live next to the data they protect (the ntfy token).
 		services.AddSingleton<IConfigureOptions<KeyManagementOptions>>(sp =>

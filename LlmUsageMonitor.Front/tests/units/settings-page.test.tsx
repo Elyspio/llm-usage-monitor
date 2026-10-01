@@ -30,7 +30,7 @@ const server = setupServer(
 		return HttpResponse.json(notifications);
 	}),
 	http.put(`${apiUrl}/api/settings/triggers`, () =>
-		HttpResponse.json({ title: "invalid", status: 400, errors: { "codex.model": ["Modèle inconnu du serveur."] } }, { status: 400 })
+		HttpResponse.json({ title: "invalid", status: 400, errors: { "codex.model": ["Model unknown to the server."] } }, { status: 400 })
 	)
 );
 
@@ -51,28 +51,28 @@ const renderPage = () =>
 describe("SettingsPage", () => {
 	it("checks the polling interval before sending it", async () => {
 		renderPage();
-		const form = await screen.findByRole("form", { name: "Lecture de l'usage" });
+		const form = await screen.findByRole("form", { name: "Usage reading" });
 
-		fireEvent.change(within(form).getByLabelText("Intervalle Claude (minutes)"), { target: { value: "0" } });
-		fireEvent.click(within(form).getByRole("button", { name: "Enregistrer" }));
+		fireEvent.change(within(form).getByLabelText("Claude interval (minutes)"), { target: { value: "0" } });
+		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
 
-		expect(within(form).getByText("Entre 1 et 60 minutes.")).toBeTruthy();
+		expect(within(form).getByText("Between 1 and 60 minutes.")).toBeTruthy();
 	});
 
 	it("shows the field errors returned by the API", async () => {
 		renderPage();
-		const form = await screen.findByRole("form", { name: "Déclenchement" });
-		const table = within(form).getByRole("table", { name: "Déclenchement par provider" });
+		const form = await screen.findByRole("form", { name: "Trigger" });
+		const table = within(form).getByRole("table", { name: "Trigger per provider" });
 
 		expect(
 			within(table)
 				.getAllByRole("columnheader")
 				.map((header) => header.textContent)
-		).toEqual(["Provider", "Automatique après reset", "Modèle"]);
+		).toEqual(["Provider", "Automatic after reset", "Model"]);
 
-		fireEvent.click(within(form).getByRole("button", { name: "Enregistrer" }));
+		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
 
-		expect(await within(form).findByText("Modèle inconnu du serveur.")).toBeTruthy();
+		expect(await within(form).findByText("Model unknown to the server.")).toBeTruthy();
 	});
 
 	it("suggests the documented models and keeps the field free", async () => {
@@ -85,13 +85,13 @@ describe("SettingsPage", () => {
 			})
 		);
 		renderPage();
-		const form = await screen.findByRole("form", { name: "Déclenchement" });
-		const model = within(form).getByLabelText("Modèle Claude");
+		const form = await screen.findByRole("form", { name: "Trigger" });
+		const model = within(form).getByLabelText("Claude model");
 
 		fireEvent.change(model, { target: { value: "sonnet" } });
 		fireEvent.click(await screen.findByRole("option", { name: "claude-sonnet-5" }));
-		fireEvent.change(within(form).getByLabelText("Modèle Codex"), { target: { value: "gpt-5.6-terra" } });
-		fireEvent.click(within(form).getByRole("button", { name: "Enregistrer" }));
+		fireEvent.change(within(form).getByLabelText("Codex model"), { target: { value: "gpt-5.6-terra" } });
+		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
 
 		await expect.poll(() => body).toMatchObject({ claude: { model: "claude-sonnet-5" }, codex: { model: "gpt-5.6-terra" } });
 	});
@@ -100,11 +100,11 @@ describe("SettingsPage", () => {
 		renderPage();
 		const form = await screen.findByRole("form", { name: "Notifications ntfy" });
 
-		expect((within(form).getByLabelText("Token d'accès") as HTMLInputElement).value).toBe("");
-		expect(within(form).getByText(/Un token est défini/)).toBeTruthy();
+		expect((within(form).getByLabelText("Access token") as HTMLInputElement).value).toBe("");
+		expect(within(form).getByText(/A token is set/)).toBeTruthy();
 		expect(within(form).getByText(/ntfy returned HTTP 502/)).toBeTruthy();
 
-		fireEvent.click(within(form).getByRole("button", { name: "Enregistrer" }));
+		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
 
 		await expect.poll(() => lastNotificationBody).toMatchObject({ topic: "llm_usage", token: null });
 	});
@@ -112,19 +112,19 @@ describe("SettingsPage", () => {
 	it("shows notification events as a provider matrix and saves each provider independently", async () => {
 		renderPage();
 		const form = await screen.findByRole("form", { name: "Notifications ntfy" });
-		const table = within(form).getByRole("table", { name: "Événements notifiés par provider" });
+		const table = within(form).getByRole("table", { name: "Notified events per provider" });
 
 		expect(
 			within(table)
 				.getAllByRole("columnheader")
 				.map((header) => header.textContent)
-		).toEqual(["Événement", "Claude", "Codex"]);
-		const triggerFailed = within(table).getByRole("row", { name: /Déclenchement automatique en échec/ });
+		).toEqual(["Event", "Claude", "Codex"]);
+		const triggerFailed = within(table).getByRole("row", { name: /Automatic trigger failed/ });
 		expect((within(triggerFailed).getByRole("switch", { name: "Claude" }) as HTMLInputElement).checked).toBe(true);
 		expect((within(triggerFailed).getByRole("switch", { name: "Codex" }) as HTMLInputElement).checked).toBe(false);
 
 		fireEvent.click(within(triggerFailed).getByRole("switch", { name: "Codex" }));
-		fireEvent.click(within(form).getByRole("button", { name: "Enregistrer" }));
+		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
 
 		await expect.poll(() => lastNotificationBody).toMatchObject({ events: { claude: { triggerFailed: true }, codex: { triggerFailed: true } } });
 	});

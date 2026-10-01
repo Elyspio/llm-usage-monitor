@@ -20,7 +20,7 @@ public sealed class HistoryController(IHistoryService history) : ControllerBase
 		{
 			"24h" => TimeSpan.FromHours(24),
 			"7d" => TimeSpan.FromDays(7),
-			_ => throw new RequestValidationException(new Dictionary<string, string[]> { ["range"] = ["Valeurs possibles : 24h, 7d."] })
+			_ => throw new RequestValidationException(new Dictionary<string, string[]> { ["range"] = ["Possible values: 24h, 7d."] })
 		};
 		return history.Get(provider, windowId, span, cancellationToken);
 	}

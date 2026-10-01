@@ -95,6 +95,16 @@ internal sealed class LoggingJobScheduler(ILogger<LoggingJobScheduler> logger) :
 		logger.LogInformation("Hangfire disabled: trigger {RunId} not queued", runId);
 	}
 
+	public void SchedulePriceRefresh()
+	{
+		logger.LogInformation("Hangfire disabled: daily model price refresh not scheduled");
+	}
+
+	public void EnqueuePriceRefresh()
+	{
+		logger.LogInformation("Hangfire disabled: model price refresh not queued");
+	}
+
 	public void Delete(string jobId)
 	{
 		// Nothing was scheduled.

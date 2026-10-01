@@ -5,6 +5,7 @@ Application web qui surveille l'usage des abonnements Claude Code et Codex, et r
 En service en production depuis le 17 septembre 2026 sur [`https://monitor.llm.elyspio.fr`](https://monitor.llm.elyspio.fr) (LXC `ely-llm-wake-up.elylan`, service systemd derrière HAProxy), en remplacement du cron `llm-wake-up`.
 
 - API ASP.NET Core 10 (`LlmUsageMonitor.Api/`), SPA Vite+ / React (`LlmUsageMonitor.Front/`), orchestration Aspire (`LlmUsageMonitor.AppHost/`).
+- Collecteur d'usage en tokens des postes (package npm importé par Elytools, et CLI `llm-usage` installable seul) : `LlmUsageMonitor.Collector/`.
 - Lecteurs d'usage TypeScript d'origine et leur outillage : `LlmUsageMonitor.Scripts/`.
 - Déploiement sur le LXC : `deploy/`.
 
