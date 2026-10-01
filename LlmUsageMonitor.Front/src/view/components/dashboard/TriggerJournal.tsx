@@ -59,11 +59,14 @@ export const TriggerJournal = ({ runs, now }: { runs: TriggerRun[]; now: number 
 const Outcome = ({ run }: { run: TriggerRun }) => {
 	if (run.status === "running") return <Chip size="small" icon={<CircularProgress size={12} />} label="running" />;
 	const duration = run.durationMs != null ? `${(run.durationMs / 1000).toFixed(1)} s` : null;
+	// A failed automatic run may be retried on a transient error: one row, its attempts counted.
+	const attempts = run.attempts > 1 ? `${run.attempts} attempts` : null;
+	const retry = run.nextRetryAt != null ? "retry scheduled" : null;
 	return (
 		<>
 			<Chip size="small" color={run.status === "succeeded" ? "success" : "error"} variant="outlined" label={run.status === "succeeded" ? "succeeded" : "failed"} />
 			<Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
-				{[run.model, duration].filter(Boolean).join(" · ")}
+				{[run.model, duration, attempts, retry].filter(Boolean).join(" · ")}
 			</Typography>
 			{run.error && (
 				<Box component="details" sx={{ typography: "caption", mt: 0.5 }}>

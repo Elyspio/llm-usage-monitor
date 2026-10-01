@@ -20,6 +20,8 @@ public enum TriggerStatus
 /// <param name="EndedAt">When the run ended, if it did.</param>
 /// <param name="ErrorCode">The error code of a failed run.</param>
 /// <param name="Error">The raw error message of a failed run.</param>
+/// <param name="Attempts">The prompts sent for this run: an automatic run that failed on a transient error is retried.</param>
+/// <param name="NextRetryAt">When a failed automatic run may be retried, if it may.</param>
 public sealed record TriggerRun(
 	string Id,
 	Provider Provider,
@@ -30,7 +32,9 @@ public sealed record TriggerRun(
 	DateTimeOffset StartedAt,
 	DateTimeOffset? EndedAt,
 	string? ErrorCode,
-	string? Error)
+	string? Error,
+	int Attempts,
+	DateTimeOffset? NextRetryAt)
 {
 	public double? DurationMs => EndedAt is { } ended ? (ended - StartedAt).TotalMilliseconds : null;
 }

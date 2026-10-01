@@ -1,5 +1,4 @@
 using LlmUsageMonitor.Abstractions.Data;
-using LlmUsageMonitor.Abstractions.Exceptions;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
 using LlmUsageMonitor.Abstractions.Interfaces.Repositories;
 using LlmUsageMonitor.Abstractions.Interfaces.Services;
@@ -14,10 +13,9 @@ namespace LlmUsageMonitor.Core.Hosting;
 public sealed class AppInitializer(
 	IStorageInitializer storage,
 	ISettingsService settingsService,
-	ITriggerRunRepository runs,
+	ITriggerService triggers,
 	IModelPriceRepository prices,
 	IJobScheduler scheduler,
-	TimeProvider time,
 	ILogger<AppInitializer> logger) : IHostedService
 {
 	public async Task StartAsync(CancellationToken cancellationToken)
@@ -25,7 +23,8 @@ public sealed class AppInitializer(
 		await storage.Initialize(cancellationToken);
 		var settings = await settingsService.Get(cancellationToken);
 
-		var interrupted = await runs.FailRunning(time.GetUtcNow(), ProviderErrorCodes.Interrupted, "Interrupted by a service restart.", cancellationToken);
+		// An interrupted automatic run is retried by the first reading below, if its cycle still waits.
+		var interrupted = await triggers.RecoverInterrupted(cancellationToken);
 		if (interrupted > 0)
 		{
 			logger.LogWarning("{Count} trigger runs were interrupted by the previous process", interrupted);

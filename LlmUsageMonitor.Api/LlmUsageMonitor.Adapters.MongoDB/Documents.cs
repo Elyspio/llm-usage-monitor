@@ -51,9 +51,14 @@ internal sealed class TriggerRunDocument
 	public string? ErrorCode { get; set; }
 	public string? Error { get; set; }
 
+	/// <summary>Absent from the runs stored before retries existed: one attempt.</summary>
+	public int Attempts { get; set; }
+
+	public DateTime? NextRetryAt { get; set; }
+
 	public TriggerRun ToDomain()
 	{
-		return new(Id.ToString(), Provider, Manual, CycleKey, Model, Status, StartedAt.ToOffset(), EndedAt.ToOffset(), ErrorCode, Error);
+		return new(Id.ToString(), Provider, Manual, CycleKey, Model, Status, StartedAt.ToOffset(), EndedAt.ToOffset(), ErrorCode, Error, Math.Max(1, Attempts), NextRetryAt.ToOffset());
 	}
 }
 

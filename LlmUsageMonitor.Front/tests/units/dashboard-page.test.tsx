@@ -66,6 +66,8 @@ describe("DashboardPage", () => {
 			endedAt: null,
 			errorCode: null,
 			error: null,
+			attempts: 1,
+			nextRetryAt: null,
 			durationMs: null,
 		};
 		let posted = 0;

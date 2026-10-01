@@ -39,7 +39,7 @@ public sealed class HangfireAdapterModule : IModule
 			.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
 			.UseSimpleAssemblyNameTypeSerializer()
 			.UseRecommendedSerializerSettings()
-			// Each job decides on its own retries: a failed trigger is never replayed.
+			// Hangfire never replays a job: the automatic trigger schedules its own bounded retries (TriggerService.RetryDelays).
 			.UseFilter(new AutomaticRetryAttribute { Attempts = 0 })
 			.UseMongoStorage(storageUrl, new MongoStorageOptions
 			{
@@ -110,6 +110,12 @@ internal sealed class LoggingJobScheduler(ILogger<LoggingJobScheduler> logger) :
 	public string SchedulePostResetCheck(Provider provider, DateTimeOffset runAt)
 	{
 		logger.LogInformation("Hangfire disabled: post-reset check of {Provider} at {RunAt} not scheduled", provider, runAt);
+		return "disabled";
+	}
+
+	public string ScheduleTriggerRetry(Provider provider, DateTimeOffset runAt)
+	{
+		logger.LogInformation("Hangfire disabled: trigger retry of {Provider} at {RunAt} not scheduled", provider, runAt);
 		return "disabled";
 	}
 

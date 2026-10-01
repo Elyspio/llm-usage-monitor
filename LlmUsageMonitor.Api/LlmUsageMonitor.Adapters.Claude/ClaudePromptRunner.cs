@@ -66,6 +66,7 @@ internal sealed class ClaudePromptRunner(IOptions<ClaudeOptions> options) : IPro
 			_ when status is 401 or 403 || Contains(message, "Login expired") || Contains(message, "Not logged in") || Contains(message, "OAuth token") => ProviderErrorCodes.AuthExpired,
 			_ when Contains(message, "hit your") && Contains(message, "limit") => ProviderErrorCodes.UsageLimit,
 			_ when status == 429 || Contains(message, "429") => ProviderErrorCodes.RateLimited,
+			_ when status == 529 || Contains(message, "529") || Contains(message, "Overloaded") => ProviderErrorCodes.Overloaded,
 			_ => ProviderErrorCodes.TriggerFailed
 		};
 		return new(code, message);

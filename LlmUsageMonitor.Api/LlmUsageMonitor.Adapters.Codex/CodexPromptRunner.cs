@@ -108,6 +108,7 @@ internal sealed class CodexPromptRunner(IOptions<CodexOptions> options) : IPromp
 			"unauthorized" => ProviderErrorCodes.AuthExpired,
 			"usageLimitExceeded" => ProviderErrorCodes.UsageLimit,
 			"rateLimitExceeded" => ProviderErrorCodes.RateLimited,
+			"serverOverloaded" => ProviderErrorCodes.Overloaded,
 			_ => ProviderErrorCodes.TriggerFailed
 		};
 		return new(code, message);

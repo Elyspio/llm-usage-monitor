@@ -20,9 +20,34 @@ internal sealed class TriggerRunRepository(IMongoDatabase database) : ITriggerRu
 		}
 		catch (MongoWriteException exception) when (exception.WriteError.Category == ServerErrorCategory.DuplicateKey)
 		{
-			// The unique index proves this cycle already had its automatic trigger.
-			return null;
+			// The unique index proves this cycle already had its automatic trigger: only a failed run whose retry is due starts again.
 		}
+
+		var filter = Builders<TriggerRunDocument>.Filter;
+		var retry = await _runs.FindOneAndUpdateAsync(
+			filter.Eq(run => run.Provider, provider)
+			& filter.Eq(run => run.CycleKey, cycleKey)
+			& filter.Eq(run => run.Manual, false)
+			& filter.Eq(run => run.Status, TriggerStatus.Failed)
+			& filter.Lte(run => run.NextRetryAt, startedAt.ToUtc()),
+			new PipelineUpdateDefinition<TriggerRunDocument>(new BsonDocument[]
+			{
+				new("$set", new BsonDocument
+				{
+					["status"] = nameof(TriggerStatus.Running),
+					["model"] = new BsonDocument("$literal", model),
+					["startedAt"] = startedAt.UtcDateTime,
+					// Runs stored before retries existed have no attempts field: they count as one.
+					["attempts"] = new BsonDocument("$add", new BsonArray { new BsonDocument("$max", new BsonArray { new BsonDocument("$ifNull", new BsonArray { "$attempts", 1 }), 1 }), 1 }),
+					["endedAt"] = BsonNull.Value,
+					["errorCode"] = BsonNull.Value,
+					["error"] = BsonNull.Value,
+					["nextRetryAt"] = BsonNull.Value
+				})
+			}),
+			new() { ReturnDocument = ReturnDocument.After },
+			cancellationToken);
+		return retry?.ToDomain();
 	}
 
 	public async Task<TriggerRun> StartManual(Provider provider, string model, DateTimeOffset startedAt, CancellationToken cancellationToken)
@@ -32,13 +57,15 @@ internal sealed class TriggerRunRepository(IMongoDatabase database) : ITriggerRu
 		return document.ToDomain();
 	}
 
-	public async Task<TriggerRun> Complete(string id, TriggerStatus status, DateTimeOffset endedAt, string? errorCode, string? error, CancellationToken cancellationToken)
+	public async Task<TriggerRun> Complete(string id, TriggerStatus status, DateTimeOffset endedAt, string? errorCode, string? error, DateTimeOffset? nextRetryAt,
+		CancellationToken cancellationToken)
 	{
 		var update = Builders<TriggerRunDocument>.Update
 			.Set(run => run.Status, status)
 			.Set(run => run.EndedAt, endedAt.ToUtc())
 			.Set(run => run.ErrorCode, errorCode)
-			.Set(run => run.Error, error);
+			.Set(run => run.Error, error)
+			.Set(run => run.NextRetryAt, nextRetryAt.ToUtc());
 		var document = await _runs.FindOneAndUpdateAsync(
 			run => run.Id == Parse(id),
 			update,
@@ -88,15 +115,10 @@ internal sealed class TriggerRunRepository(IMongoDatabase database) : ITriggerRu
 		return documents.Select(document => document.ToDomain()).ToList();
 	}
 
-	public async Task<long> FailRunning(DateTimeOffset endedAt, string errorCode, string error, CancellationToken cancellationToken)
+	public async Task<IReadOnlyList<TriggerRun>> GetAllRunning(CancellationToken cancellationToken)
 	{
-		var update = Builders<TriggerRunDocument>.Update
-			.Set(run => run.Status, TriggerStatus.Failed)
-			.Set(run => run.EndedAt, endedAt.ToUtc())
-			.Set(run => run.ErrorCode, errorCode)
-			.Set(run => run.Error, error);
-		var result = await _runs.UpdateManyAsync(run => run.Status == TriggerStatus.Running, update, cancellationToken: cancellationToken);
-		return result.ModifiedCount;
+		var documents = await _runs.Find(run => run.Status == TriggerStatus.Running).ToListAsync(cancellationToken);
+		return documents.Select(document => document.ToDomain()).ToList();
 	}
 
 	private static TriggerRunDocument NewRun(Provider provider, bool manual, string? cycleKey, string model, DateTimeOffset startedAt)
@@ -109,7 +131,8 @@ internal sealed class TriggerRunRepository(IMongoDatabase database) : ITriggerRu
 			CycleKey = cycleKey,
 			Model = model,
 			Status = TriggerStatus.Running,
-			StartedAt = startedAt.ToUtc()
+			StartedAt = startedAt.ToUtc(),
+			Attempts = 1
 		};
 	}
 

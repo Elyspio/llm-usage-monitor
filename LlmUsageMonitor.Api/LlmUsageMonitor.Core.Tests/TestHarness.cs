@@ -123,25 +123,45 @@ internal sealed class InMemoryRuns : ITriggerRunRepository
 {
 	public List<TriggerRun> All { get; } = [];
 
+	/// <summary>Awaited before a manual run is stored, to hold concurrent requests between their check and their insert.</summary>
+	public Func<Task>? BeforeStartManual { get; set; }
+
 	public Task<TriggerRun?> TryStartAutomatic(Provider provider, string cycleKey, string model, DateTimeOffset startedAt, CancellationToken cancellationToken)
 	{
-		if (All.Any(run => !run.Manual && run.Provider == provider && run.CycleKey == cycleKey))
+		var index = All.FindIndex(run => !run.Manual && run.Provider == provider && run.CycleKey == cycleKey);
+		if (index < 0)
+		{
+			return Task.FromResult<TriggerRun?>(Start(provider, false, cycleKey, model, startedAt));
+		}
+
+		var existing = All[index];
+		if (existing.Status != TriggerStatus.Failed || existing.NextRetryAt is not { } retryAt || retryAt > startedAt)
 		{
 			return Task.FromResult<TriggerRun?>(null);
 		}
 
-		return Task.FromResult<TriggerRun?>(Start(provider, false, cycleKey, model, startedAt));
+		All[index] = existing with
+		{
+			Status = TriggerStatus.Running, Model = model, StartedAt = startedAt, EndedAt = null, ErrorCode = null, Error = null, NextRetryAt = null, Attempts = existing.Attempts + 1
+		};
+		return Task.FromResult<TriggerRun?>(All[index]);
 	}
 
-	public Task<TriggerRun> StartManual(Provider provider, string model, DateTimeOffset startedAt, CancellationToken cancellationToken)
+	public async Task<TriggerRun> StartManual(Provider provider, string model, DateTimeOffset startedAt, CancellationToken cancellationToken)
 	{
-		return Task.FromResult(Start(provider, true, null, model, startedAt));
+		if (BeforeStartManual is { } before)
+		{
+			await before();
+		}
+
+		return Start(provider, true, null, model, startedAt);
 	}
 
-	public Task<TriggerRun> Complete(string id, TriggerStatus status, DateTimeOffset endedAt, string? errorCode, string? error, CancellationToken cancellationToken)
+	public Task<TriggerRun> Complete(string id, TriggerStatus status, DateTimeOffset endedAt, string? errorCode, string? error, DateTimeOffset? nextRetryAt,
+		CancellationToken cancellationToken)
 	{
 		var index = All.FindIndex(run => run.Id == id);
-		All[index] = All[index] with { Status = status, EndedAt = endedAt, ErrorCode = errorCode, Error = error };
+		All[index] = All[index] with { Status = status, EndedAt = endedAt, ErrorCode = errorCode, Error = error, NextRetryAt = nextRetryAt };
 		return Task.FromResult(All[index]);
 	}
 
@@ -165,14 +185,14 @@ internal sealed class InMemoryRuns : ITriggerRunRepository
 		return Task.FromResult<IReadOnlyList<TriggerRun>>(All.Where(run => provider is null || run.Provider == provider).ToList());
 	}
 
-	public Task<long> FailRunning(DateTimeOffset endedAt, string errorCode, string error, CancellationToken cancellationToken)
+	public Task<IReadOnlyList<TriggerRun>> GetAllRunning(CancellationToken cancellationToken)
 	{
-		return Task.FromResult(0L);
+		return Task.FromResult<IReadOnlyList<TriggerRun>>(All.Where(run => run.Status == TriggerStatus.Running).ToList());
 	}
 
-	private TriggerRun Start(Provider provider, bool manual, string? cycleKey, string model, DateTimeOffset startedAt)
+	public TriggerRun Start(Provider provider, bool manual, string? cycleKey, string model, DateTimeOffset startedAt)
 	{
-		var run = new TriggerRun($"run-{All.Count + 1}", provider, manual, cycleKey, model, TriggerStatus.Running, startedAt, null, null, null);
+		var run = new TriggerRun($"run-{All.Count + 1}", provider, manual, cycleKey, model, TriggerStatus.Running, startedAt, null, null, null, 1, null);
 		All.Add(run);
 		return run;
 	}
@@ -202,6 +222,7 @@ internal sealed class FakeScheduler : IJobScheduler
 	public List<Provider> EnqueuedPolls { get; } = [];
 	public List<(string JobId, Provider Provider, DateTimeOffset RunAt)> PostResetChecks { get; } = [];
 	public List<(string JobId, DateTimeOffset RunAt)> KeepAlives { get; } = [];
+	public List<(Provider Provider, DateTimeOffset RunAt)> TriggerRetries { get; } = [];
 	public List<string> EnqueuedTriggers { get; } = [];
 	public List<string> Deleted { get; } = [];
 
@@ -220,6 +241,12 @@ internal sealed class FakeScheduler : IJobScheduler
 		var id = $"job-{++_nextId}";
 		PostResetChecks.Add((id, provider, runAt));
 		return id;
+	}
+
+	public string ScheduleTriggerRetry(Provider provider, DateTimeOffset runAt)
+	{
+		TriggerRetries.Add((provider, runAt));
+		return $"job-{++_nextId}";
 	}
 
 	public string ScheduleKeepAlive(DateTimeOffset runAt)
@@ -265,7 +292,10 @@ internal sealed class FakeReader(Provider provider) : IUsageReader
 
 internal sealed class FakeRunner(Provider provider) : IPromptRunner
 {
-	public ProviderException? Failure { get; set; }
+	public Exception? Failure { get; set; }
+
+	/// <summary>Failures of the next runs, in order; <see cref="Failure" /> applies once they are used up.</summary>
+	public Queue<Exception?> Outcomes { get; } = new();
 
 	public List<string> Models { get; } = [];
 
@@ -274,7 +304,8 @@ internal sealed class FakeRunner(Provider provider) : IPromptRunner
 	public Task Run(string model, CancellationToken cancellationToken)
 	{
 		Models.Add(model);
-		return Failure is null ? Task.CompletedTask : Task.FromException(Failure);
+		var failure = Outcomes.TryDequeue(out var next) ? next : Failure;
+		return failure is null ? Task.CompletedTask : Task.FromException(failure);
 	}
 }
 
