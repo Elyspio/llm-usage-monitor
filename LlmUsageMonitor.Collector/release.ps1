@@ -15,13 +15,23 @@ function Invoke-Step([string]$Name, [scriptblock]$Command) {
 	if ($LASTEXITCODE -ne 0) { throw "$Name failed ($LASTEXITCODE)" }
 }
 
-$version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+$package = Get-Content package.json -Raw | ConvertFrom-Json
+$version = $package.version
 $tag = "collector-v$version"
 
+# Each target is checked on its own, so a release interrupted halfway can be resumed.
+# npm view prints nothing (or E404 for a never-published package) when the version is missing.
+$npmPublished = [bool](npm view "$($package.name)@$version" version 2> $null)
+gh release view $tag *> $null
+$ghReleased = $LASTEXITCODE -eq 0
+$global:LASTEXITCODE = 0
+
 if (-not $DryRun) {
+	if ($npmPublished -and $ghReleased) {
+		Write-Host "$($package.name)@$version and $tag already published: bump the version in package.json." -ForegroundColor Yellow
+		return
+	}
 	if (git status --porcelain -- .) { throw "Uncommitted changes in LlmUsageMonitor.Collector: commit the release first." }
-	gh release view $tag *> $null
-	if ($LASTEXITCODE -eq 0) { throw "Release $tag already exists: bump the version in package.json." }
 }
 
 Invoke-Step "Install" { pnpm install --frozen-lockfile }
@@ -42,8 +52,17 @@ if ($DryRun) {
 	return
 }
 
-Invoke-Step "npm publish" { npm publish --access public }
-Invoke-Step "GitHub release" {					
-	gh release create $tag @assets --title "LLM Usage Collector $version" --notes "Standalone collector ${version}: download the executable of your platform, then run ``install`` and ``login`` (see LlmUsageMonitor.Collector/README.md)."
+if ($npmPublished) {
+	Write-Host "==> npm publish skipped: $($package.name)@$version already on npm" -ForegroundColor Yellow
+} else {
+	Invoke-Step "npm publish" { npm publish --access public }
 }
-Write-Host "Published @elyspio/llm-usage-collector@$version and $tag." -ForegroundColor Green
+
+if ($ghReleased) {
+	Write-Host "==> GitHub release skipped: $tag already exists" -ForegroundColor Yellow
+} else {
+	Invoke-Step "GitHub release" {
+		gh release create $tag @assets --title "LLM Usage Collector $version" --notes "Standalone collector ${version}: download the executable of your platform, then run ``install`` and ``login`` (see LlmUsageMonitor.Collector/README.md)."
+	}
+}
+Write-Host "Published $($package.name)@$version and $tag." -ForegroundColor Green
