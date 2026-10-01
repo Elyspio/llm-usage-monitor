@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { setTimeout } from "node:timers/promises";
@@ -55,6 +56,10 @@ export class DeviceAuth {
 		const discovery = await this.discover();
 		if (!discovery.device_authorization_endpoint) throw new AuthError(`${this.options.issuer} does not support the device authorization grant`);
 
+		// PKCE (S256) on the device grant too: Keycloak requires it when the client enforces a PKCE method.
+		const codeVerifier = crypto.randomBytes(32).toString("base64url");
+		const codeChallenge = crypto.createHash("sha256").update(codeVerifier).digest("base64url");
+
 		const device = await this.post<{
 			device_code: string;
 			user_code: string;
@@ -62,7 +67,12 @@ export class DeviceAuth {
 			verification_uri_complete?: string;
 			expires_in: number;
 			interval?: number;
-		}>(discovery.device_authorization_endpoint, { client_id: this.options.clientId, scope: "openid offline_access" });
+		}>(discovery.device_authorization_endpoint, {
+			client_id: this.options.clientId,
+			scope: "openid offline_access",
+			code_challenge: codeChallenge,
+			code_challenge_method: "S256",
+		});
 
 		onPrompt({ verificationUri: device.verification_uri, verificationUriComplete: device.verification_uri_complete, userCode: device.user_code, expiresIn: device.expires_in });
 
@@ -73,6 +83,7 @@ export class DeviceAuth {
 			const response = await this.request(discovery.token_endpoint, {
 				grant_type: "urn:ietf:params:oauth:grant-type:device_code",
 				device_code: device.device_code,
+				code_verifier: codeVerifier,
 				client_id: this.options.clientId,
 			});
 			if (response.ok) {

@@ -43,7 +43,7 @@ if ($DryRun) {
 }
 
 Invoke-Step "npm publish" { npm publish --access public }
-Invoke-Step "GitHub release" {
-	gh release create $tag @assets --title "LLM Usage Collector $version" --notes "Standalone collector $version: download the executable of your platform, then run ``install`` and ``login`` (see LlmUsageMonitor.Collector/README.md)."
+Invoke-Step "GitHub release" {					
+	gh release create $tag @assets --title "LLM Usage Collector $version" --notes "Standalone collector ${version}: download the executable of your platform, then run ``install`` and ``login`` (see LlmUsageMonitor.Collector/README.md)."
 }
 Write-Host "Published @elyspio/llm-usage-collector@$version and $tag." -ForegroundColor Green

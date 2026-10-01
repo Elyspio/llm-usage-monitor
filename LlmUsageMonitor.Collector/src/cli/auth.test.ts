@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
 import type { AddressInfo } from "node:net";
@@ -61,7 +62,12 @@ describe("device flow", () => {
 		await auth().login((prompt) => prompts.push(prompt.userCode));
 
 		expect(prompts).toEqual(["ABCD-EFGH"]);
-		expect(requests[0].form).toEqual({ client_id: "i-llm-usage-collector", scope: "openid offline_access" });
+		const { code_challenge, ...device } = requests[0].form;
+		expect(device).toEqual({ client_id: "i-llm-usage-collector", scope: "openid offline_access", code_challenge_method: "S256" });
+		// PKCE: every poll proves the verifier of the challenge sent with the device request.
+		const verifiers = requests.filter((request) => request.path.endsWith("/token")).map((request) => request.form.code_verifier);
+		expect(new Set(verifiers).size).toBe(1);
+		expect(crypto.createHash("sha256").update(verifiers[0]).digest("base64url")).toBe(code_challenge);
 		expect(requests.filter((request) => request.path.endsWith("/token"))).toHaveLength(3);
 		expect(await auth().getAccessToken()).toBe("access-1");
 	});
