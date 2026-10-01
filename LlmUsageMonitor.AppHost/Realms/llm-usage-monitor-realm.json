@@ -49,6 +49,33 @@
 					}
 				}
 			]
+		},
+		{
+			"clientId": "i-llm-usage-collector",
+			"name": "LLM Usage Collector CLI (dev)",
+			"description": "Device flow of the standalone collector (llm-usage login); offline token for its scheduled runs",
+			"enabled": true,
+			"protocol": "openid-connect",
+			"publicClient": true,
+			"standardFlowEnabled": false,
+			"implicitFlowEnabled": false,
+			"directAccessGrantsEnabled": false,
+			"fullScopeAllowed": true,
+			"attributes": {
+				"oauth2.device.authorization.grant.enabled": "true",
+				"pkce.code.challenge.method": "S256"
+			},
+			"defaultClientScopes": [
+				"basic",
+				"profile",
+				"email",
+				"roles",
+				"acr",
+				"web-origins"
+			],
+			"optionalClientScopes": [
+				"offline_access"
+			]
 		}
 	],
 	"users": [
@@ -65,6 +92,9 @@
 					"value": "admin",
 					"temporary": false
 				}
+			],
+			"realmRoles": [
+				"offline_access"
 			],
 			"clientRoles": {
 				"i-llm-usage-monitor": [
