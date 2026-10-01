@@ -50,7 +50,9 @@ public sealed class HealthTracker(INotificationService notifications) : IHealthT
 			return next;
 		}
 
-		await notifications.Notify(kind, state.Provider, exception.Message, cancellationToken);
-		return next with { ActiveAlerts = [.. next.ActiveAlerts, kind] };
+		// An undelivered alert stays inactive: the next failed reading sends it again.
+		return await notifications.Notify(kind, state.Provider, exception.Message, cancellationToken)
+			? next with { ActiveAlerts = [.. next.ActiveAlerts, kind] }
+			: next;
 	}
 }

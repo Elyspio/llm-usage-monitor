@@ -3,14 +3,25 @@ using LlmUsageMonitor.Abstractions.Injections;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http.Resilience;
 
 namespace LlmUsageMonitor.Adapters.Ntfy;
 
 public sealed class NtfyAdapterModule : IModule
 {
+	public static readonly TimeSpan AttemptTimeout = TimeSpan.FromSeconds(5);
+	public static readonly TimeSpan TotalTimeout = TimeSpan.FromSeconds(20);
+
 	public void Load(IServiceCollection services, IConfiguration configuration)
 	{
-		services.AddHttpClient<INotificationSender, NtfySender>(client => client.Timeout = TimeSpan.FromSeconds(15));
+		// Retries, timeouts and circuit breaker: a timeout surfaces as a delivery failure (TimeoutRejectedException), never as
+		// a cancellation of the caller. A duplicate notification is preferred to a lost one, so the POST is retried too.
+		services.AddHttpClient<INotificationSender, NtfySender>()
+			.AddStandardResilienceHandler(options =>
+			{
+				options.AttemptTimeout.Timeout = AttemptTimeout;
+				options.TotalRequestTimeout.Timeout = TotalTimeout;
+			});
 	}
 }
 

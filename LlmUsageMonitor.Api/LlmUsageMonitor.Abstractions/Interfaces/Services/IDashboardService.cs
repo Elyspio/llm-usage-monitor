@@ -90,8 +90,11 @@ public interface IModelPriceService
 
 public interface INotificationService
 {
-	/// <summary>Sends an event if it is enabled; delivery failures are recorded, never thrown.</summary>
-	Task Notify(NotificationKind kind, Provider provider, string detail, CancellationToken cancellationToken);
+	/// <summary>
+	///     Sends an event if it is enabled; delivery failures (timeouts included) are recorded, never thrown. Returns
+	///     <c>false</c> when the delivery failed, <c>true</c> when it succeeded or when the event is not notified.
+	/// </summary>
+	Task<bool> Notify(NotificationKind kind, Provider provider, string detail, CancellationToken cancellationToken);
 
 	/// <summary>Sends a test message and throws when delivery fails.</summary>
 	Task SendTest(CancellationToken cancellationToken);

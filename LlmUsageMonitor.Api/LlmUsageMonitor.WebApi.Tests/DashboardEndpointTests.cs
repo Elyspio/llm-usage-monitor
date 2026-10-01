@@ -115,6 +115,37 @@ public sealed class DashboardEndpointTests(ApiFactory factory) : IClassFixture<A
 	}
 
 	[Fact]
+	public async Task A_test_notification_that_times_out_is_a_502()
+	{
+		using var client = factory.CreateClientWithRoles(ApiFactory.AdminRole);
+		var update = new
+		{
+			url = "https://ntfy.sh",
+			topic = "llm_usage_monitor_timeout",
+			events = new
+			{
+				claude = new { triggerFailed = true, authExpired = true, readFailed = true, reset = false, triggerSucceeded = true, recovered = true },
+				codex = new { triggerFailed = true, authExpired = true, readFailed = true, reset = false, triggerSucceeded = true, recovered = true }
+			},
+			readFailureThreshold = 3
+		};
+		(await client.PutAsJsonAsync("/api/settings/notifications", update, Token)).StatusCode.ShouldBe(HttpStatusCode.OK);
+		factory.NotificationSender.Failure = new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout.", new TimeoutException());
+
+		try
+		{
+			var response = await client.PostAsync("/api/settings/notifications/test", null, Token);
+
+			response.StatusCode.ShouldBe(HttpStatusCode.BadGateway);
+			(await response.Content.ReadFromJsonAsync<JsonElement>(Token)).GetProperty("code").GetString().ShouldBe("NOTIFICATION_FAILED");
+		}
+		finally
+		{
+			factory.NotificationSender.Failure = null;
+		}
+	}
+
+	[Fact]
 	public async Task History_accepts_24h_and_7d_only()
 	{
 		using var client = factory.CreateClientWithRoles(ApiFactory.AdminRole);
