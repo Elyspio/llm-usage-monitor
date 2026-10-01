@@ -25,8 +25,17 @@ internal sealed class MongoStorageInitializer(IMongoDatabase database) : IStorag
 		}
 
 		var resets = database.GetCollection<ResetDocument>(Collections.Resets);
-		await resets.Indexes.CreateOneAsync(new CreateIndexModel<ResetDocument>(
-			Builders<ResetDocument>.IndexKeys.Ascending(reset => reset.Provider).Ascending(reset => reset.WindowId).Descending(reset => reset.DetectedAt)), cancellationToken: cancellationToken);
+		await resets.Indexes.CreateManyAsync(
+		[
+			new(Builders<ResetDocument>.IndexKeys.Ascending(reset => reset.Provider).Ascending(reset => reset.WindowId).Descending(reset => reset.DetectedAt)),
+			// One reset per transition: a poll replayed after an interruption does not store it twice.
+			new(Builders<ResetDocument>.IndexKeys.Ascending(reset => reset.Key), new CreateIndexOptions<ResetDocument>
+			{
+				Name = "transition_guard",
+				Unique = true,
+				PartialFilterExpression = Builders<ResetDocument>.Filter.Exists(reset => reset.Key)
+			})
+		], cancellationToken);
 
 		var runs = database.GetCollection<TriggerRunDocument>(Collections.TriggerRuns);
 		await runs.Indexes.CreateManyAsync(

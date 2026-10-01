@@ -92,7 +92,8 @@ public sealed class ClaudeKeepAlive(
 			return state;
 		}
 
-		if (state.KeepAlive is { } previous)
+		// A keep-alive whose time has come is running (this very job, maybe) or done: deleting it would abort it.
+		if (state.KeepAlive is { } previous && previous.RunAt > now)
 		{
 			scheduler.Delete(previous.JobId);
 		}

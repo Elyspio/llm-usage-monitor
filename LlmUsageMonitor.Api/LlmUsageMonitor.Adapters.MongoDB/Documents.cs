@@ -23,6 +23,10 @@ internal sealed class SnapshotMeta
 internal sealed class ResetDocument
 {
 	public ObjectId Id { get; set; }
+
+	/// <summary>The transition the reset was seen on (provider, window, previous reading), unique; absent on older resets.</summary>
+	[BsonIgnoreIfNull] public string? Key { get; set; }
+
 	public Provider Provider { get; set; }
 	public string WindowId { get; set; } = null!;
 	public DateTime DetectedAt { get; set; }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using LlmUsageMonitor.Abstractions.Data;
 using LlmUsageMonitor.Abstractions.Interfaces.Repositories;
 using MongoDB.Driver;
@@ -53,11 +54,12 @@ internal sealed class ResetRepository(IMongoDatabase database) : IResetRepositor
 {
 	private readonly IMongoCollection<ResetDocument> _resets = database.GetCollection<ResetDocument>(Collections.Resets);
 
-	public async Task<ResetEvent> Add(Provider provider, string windowId, DateTimeOffset detectedAt, double usedBefore, double usedAfter, DateTimeOffset? previousResetsAt,
-		CancellationToken cancellationToken)
+	public async Task<ResetEvent?> TryAdd(Provider provider, string windowId, DateTimeOffset previousFetchedAt, DateTimeOffset detectedAt, double usedBefore, double usedAfter,
+		DateTimeOffset? previousResetsAt, CancellationToken cancellationToken)
 	{
 		var document = new ResetDocument
 		{
+			Key = string.Create(CultureInfo.InvariantCulture, $"{provider}|{windowId}|{previousFetchedAt.UtcDateTime:O}"),
 			Provider = provider,
 			WindowId = windowId,
 			DetectedAt = detectedAt.ToUtc(),
@@ -65,8 +67,15 @@ internal sealed class ResetRepository(IMongoDatabase database) : IResetRepositor
 			UsedPercentAfter = usedAfter,
 			PreviousResetsAt = previousResetsAt.ToUtc()
 		};
-		await _resets.InsertOneAsync(document, cancellationToken: cancellationToken);
-		return document.ToDomain();
+		try
+		{
+			await _resets.InsertOneAsync(document, cancellationToken: cancellationToken);
+			return document.ToDomain();
+		}
+		catch (MongoWriteException exception) when (exception.WriteError.Category == ServerErrorCategory.DuplicateKey)
+		{
+			return null;
+		}
 	}
 
 	public async Task<ResetEvent?> GetLast(Provider provider, string windowId, CancellationToken cancellationToken)
