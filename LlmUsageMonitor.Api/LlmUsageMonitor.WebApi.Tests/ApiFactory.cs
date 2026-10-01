@@ -154,6 +154,11 @@ public sealed class RecordingScheduler : IJobScheduler
 		return $"job-{Interlocked.Increment(ref _nextId)}";
 	}
 
+	public string ScheduleTriggerRetry(Provider provider, DateTimeOffset runAt)
+	{
+		return $"job-{Interlocked.Increment(ref _nextId)}";
+	}
+
 	public string ScheduleKeepAlive(DateTimeOffset runAt)
 	{
 		return $"job-{Interlocked.Increment(ref _nextId)}";

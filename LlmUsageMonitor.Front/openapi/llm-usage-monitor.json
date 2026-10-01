@@ -1056,7 +1056,9 @@
           "startedAt",
           "endedAt",
           "errorCode",
-          "error"
+          "error",
+          "attempts",
+          "nextRetryAt"
         ],
         "type": "object",
         "properties": {
@@ -1103,6 +1105,17 @@
               "null",
               "string"
             ]
+          },
+          "attempts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nextRetryAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           },
           "durationMs": {
             "type": [

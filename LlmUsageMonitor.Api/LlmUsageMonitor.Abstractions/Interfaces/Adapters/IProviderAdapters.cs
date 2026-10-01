@@ -63,6 +63,9 @@ public interface IJobScheduler
 
 	string SchedulePostResetCheck(Provider provider, DateTimeOffset runAt);
 
+	/// <summary>Schedules the reading that retries a failed automatic trigger, once its retry is due.</summary>
+	string ScheduleTriggerRetry(Provider provider, DateTimeOffset runAt);
+
 	string ScheduleKeepAlive(DateTimeOffset runAt);
 
 	void EnqueueTrigger(string runId);

@@ -27,6 +27,11 @@ internal sealed class HangfireJobScheduler(IBackgroundJobClient jobs, IRecurring
 		return jobs.Schedule<ProviderJobs>(job => job.PostResetCheck(provider, CancellationToken.None), runAt);
 	}
 
+	public string ScheduleTriggerRetry(Provider provider, DateTimeOffset runAt)
+	{
+		return jobs.Schedule<ProviderJobs>(job => job.RetryTrigger(provider, CancellationToken.None), runAt);
+	}
+
 	public string ScheduleKeepAlive(DateTimeOffset runAt)
 	{
 		return jobs.Schedule<ProviderJobs>(job => job.KeepAlive(CancellationToken.None), runAt);
@@ -82,6 +87,13 @@ public sealed class ProviderJobs(IUsageMonitor monitor, ITriggerService triggers
 
 	[DisplayName("Post-reset check {0}")]
 	public Task PostResetCheck(Provider provider, CancellationToken cancellationToken)
+	{
+		return monitor.Poll(provider, cancellationToken);
+	}
+
+	/// <summary>A reading: it prompts again only if the cycle of the failed trigger still waits for its first message.</summary>
+	[DisplayName("Trigger retry {0}")]
+	public Task RetryTrigger(Provider provider, CancellationToken cancellationToken)
 	{
 		return monitor.Poll(provider, cancellationToken);
 	}

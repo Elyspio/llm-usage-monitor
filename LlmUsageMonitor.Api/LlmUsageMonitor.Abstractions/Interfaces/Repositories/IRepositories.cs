@@ -18,12 +18,17 @@ public interface IResetRepository
 
 public interface ITriggerRunRepository
 {
-	/// <summary>Starts an automatic run, or returns <c>null</c> when the cycle already had one.</summary>
+	/// <summary>
+	///     Starts the automatic run of the cycle, or restarts it when it failed and its retry is due (one more attempt); returns
+	///     <c>null</c> when the cycle already had its run.
+	/// </summary>
 	Task<TriggerRun?> TryStartAutomatic(Provider provider, string cycleKey, string model, DateTimeOffset startedAt, CancellationToken cancellationToken);
 
 	Task<TriggerRun> StartManual(Provider provider, string model, DateTimeOffset startedAt, CancellationToken cancellationToken);
 
-	Task<TriggerRun> Complete(string id, TriggerStatus status, DateTimeOffset endedAt, string? errorCode, string? error, CancellationToken cancellationToken);
+	/// <param name="nextRetryAt">When a failed automatic run may be started again; <c>null</c> for a final outcome.</param>
+	Task<TriggerRun> Complete(string id, TriggerStatus status, DateTimeOffset endedAt, string? errorCode, string? error, DateTimeOffset? nextRetryAt,
+		CancellationToken cancellationToken);
 
 	Task<TriggerRun?> Get(string id, CancellationToken cancellationToken);
 
@@ -33,8 +38,8 @@ public interface ITriggerRunRepository
 
 	Task<IReadOnlyList<TriggerRun>> GetBetween(Provider? provider, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken);
 
-	/// <summary>Marks the runs left running by a previous process as failed.</summary>
-	Task<long> FailRunning(DateTimeOffset endedAt, string errorCode, string error, CancellationToken cancellationToken);
+	/// <summary>The runs still running, every provider included.</summary>
+	Task<IReadOnlyList<TriggerRun>> GetAllRunning(CancellationToken cancellationToken);
 }
 
 public interface IProviderStateRepository

@@ -48,7 +48,9 @@ public sealed class ClaudeUsageParserTests
 	[InlineData(1, """{"is_error":true,"result":"Login expired · Please run /login"}""", ProviderErrorCodes.AuthExpired)]
 	[InlineData(1, """{"is_error":true,"result":"You've hit your session limit"}""", ProviderErrorCodes.UsageLimit)]
 	[InlineData(1, """{"is_error":true,"api_error_status":429,"result":"Request rejected (429)"}""", ProviderErrorCodes.RateLimited)]
-	[InlineData(0, """{"subtype":"success","is_error":true,"result":"API Error: 529 Overloaded"}""", ProviderErrorCodes.TriggerFailed)]
+	[InlineData(0, """{"subtype":"success","is_error":true,"result":"API Error: 529 Overloaded"}""", ProviderErrorCodes.Overloaded)]
+	[InlineData(1, """{"is_error":true,"api_error_status":529,"result":"Repeated server errors"}""", ProviderErrorCodes.Overloaded)]
+	[InlineData(1, """{"is_error":true,"api_error_status":500,"result":"Internal server error"}""", ProviderErrorCodes.TriggerFailed)]
 	[InlineData(1, "error: unknown option '--safe-mode'", ProviderErrorCodes.TriggerFailed)]
 	public void Prompt_results_are_classified_from_is_error_the_status_and_the_text(int exitCode, string output, string? expected)
 	{
@@ -104,6 +106,7 @@ public sealed class CodexUsageParserTests
 	[InlineData("""{ "message": "denied", "codexErrorInfo": "unauthorized" }""", ProviderErrorCodes.AuthExpired)]
 	[InlineData("""{ "message": "limit", "codexErrorInfo": "usageLimitExceeded" }""", ProviderErrorCodes.UsageLimit)]
 	[InlineData("""{ "message": "slow down", "codexErrorInfo": "rateLimitExceeded" }""", ProviderErrorCodes.RateLimited)]
+	[InlineData("""{ "message": "busy", "codexErrorInfo": "serverOverloaded" }""", ProviderErrorCodes.Overloaded)]
 	[InlineData("""{ "message": "stream", "codexErrorInfo": { "responseStreamDisconnected": { "httpStatusCode": 502 } } }""", ProviderErrorCodes.TriggerFailed)]
 	[InlineData("""{ "message": "unknown", "codexErrorInfo": null }""", ProviderErrorCodes.TriggerFailed)]
 	public void Turn_errors_are_mapped_from_codexErrorInfo(string error, string expected)

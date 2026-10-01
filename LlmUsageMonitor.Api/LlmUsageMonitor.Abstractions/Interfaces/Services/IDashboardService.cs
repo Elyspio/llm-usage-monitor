@@ -36,6 +36,12 @@ public interface ITriggerService
 	Task ExecuteManual(string runId, CancellationToken cancellationToken);
 
 	Task<TriggerRun> Get(string runId, CancellationToken cancellationToken);
+
+	/// <summary>
+	///     On start: fails the runs a previous process left running (<c>INTERRUPTED</c>); an automatic one may be retried at
+	///     once, by the next reading of its cycle. Returns the number of runs.
+	/// </summary>
+	Task<int> RecoverInterrupted(CancellationToken cancellationToken);
 }
 
 /// <summary>

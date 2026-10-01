@@ -151,6 +151,8 @@ export type TriggerRun = {
     endedAt: null | string;
     errorCode: null | string;
     error: null | string;
+    attempts: number;
+    nextRetryAt: null | string;
     durationMs?: null | number;
 };
 

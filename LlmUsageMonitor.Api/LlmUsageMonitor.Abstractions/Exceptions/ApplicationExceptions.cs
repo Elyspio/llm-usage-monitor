@@ -26,6 +26,8 @@ public static class ProviderErrorCodes
 	public const string CliBusy = "CLI_BUSY";
 	public const string TriggerFailed = "TRIGGER_FAILED";
 	public const string Interrupted = "INTERRUPTED";
+	public const string Overloaded = "OVERLOADED";
+	public const string Cancelled = "CANCELLED";
 }
 
 /// <summary>
