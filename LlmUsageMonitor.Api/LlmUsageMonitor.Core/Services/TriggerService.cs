@@ -72,7 +72,14 @@ public sealed class TriggerService(
 			return;
 		}
 
-		using var providerLock = await locks.Acquire(run.Provider, cancellationToken);
+		using var providerLock = await locks.TryAcquire(run.Provider, ProviderLocks.JobWait, cancellationToken);
+		if (providerLock is null)
+		{
+			logger.LogWarning("{Provider} manual trigger {RunId} given up: the provider is still busy after {Wait}", run.Provider, run.Id, ProviderLocks.JobWait);
+			await runs.Complete(run.Id, TriggerStatus.Failed, time.GetUtcNow(), ProviderErrorCodes.CliBusy, "Another CLI process kept the provider busy.", CancellationToken.None);
+			return;
+		}
+
 		// Manual triggers are never notified: the user is in front of the application.
 		await Execute(run, cancellationToken);
 	}

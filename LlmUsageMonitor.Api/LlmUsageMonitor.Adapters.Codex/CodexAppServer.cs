@@ -42,15 +42,44 @@ internal sealed class CodexAppServer : IAsyncDisposable
 
 	public async ValueTask DisposeAsync()
 	{
-		_process.StandardInput.Close();
-		if (!_process.HasExited)
+		try
 		{
-			_process.Kill(true);
-		}
+			try
+			{
+				_process.StandardInput.Close();
+			}
+			catch (IOException)
+			{
+				// The pipe is already broken: the process exited.
+			}
 
-		await Task.WhenAny(Task.WhenAll(_reader, _errors), Task.Delay(TimeSpan.FromSeconds(5)));
-		_process.Dispose();
-		_writeLock.Dispose();
+			KillTree(_process);
+			await Task.WhenAny(Task.WhenAll(_reader, _errors), Task.Delay(TimeSpan.FromSeconds(5)));
+		}
+		finally
+		{
+			_process.Dispose();
+			_writeLock.Dispose();
+		}
+	}
+
+	/// <summary>
+	///     Kills the process and its descendants; a process that already exited is not an error.
+	/// </summary>
+	internal static void KillTree(Process process)
+	{
+		try
+		{
+			process.Kill(true);
+		}
+		catch (InvalidOperationException)
+		{
+			// Exited before the kill.
+		}
+		catch (Win32Exception)
+		{
+			// A descendant exited while the tree was walked.
+		}
 	}
 
 	public static async Task<CodexAppServer> Start(CodexOptions options, CancellationToken cancellationToken)

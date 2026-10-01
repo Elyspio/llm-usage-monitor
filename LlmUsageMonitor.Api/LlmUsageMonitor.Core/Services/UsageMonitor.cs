@@ -28,7 +28,12 @@ public sealed class UsageMonitor(
 
 	public async Task Poll(Provider provider, CancellationToken cancellationToken)
 	{
-		using var providerLock = await locks.Acquire(provider, cancellationToken);
+		using var providerLock = await locks.TryAcquire(provider, ProviderLocks.PollWait, cancellationToken);
+		if (providerLock is null)
+		{
+			logger.LogWarning("{Provider} reading skipped: another CLI process still holds the provider after {Wait}", provider, ProviderLocks.PollWait);
+			return;
+		}
 
 		var now = time.GetUtcNow();
 		var state = await states.Get(provider, cancellationToken);
