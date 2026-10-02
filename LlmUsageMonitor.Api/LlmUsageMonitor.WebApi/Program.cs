@@ -121,8 +121,9 @@ app.MapControllers();
 app.MapHealthChecks("/health/live", new() { Predicate = _ => false }).AllowAnonymous();
 app.MapHealthChecks("/health/ready", new() { Predicate = check => check.Tags.Contains(HealthCheckTags.Ready) }).AllowAnonymous();
 
-if (HangfireAdapterModule.IsEnabled(app.Configuration))
-	// Signed in with the cookie + OIDC scheme: the SPA bearer token does not follow the dashboard navigation.
+// Mapped wherever Hangfire is configured (not in the build-time OpenAPI generation, nor in most integration tests).
+// Signed in with the cookie + OIDC scheme: the SPA bearer token does not follow the dashboard navigation.
+if (app.Services.GetService<IGlobalConfiguration>() is { })
 {
 	app.MapHangfireDashboard("/hangfire", new() { Authorization = [], DashboardTitle = "LLM Usage Monitor · jobs", AppPath = "/" })
 		.RequireAuthorization(HangfireDashboardAuthentication.PolicyName);
