@@ -27,6 +27,7 @@ public sealed partial class SettingsService(
 
 	public const int MaxModelLength = 100;
 	public const string IntervalDivisorMessage = "A divisor of 60 is expected: 1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30 or 60 minutes.";
+	public const string TokenForNewServerMessage = "The server changed: enter its token again, or remove the token.";
 
 	public async Task<AppSettings> Get(CancellationToken cancellationToken)
 	{
@@ -97,9 +98,15 @@ public sealed partial class SettingsService(
 			errors["credentialExpiryAlertDays"] = [$"Between {NotificationSettings.MinCredentialExpiryAlertDays} and {NotificationSettings.MaxCredentialExpiryAlertDays} days."];
 		}
 
+		var settings = await Get(cancellationToken);
+		// The stored token was given for its server: it never follows the notifications to another one.
+		if (update.Token is null && settings.Notifications.ProtectedToken is { } && !IsSameServer(settings.Notifications.Url, update.Url))
+		{
+			errors["token"] = [TokenForNewServerMessage];
+		}
+
 		ThrowIfAny(errors);
 
-		var settings = await Get(cancellationToken);
 		var protectedToken = update.Token switch
 		{
 			null => settings.Notifications.ProtectedToken,
@@ -146,6 +153,11 @@ public sealed partial class SettingsService(
 	{
 		return new(settings.Url, settings.Topic, settings.ProtectedToken is not null, settings.Events, settings.ReadFailureThreshold, settings.LastSendFailure,
 			settings.CredentialExpiryAlertDays);
+	}
+
+	private static bool IsSameServer(string current, string updated)
+	{
+		return string.Equals(current.Trim().TrimEnd('/'), updated.Trim().TrimEnd('/'), StringComparison.OrdinalIgnoreCase);
 	}
 
 	private static void ValidateInterval(Dictionary<string, string[]> errors, string field, int minutes)

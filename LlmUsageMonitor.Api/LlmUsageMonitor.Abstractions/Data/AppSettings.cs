@@ -146,6 +146,9 @@ public sealed record NotificationSettingsView(
 /// <summary>
 ///     The notification settings sent by the application.
 /// </summary>
-/// <param name="Token">The new token: <c>null</c> keeps the current one, an empty string removes it.</param>
+/// <param name="Token">
+///     The new token: <c>null</c> keeps the current one (on the same server only: a new URL needs its token again), an empty
+///     string removes it.
+/// </param>
 /// <param name="CredentialExpiryAlertDays">Days before the expiry of the CLI login when an alert is sent.</param>
 public sealed record NotificationSettingsUpdate(string Url, string? Topic, string? Token, NotificationEventsByProvider Events, int ReadFailureThreshold, int CredentialExpiryAlertDays);

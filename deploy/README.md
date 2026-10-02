@@ -161,6 +161,10 @@ mongosh "$MONGO_RESTORE_URI/llm-usage-monitor-restore" --eval '
 
 Puis lancer l'API en local (`ConnectionStrings:MongoDB` sur la base restaurée, `Hangfire:Enabled=false`) : les réglages s'affichent, `tokenDefined` est vrai et une notification de test part (la clé Data Protection déchiffre le token). Supprimer ensuite la base `llm-usage-monitor-restore`.
 
+**Risque accepté : clés Data Protection en clair.** Les clés (`dataProtectionKeys`) sont stockées sans chiffrement au repos (pas de certificat ni de KMS sur le LXC), dans la même base que le token ntfy qu'elles chiffrent : un accès en lecture à la base, ou à un dump, révèle le token. Le token ntfy ne donne que le droit de publier sur le topic ; les secrets plus sensibles (mot de passe Mongo, logins des CLIs) ne sont pas en base. Les dumps se protègent donc comme la base elle-même. Conséquence d'une perte de la collection (ou d'une restauration sans elle) : le token ntfy devient illisible, les envois échouent (`LastSendFailure` dans Réglages) et il faut **ressaisir le token** dans Réglages > Notifications ; rien d'autre n'est chiffré.
+
+Le token ntfy est lié à son serveur : changer l'URL dans Réglages exige de ressaisir le token (ou de le supprimer), il n'est jamais envoyé au nouveau serveur. Le détail des notifications est tronqué (300 caractères) et nettoyé (tokens, clés, JWT, emails) avant de partir vers ntfy, `ntfy.sh` public par défaut.
+
 Hangfire.Mongo copie ses collections (`CollectionMongoBackupStrategy`, suffixe `migrationbackup`) avant toute migration de schéma, lors d'une mise à jour du paquet : à supprimer à la main une fois la nouvelle version validée.
 
 ### Identifiants des CLIs
