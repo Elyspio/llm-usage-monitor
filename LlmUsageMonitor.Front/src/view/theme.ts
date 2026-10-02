@@ -85,12 +85,12 @@ export const theme = createTheme({
 	},
 });
 
-/** Read by screen readers, invisible on screen: the text alternatives of the charts. */
+/** Read by screen readers, invisible on screen: the text alternatives of the charts. Sizes in px: in `sx`, `width: 1` means 100%. */
 export const visuallyHidden = {
 	position: "absolute",
-	width: 1,
-	height: 1,
-	margin: -1,
+	width: "1px",
+	height: "1px",
+	margin: "-1px",
 	padding: 0,
 	border: 0,
 	overflow: "hidden",
