@@ -1,11 +1,11 @@
-import type { RuntimeConfig } from "@/config/runtime.config";
+import type { PageConfig } from "@/config/runtime.config";
 
 declare global {
 	/** Runtime state exposed by the host page. */
 	interface Window {
 		"llm-usage-monitor"?: {
 			/** Environment-specific configuration, set by `/conf.js`. */
-			config?: RuntimeConfig;
+			config?: PageConfig;
 		};
 	}
 

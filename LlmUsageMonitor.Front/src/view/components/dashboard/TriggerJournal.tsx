@@ -11,9 +11,11 @@ export const TriggerJournal = ({ runs, now }: { runs: TriggerRun[]; now: number 
 			<Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
 				Trigger log
 			</Typography>
-			<Typography variant="caption" sx={{ color: "text.secondary" }}>
-				Last 10
-			</Typography>
+			{runs.length > 0 && (
+				<Typography variant="caption" sx={{ color: "text.secondary" }}>
+					Last {runs.length}
+				</Typography>
+			)}
 		</Stack>
 		{runs.length === 0 ? (
 			<Typography sx={{ color: "text.secondary", py: 4, textAlign: "center" }}>No trigger yet.</Typography>

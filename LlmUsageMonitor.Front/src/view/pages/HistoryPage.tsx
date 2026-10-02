@@ -1,14 +1,13 @@
 import { Alert, CircularProgress, Grid, Stack, Typography } from "@mui/material";
-import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { getDashboardOptions } from "@/core/apis/generated/@tanstack/react-query.gen";
 import { HistoryCard } from "@components/dashboard/HistoryCard";
 import { TriggerJournal } from "@components/dashboard/TriggerJournal";
+import { useDashboard } from "@hooks/useDashboard";
 import { useNow } from "@hooks/useNow";
 
 export const HistoryPage = () => {
 	const now = useNow();
-	const { data, isPending, isError } = useQuery({ ...getDashboardOptions(), refetchInterval: 30_000, refetchOnWindowFocus: true });
+	const { data, isPending, isError } = useDashboard();
 	const durations = useMemo(
 		() =>
 			Object.fromEntries(

@@ -4,18 +4,49 @@ import "@fontsource/manrope/latin-600.css";
 import "@fontsource/manrope/latin-700.css";
 import "@fontsource/ibm-plex-mono/latin-500.css";
 
+declare module "@mui/material/styles" {
+	/** Colours of the application outside the MUI palette, read in `sx` as `surface.<key>`. */
+	interface SurfacePalette {
+		/** Background of the logo, the avatar and the section icons. */
+		accent: string;
+		/** Background of the active navigation link. */
+		selected: string;
+		/** Track of the quota bars. */
+		track: string;
+		/** Window whose values are stale or whose reset has passed. */
+		muted: string;
+		/** "Now" marker of the timeline. */
+		now: string;
+		/** Monday markers of the timeline. */
+		monday: string;
+	}
+
+	interface Palette {
+		surface: SurfacePalette;
+	}
+
+	interface PaletteOptions {
+		surface?: SurfacePalette;
+	}
+}
+
+const primary = "#10b981";
+const divider = "#29292d";
+const textSecondary = "#a1a1aa";
+
 export const theme = createTheme({
 	cssVariables: true,
 	palette: {
 		mode: "dark",
-		primary: { main: "#10b981", contrastText: "#052e23" },
-		secondary: { main: "#a1a1aa" },
-		success: { main: "#10b981" },
+		primary: { main: primary, contrastText: "#052e23" },
+		secondary: { main: textSecondary },
+		success: { main: primary },
 		warning: { main: "#fbbf24" },
 		error: { main: "#ff9292" },
 		background: { default: "#0a0a0b", paper: "#18181b" },
-		text: { primary: "#fafafa", secondary: "#a1a1aa" },
-		divider: "#29292d",
+		text: { primary: "#fafafa", secondary: textSecondary },
+		divider,
+		surface: { accent: "#12352b", selected: "#15352d", track: "#28282b", muted: "#85858e", now: "#d4d4d8", monday: "#7dd3fc" },
 	},
 	shape: { borderRadius: 14 },
 	typography: {
@@ -32,8 +63,8 @@ export const theme = createTheme({
 		MuiCssBaseline: {
 			styleOverrides: {
 				body: { minWidth: 320 },
-				"::selection": { background: "#10b981", color: "#ffffff" },
-				"*:focus-visible": { outline: "2px solid #10b981", outlineOffset: 4 },
+				"::selection": { background: primary, color: "#ffffff" },
+				"*:focus-visible": { outline: `2px solid ${primary}`, outlineOffset: 4 },
 				"@media (prefers-reduced-motion: reduce)": { "*, *::before, *::after": { animation: "none !important", transition: "none !important" } },
 			},
 		},
@@ -42,8 +73,8 @@ export const theme = createTheme({
 		MuiChip: { styleOverrides: { root: { borderRadius: 6, fontSize: "0.65rem", fontWeight: 600 }, sizeSmall: { height: 23 } } },
 		MuiTableCell: {
 			styleOverrides: {
-				root: { borderColor: "#29292d", padding: "14px 10px", fontSize: "0.75rem" },
-				head: { color: "#a1a1aa", fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.08em" },
+				root: { borderColor: divider, padding: "14px 10px", fontSize: "0.75rem" },
+				head: { color: textSecondary, fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.08em" },
 			},
 		},
 		MuiTextField: { defaultProps: { size: "small" } },

@@ -3,7 +3,7 @@ import { sortWindows, windowTiming } from "./dashboard";
 
 export function toTimeline(providers: ProviderDashboard[], now: number) {
 	const rows = providers.flatMap((provider) =>
-		sortWindows(provider.lastReading?.windows ?? [], provider.triggerWindowId).map((window) => ({ provider, window, timing: windowTiming(window, now) }))
+		sortWindows(provider.lastReading?.windows ?? [], provider.triggerWindowId).map((window) => ({ provider, window, timing: windowTiming(window) }))
 	);
 	const valid = rows.flatMap((row) => (row.timing && Number.isFinite(row.timing.start) && Number.isFinite(row.timing.end) ? [row.timing.start, row.timing.end] : []));
 	const start = new Date(Math.min(now, ...valid));

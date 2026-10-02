@@ -7,6 +7,7 @@ import { Avatar, Box, Button, IconButton, Stack, Tooltip, Typography } from "@mu
 import { NavLink, Outlet } from "react-router";
 import { routes } from "@/config/routes";
 import { useAuth } from "@/view/context/auth.context";
+import { AppLogo } from "@components/AppLogo";
 
 export const AppLayout = () => {
 	const { user, signOut } = useAuth();
@@ -25,8 +26,8 @@ export const AppLayout = () => {
 				sx={{
 					width: { md: 264, xl: 300 },
 					flexShrink: 0,
-					borderRight: { md: "1px solid #29292d" },
-					borderBottom: { xs: "1px solid #29292d", md: 0 },
+					borderRight: { md: 1 },
+					borderBottom: { xs: 1, md: 0 },
 					borderColor: "divider",
 					bgcolor: "background.paper",
 					p: { xs: 2, md: 3 },
@@ -38,22 +39,7 @@ export const AppLayout = () => {
 				}}
 			>
 				<Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mb: { xs: 2, md: 6 } }}>
-					<Box
-						aria-hidden="true"
-						sx={{
-							width: 37,
-							height: 37,
-							bgcolor: "#12352b",
-							color: "primary.main",
-							borderRadius: "10px",
-							display: "grid",
-							placeItems: "center",
-							fontFamily: "IBM Plex Mono",
-							fontWeight: 500,
-						}}
-					>
-						↗
-					</Box>
+					<AppLogo />
 					<Box>
 						<Typography sx={{ fontWeight: 700, letterSpacing: "-0.04em" }}>LLM Monitor</Typography>
 						<Typography variant="overline" sx={{ color: "text.secondary", fontSize: "0.65rem" }}>
@@ -80,7 +66,7 @@ export const AppLayout = () => {
 							flex: { xs: 1, md: "initial" },
 						},
 						"& .MuiButton-startIcon": { ml: 0, mr: { xs: 0.75, md: 1 } },
-						"& .active": { bgcolor: "#15352d", color: "text.primary" },
+						"& .active": { bgcolor: "surface.selected", color: "text.primary" },
 					}}
 				>
 					<Button component={NavLink} to={routes.dashboard} end startIcon={<DashboardOutlinedIcon />}>
@@ -106,7 +92,7 @@ export const AppLayout = () => {
 						<Avatar
 							aria-hidden="true"
 							variant="rounded"
-							sx={{ width: 32, height: 32, borderRadius: "10px", bgcolor: "#12352b", color: "primary.main", fontFamily: "IBM Plex Mono", fontSize: "0.85rem" }}
+							sx={{ width: 32, height: 32, borderRadius: "10px", bgcolor: "surface.accent", color: "primary.main", fontFamily: "IBM Plex Mono", fontSize: "0.85rem" }}
 						>
 							{username?.[0]?.toUpperCase() ?? "?"}
 						</Avatar>

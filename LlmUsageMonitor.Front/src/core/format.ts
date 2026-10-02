@@ -45,11 +45,4 @@ export function fmtIn(value: When, now: number): string {
 
 export const fmtAgo = (value: When, now: number) => `${fmtSpan(now - toMs(value))} ago`;
 
-export function fmtDuration(minutes: number | null | undefined): string {
-	if (minutes == null) return "unknown duration";
-	if (minutes % 1440 === 0) return `${minutes / 1440} d`;
-	if (minutes % 60 === 0) return `${minutes / 60} h`;
-	return `${minutes} min`;
-}
-
 export const fmtPercent = (value: number) => `${Math.round(value)}%`;

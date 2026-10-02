@@ -6,7 +6,6 @@ import { toTimeline } from "@/core/timeline";
 
 const columns = "minmax(210px, 28%) minmax(0, 1fr) 100px";
 const mono = { fontFamily: "IBM Plex Mono, monospace" };
-const mondayColor = "#7dd3fc";
 const dateLabel = (value: number) => new Date(value).toLocaleDateString(locale, { day: "numeric", month: "short" });
 
 export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard[]; now: number }) => {
@@ -26,7 +25,7 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 							key={monday}
 							variant="overline"
 							title="Monday"
-							sx={{ position: "absolute", left: `${position(monday)}%`, top: -25, transform: "translateX(-50%)", color: mondayColor }}
+							sx={{ position: "absolute", left: `${position(monday)}%`, top: -25, transform: "translateX(-50%)", color: "surface.monday" }}
 						>
 							M
 						</Typography>
@@ -63,8 +62,8 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 				const stale = isDegraded(provider.health);
 				const expired = window.resetsAt != null && Date.parse(window.resetsAt) < now;
 				const remaining = Math.max(0, Math.min(100, 100 - window.usedPercent));
-				const status = stale || expired ? "#85858e" : remaining >= 50 ? "#10b981" : remaining >= 20 ? "#fbbf24" : "#fb7185";
-				const color = stale || expired ? "#85858e" : windowColor(provider.provider, window.id);
+				const status = stale || expired ? "surface.muted" : remaining >= 50 ? "success.main" : remaining >= 20 ? "warning.main" : "error.main";
+				const color = stale || expired ? "surface.muted" : windowColor(provider.provider, window.id);
 				const validTiming = timing && Number.isFinite(timing.start) && Number.isFinite(timing.end) ? timing : null;
 				const left = validTiming ? position(validTiming.start) : 0;
 				const width = validTiming ? position(validTiming.end) - left : 0;
@@ -122,15 +121,17 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 										width: `${width}%`,
 										minWidth: 2,
 										height: 16,
-										bgcolor: "#28282b",
+										bgcolor: "surface.track",
 										appearance: "none",
 										border: 0,
-										"&::-webkit-progress-bar": { backgroundColor: "#28282b" },
+										"&::-webkit-progress-bar": { backgroundColor: "surface.track" },
 										"&::-webkit-progress-value": { backgroundColor: color },
 										"&::-moz-progress-bar": { backgroundColor: color },
 										borderRadius: "4px",
 										overflow: "hidden",
-										outline: width < 4 ? `1px solid ${color}` : undefined,
+										outlineWidth: 1,
+										outlineStyle: width < 4 ? "solid" : "none",
+										outlineColor: color,
 									}}
 								>
 									{fmtPercent(window.usedPercent)}
@@ -144,10 +145,10 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 								<Box
 									key={monday}
 									aria-hidden="true"
-									sx={{ position: "absolute", top: 4, height: 30, width: 2, bgcolor: mondayColor, left: `${position(monday)}%` }}
+									sx={{ position: "absolute", top: 4, height: 30, width: 2, bgcolor: "surface.monday", left: `${position(monday)}%` }}
 								/>
 							))}
-							<Box aria-label="Now" sx={{ position: "absolute", top: 4, height: 30, width: 2, bgcolor: "#d4d4d8", left: `${position(now)}%` }} />
+							<Box aria-label="Now" sx={{ position: "absolute", top: 4, height: 30, width: 2, bgcolor: "surface.now", left: `${position(now)}%` }} />
 							{validTiming && width < 5 && !expired && (
 								<Typography variant="caption" sx={{ ...mono, position: "absolute", top: -13, right: 0, color: "text.secondary" }}>
 									reset {fmtIn(window.resetsAt!, now)}
@@ -185,15 +186,15 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 					quota used
 				</Typography>
 				<Typography variant="body2">
-					<Box component="span" sx={{ display: "inline-block", width: 20, height: 10, bgcolor: "#28282b", borderRadius: "3px", mr: 1 }} />
+					<Box component="span" sx={{ display: "inline-block", width: 20, height: 10, bgcolor: "surface.track", borderRadius: "3px", mr: 1 }} />
 					open window
 				</Typography>
 				<Typography variant="body2">
-					<Box component="span" sx={{ display: "inline-block", width: 2, height: 14, bgcolor: "#d4d4d8", mr: 1, verticalAlign: "middle" }} />
+					<Box component="span" sx={{ display: "inline-block", width: 2, height: 14, bgcolor: "surface.now", mr: 1, verticalAlign: "middle" }} />
 					now
 				</Typography>
 				<Typography variant="body2">
-					<Box component="span" sx={{ display: "inline-block", width: 2, height: 14, bgcolor: mondayColor, mr: 1, verticalAlign: "middle" }} />
+					<Box component="span" sx={{ display: "inline-block", width: 2, height: 14, bgcolor: "surface.monday", mr: 1, verticalAlign: "middle" }} />
 					Monday
 				</Typography>
 			</Stack>
