@@ -73,13 +73,15 @@ public sealed class HealthTracker(INotificationService notifications) : IHealthT
 
 		var login = state.Provider == Provider.Claude ? "claude auth login" : "codex login --device-auth";
 		var detail = string.Create(CultureInfo.InvariantCulture, $"La connexion du CLI expire le {expiresAt.UtcDateTime:yyyy-MM-dd HH:mm} UTC : relancer `{login}` sur le serveur.");
-		return await notifications.Notify(NotificationKind.AuthExpiring, state.Provider, detail, cancellationToken)
+		// Marked only once delivered: a warning skipped while ntfy is not configured is sent once it is.
+		return await notifications.Notify(NotificationKind.AuthExpiring, state.Provider, detail, cancellationToken) == NotificationOutcome.Delivered
 			? state with { CredentialExpiryAlertedFor = expiresAt }
 			: state;
 	}
 
 	/// <summary>
-	///     Sends an alert once per failure streak. An undelivered alert stays inactive: the next failed reading sends it again.
+	///     Sends an alert once per failure streak. An alert that was not delivered (failed, or skipped while ntfy is not
+	///     configured or the event disabled) stays inactive: the next failed reading sends it again.
 	/// </summary>
 	private async Task<ProviderState> Alert(ProviderState state, NotificationKind kind, string detail, CancellationToken cancellationToken)
 	{
@@ -88,7 +90,7 @@ public sealed class HealthTracker(INotificationService notifications) : IHealthT
 			return state;
 		}
 
-		return await notifications.Notify(kind, state.Provider, detail, cancellationToken)
+		return await notifications.Notify(kind, state.Provider, detail, cancellationToken) == NotificationOutcome.Delivered
 			? state with { ActiveAlerts = [.. state.ActiveAlerts, kind] }
 			: state;
 	}
