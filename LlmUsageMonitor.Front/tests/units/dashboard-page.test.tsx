@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vite-plus/test";
@@ -7,6 +7,22 @@ import { client } from "@/core/apis/generated/client.gen";
 import type { TriggerRun } from "@/core/apis/generated/types.gen";
 import { DashboardPage } from "@pages/DashboardPage";
 import { apiUrl, dashboard, degradedClaude, emptyHistory } from "./fixtures";
+
+const runningRun: TriggerRun = {
+	id: "run-1",
+	provider: "codex",
+	manual: true,
+	cycleKey: null,
+	model: "gpt-5.6-luna",
+	status: "running",
+	startedAt: new Date().toISOString(),
+	endedAt: null,
+	errorCode: null,
+	error: null,
+	attempts: 1,
+	nextRetryAt: null,
+	durationMs: null,
+};
 
 const server = setupServer(
 	http.get(`${apiUrl}/api/dashboard`, () => HttpResponse.json(dashboard)),
@@ -20,9 +36,9 @@ beforeAll(() => {
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-const renderPage = () =>
+const renderPage = (queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })) =>
 	render(
-		<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+		<QueryClientProvider client={queryClient}>
 			<DashboardPage />
 		</QueryClientProvider>
 	);
@@ -55,21 +71,7 @@ describe("DashboardPage", () => {
 	});
 
 	it("queues a manual trigger and follows it until it ends", async () => {
-		const run: TriggerRun = {
-			id: "run-1",
-			provider: "codex",
-			manual: true,
-			cycleKey: null,
-			model: "gpt-5.6-luna",
-			status: "running",
-			startedAt: new Date().toISOString(),
-			endedAt: null,
-			errorCode: null,
-			error: null,
-			attempts: 1,
-			nextRetryAt: null,
-			durationMs: null,
-		};
+		const run = runningRun;
 		let posted = 0;
 		let followed = 0;
 		server.use(
@@ -97,5 +99,46 @@ describe("DashboardPage", () => {
 		renderPage();
 
 		expect(await screen.findByText("Could not load the dashboard.")).toBeTruthy();
+	});
+
+	it("keeps the values after a failed refresh, with a banner to retry", async () => {
+		const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+		renderPage(queryClient);
+		await screen.findByRole("region", { name: "Quota timeline" });
+
+		server.use(http.get(`${apiUrl}/api/dashboard`, () => HttpResponse.error()));
+		await queryClient.refetchQueries();
+
+		expect(await screen.findByText(/Could not refresh the dashboard: The API could not be reached/)).toBeTruthy();
+		expect(screen.getByRole("region", { name: "Quota timeline" })).toBeTruthy();
+
+		server.resetHandlers();
+		fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+		await waitFor(() => expect(screen.queryByText(/Could not refresh the dashboard/)).toBeNull());
+	});
+
+	it("says why a trigger is refused", async () => {
+		server.use(http.post(`${apiUrl}/api/providers/codex/trigger`, () => HttpResponse.json({ title: "busy", status: 409 }, { status: 409 })));
+
+		renderPage();
+		const codex = await screen.findByRole("region", { name: "Codex" });
+		fireEvent.click(within(codex).getByRole("button", { name: /Trigger now/ }));
+
+		expect(await within(codex).findByText("Trigger refused. A CLI process is already running for this provider.")).toBeTruthy();
+		expect((within(codex).getByRole("button", { name: /Trigger now/ }) as HTMLButtonElement).disabled).toBe(false);
+	});
+
+	it("releases the trigger button when the queued run cannot be followed", async () => {
+		server.use(
+			http.post(`${apiUrl}/api/providers/codex/trigger`, () => HttpResponse.json({ ...runningRun }, { status: 202 })),
+			http.get(`${apiUrl}/api/trigger-runs/run-1`, () => HttpResponse.json({ title: "boom", status: 500 }, { status: 500 }))
+		);
+
+		renderPage();
+		const codex = await screen.findByRole("region", { name: "Codex" });
+		fireEvent.click(within(codex).getByRole("button", { name: /Trigger now/ }));
+
+		expect(await within(codex).findByText(/its progress could not be read. Server error \(500\)/)).toBeTruthy();
+		expect((within(codex).getByRole("button", { name: /Trigger now/ }) as HTMLButtonElement).disabled).toBe(false);
 	});
 });

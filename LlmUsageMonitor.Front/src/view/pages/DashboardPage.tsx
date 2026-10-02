@@ -1,15 +1,17 @@
-import { Alert, Box, CircularProgress, Grid, Stack, Typography } from "@mui/material";
+import { Box, CircularProgress, Grid, Stack, Typography } from "@mui/material";
 import { ProviderColumn } from "@components/dashboard/ProviderColumn";
 import { UsageTimeline } from "@components/dashboard/UsageTimeline";
+import { QueryError } from "@components/QueryError";
 import { useDashboard } from "@hooks/useDashboard";
 import { useNow } from "@hooks/useNow";
 
 export const DashboardPage = () => {
 	const now = useNow();
-	const { data, isPending, isError } = useDashboard();
+	const dashboard = useDashboard();
+	const { data } = dashboard;
 
-	if (isPending) return <CircularProgress />;
-	if (isError) return <Alert severity="error">Could not load the dashboard.</Alert>;
+	if (dashboard.isPending) return <CircularProgress />;
+	if (!data) return <QueryError query={dashboard} subject="the dashboard" />;
 
 	return (
 		<Stack spacing={4}>
@@ -18,6 +20,7 @@ export const DashboardPage = () => {
 					01 / Dashboard
 				</Typography>
 			</Box>
+			<QueryError query={dashboard} subject="the dashboard" />
 			<UsageTimeline providers={data.providers} now={now} />
 			<Grid container spacing={3}>
 				{data.providers.map((provider) => (

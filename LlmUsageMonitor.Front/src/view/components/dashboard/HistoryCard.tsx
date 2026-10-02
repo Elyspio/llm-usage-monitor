@@ -1,12 +1,13 @@
-import { Alert, Chip, CircularProgress, Paper, Stack, ToggleButton, ToggleButtonGroup, Typography, useTheme } from "@mui/material";
+import { Chip, CircularProgress, Paper, Stack, ToggleButton, ToggleButtonGroup, Typography, useTheme } from "@mui/material";
 import { ChartsReferenceLine } from "@mui/x-charts/ChartsReferenceLine";
 import { LineChart } from "@mui/x-charts/LineChart";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { getHistoryOptions } from "@/core/apis/generated/@tanstack/react-query.gen";
 import type { UsageHistory } from "@/core/apis/generated/types.gen";
 import { providerColor, providerLabel, windowColor, windowLabel } from "@/core/dashboard";
 import { fmtDayLabel, fmtHour } from "@/core/format";
+import { QueryError } from "@components/QueryError";
 
 type Range = "24h" | "7d";
 
@@ -40,13 +41,15 @@ export const HistoryCard = ({ durations, now }: { durations: Record<string, numb
 	const theme = useTheme();
 	const [range, setRange] = useState<Range>("24h");
 	const [hidden, setHidden] = useState<string[]>([]);
-	const { data, isPending, isError } = useQuery({ ...getHistoryOptions({ query: { range } }), refetchInterval: 60_000 });
+	// The previous range stays shown, dimmed, while the new one loads.
+	const history = useQuery({ ...getHistoryOptions({ query: { range } }), refetchInterval: 60_000, placeholderData: keepPreviousData });
+	const { data, isPending } = history;
 	const chart = useMemo(() => (data ? toChart(data, durations) : null), [data, durations]);
 	const visible = chart?.series.filter((series) => !hidden.includes(series.key)) ?? [];
 	const toggle = (key: string) => setHidden((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
 
 	return (
-		<Paper component="section" aria-label="History" variant="outlined" sx={{ p: 2.5, height: "100%" }}>
+		<Paper component="section" aria-label="History" variant="outlined" sx={{ p: 2.5, height: "100%", opacity: history.isPlaceholderData ? 0.7 : 1 }}>
 			<Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
 				<Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
 					History · % remaining
@@ -56,10 +59,15 @@ export const HistoryCard = ({ durations, now }: { durations: Record<string, numb
 					<ToggleButton value="7d">7 d</ToggleButton>
 				</ToggleButtonGroup>
 			</Stack>
-			{isError ? (
-				<Alert severity="error">Could not load the history.</Alert>
-			) : isPending || !chart ? (
+			{data !== undefined && (
+				<Stack sx={{ mb: 1 }}>
+					<QueryError query={history} subject="the history" />
+				</Stack>
+			)}
+			{isPending ? (
 				<CircularProgress />
+			) : !data || !chart ? (
+				<QueryError query={history} subject="the history" />
 			) : chart.series.length === 0 ? (
 				<Typography sx={{ color: "text.secondary", py: 8, textAlign: "center" }}>No reading over the period.</Typography>
 			) : (
@@ -91,7 +99,7 @@ export const HistoryCard = ({ durations, now }: { durations: Record<string, numb
 						yAxis={[{ min: 0, max: 100, valueFormatter: (value: number) => `${value}%` }]}
 						series={visible.map((series) => ({ id: series.key, label: series.label, data: series.data, color: series.color, showMark: false, connectNulls: false }))}
 					>
-						{data!.triggerRuns.map((run) => (
+						{data.triggerRuns.map((run) => (
 							<ChartsReferenceLine
 								key={run.id}
 								x={new Date(run.startedAt)}
