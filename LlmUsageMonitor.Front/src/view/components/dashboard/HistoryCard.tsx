@@ -8,8 +8,11 @@ import type { UsageHistory } from "@/core/apis/generated/types.gen";
 import { providerColor, providerLabel, windowColor, windowLabel } from "@/core/dashboard";
 import { fmtDayLabel, fmtHour } from "@/core/format";
 import { QueryError } from "@components/QueryError";
+import { useNow } from "@hooks/useNow";
 
 type Range = "24h" | "7d";
+
+const yAxis = [{ min: 0, max: 100, valueFormatter: (value: number) => `${value}%` }];
 
 type Series = { key: string; label: string; color: string; data: (number | null)[] };
 
@@ -37,15 +40,33 @@ export function toChart(history: UsageHistory, durations: Record<string, number 
 	return { times: times.map((time) => new Date(time)), series };
 }
 
-export const HistoryCard = ({ durations, now }: { durations: Record<string, number | null>; now: number }) => {
+/** Usage history over 24 h or 7 days. Its own clock ticks every minute: the chart is never redrawn for a countdown. */
+export const HistoryCard = ({ durations }: { durations: Record<string, number | null> }) => {
 	const theme = useTheme();
+	const now = useNow(60_000);
 	const [range, setRange] = useState<Range>("24h");
 	const [hidden, setHidden] = useState<string[]>([]);
 	// The previous range stays shown, dimmed, while the new one loads.
 	const history = useQuery({ ...getHistoryOptions({ query: { range } }), refetchInterval: 60_000, placeholderData: keepPreviousData });
 	const { data, isPending } = history;
 	const chart = useMemo(() => (data ? toChart(data, durations) : null), [data, durations]);
-	const visible = chart?.series.filter((series) => !hidden.includes(series.key)) ?? [];
+	const series = useMemo(
+		() =>
+			(chart?.series ?? [])
+				.filter((item) => !hidden.includes(item.key))
+				.map((item) => ({ id: item.key, label: item.label, data: item.data, color: item.color, showMark: false, connectNulls: false })),
+		[chart, hidden]
+	);
+	const xAxis = useMemo(
+		() => [
+			{
+				scaleType: "time" as const,
+				data: chart?.times ?? [],
+				valueFormatter: (date: Date) => (range === "24h" ? fmtHour(date) : `${fmtDayLabel(date, now)} ${fmtHour(date)}`),
+			},
+		],
+		[chart, range, now]
+	);
 	const toggle = (key: string) => setHidden((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
 
 	return (
@@ -84,21 +105,7 @@ export const HistoryCard = ({ durations, now }: { durations: Record<string, numb
 							/>
 						))}
 					</Stack>
-					<LineChart
-						height={300}
-						skipAnimation
-						hideLegend
-						grid={{ horizontal: true }}
-						xAxis={[
-							{
-								scaleType: "time",
-								data: chart.times,
-								valueFormatter: (date: Date) => (range === "24h" ? fmtHour(date) : `${fmtDayLabel(date, now)} ${fmtHour(date)}`),
-							},
-						]}
-						yAxis={[{ min: 0, max: 100, valueFormatter: (value: number) => `${value}%` }]}
-						series={visible.map((series) => ({ id: series.key, label: series.label, data: series.data, color: series.color, showMark: false, connectNulls: false }))}
-					>
+					<LineChart height={300} skipAnimation hideLegend grid={{ horizontal: true }} xAxis={xAxis} yAxis={yAxis} series={series}>
 						{data.triggerRuns.map((run) => (
 							<ChartsReferenceLine
 								key={run.id}
