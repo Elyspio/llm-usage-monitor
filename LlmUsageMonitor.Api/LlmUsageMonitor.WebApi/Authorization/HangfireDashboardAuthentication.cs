@@ -40,7 +40,7 @@ public static class HangfireDashboardAuthentication
 			.Configure<IOptions<OidcConfig>, IHostEnvironment>((options, oidc, environment) =>
 			{
 				options.SignInScheme = CookieScheme;
-				options.Authority = oidc.Value.Authority;
+				options.Authority = oidc.Value.Issuer;
 				options.ClientId = oidc.Value.ClientId;
 				options.ResponseType = OpenIdConnectResponseType.Code;
 				options.UsePkce = true;
