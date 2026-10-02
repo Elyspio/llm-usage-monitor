@@ -82,6 +82,29 @@ Moniteur dans l'Uptime Kuma existant (une fois) :
 Pour ne surveiller que les pannes franches (sans les `Degraded`), un moniteur **HTTP(s)** simple sur la même URL suffit : seul le 503 le fait échouer.
 
 
+## Rétention des données
+
+Appliquée au démarrage par `MongoStorageInitializer` (index TTL, `collMod` sur l'existant) et par un job Hangfire quotidien :
+
+| Données | Durée | Mécanisme |
+| --- | --- | --- |
+| `usageSnapshots` (time-series) | 30 jours | `expireAfterSeconds` de la collection, remis à jour par `collMod` si elle a été créée avec une autre valeur |
+| `resets` | 90 jours | index TTL sur `detectedAt` |
+| `triggerRuns` | 90 jours | index TTL sur `startedAt` (l'index de tri existant devient TTL par `collMod`) |
+| jobs Hangfire réussis / supprimés | 1 jour | expiration par défaut de Hangfire |
+| jobs Hangfire en échec | 7 jours | job récurrent `purge-failed-jobs` (5 h UTC) : passés en `Deleted`, ils expirent le lendemain |
+| `tokenUsage`, `settings`, `providerStates`, `modelPrices`, `usageMachines`, `dataProtectionKeys` | sans expiration | — |
+
+`collMod` demande plus que `readWrite` (rôle `dbAdmin` sur la base). Sans ce droit, l'application démarre quand même et journalise la commande à lancer à la main (`Retention not applied...`). Une fois, avec un compte admin de `rs-shard-a` :
+
+```js
+use llm-usage-monitor
+db.runCommand({ collMod: "usageSnapshots", expireAfterSeconds: 2592000 })
+db.runCommand({ collMod: "triggerRuns", index: { keyPattern: { startedAt: -1 }, expireAfterSeconds: 7776000 } })
+```
+
+L'historique est agrégé par MongoDB : un point par fenêtre et par tranche de 5 min sur 24 h, d'une heure sur 7 jours (la dernière lecture de la tranche).
+
 ## Notes
 
 - Le shell de `root` sur le LXC est fish : les scripts distants de `deploy.ps1` sont passés à `bash` par l'entrée standard, jamais au shell de connexion.

@@ -73,6 +73,9 @@ public interface IJobScheduler
 	/// <summary>Schedules the daily refresh of the model prices.</summary>
 	void SchedulePriceRefresh();
 
+	/// <summary>Schedules the daily purge of the job storage (failed jobs past their retention).</summary>
+	void ScheduleJobPurge();
+
 	void EnqueuePriceRefresh();
 
 	void Delete(string jobId);

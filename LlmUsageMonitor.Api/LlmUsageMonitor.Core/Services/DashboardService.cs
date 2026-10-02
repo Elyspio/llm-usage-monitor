@@ -48,11 +48,17 @@ public sealed class DashboardService(
 
 public sealed class HistoryService(IUsageSnapshotRepository snapshots, ITriggerRunRepository runs, TimeProvider time) : IHistoryService
 {
+	/// <summary>The chart resolution: 5 minutes up to a day (288 points), an hour beyond (168 points for a week).</summary>
+	public static TimeSpan BucketFor(TimeSpan range)
+	{
+		return range <= TimeSpan.FromDays(1) ? TimeSpan.FromMinutes(5) : TimeSpan.FromHours(1);
+	}
+
 	public async Task<UsageHistory> Get(Provider? provider, string? windowId, TimeSpan range, CancellationToken cancellationToken)
 	{
 		var to = time.GetUtcNow();
 		var from = to - range;
-		var series = await snapshots.GetHistory(provider, windowId, from, to, cancellationToken);
+		var series = await snapshots.GetHistory(provider, windowId, from, to, BucketFor(range), cancellationToken);
 		var triggerRuns = await runs.GetBetween(provider, from, to, cancellationToken);
 		return new(from, to, series, triggerRuns);
 	}
