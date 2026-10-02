@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using LlmUsageMonitor.Abstractions.Configurations;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.Options;
 
 namespace LlmUsageMonitor.Hosting;
@@ -20,7 +21,7 @@ public static class ProductionHosting
 	{
 		if (Environment.GetEnvironmentVariable(SettingsFileVariable) is { Length: > 0 } settingsFile)
 		{
-			builder.Configuration.AddJsonFile(settingsFile, false, true);
+			AddSettingsFile(builder.Configuration, settingsFile);
 		}
 
 		// HAProxy terminates TLS: only the declared proxies may set the scheme and client address (OIDC redirects must stay https).
@@ -35,6 +36,27 @@ public static class ProductionHosting
 		});
 
 		return builder;
+	}
+
+	/// <summary>
+	///     Adds the production settings file right after the <c>appsettings</c> files: it overrides them, while an environment
+	///     variable (unprefixed, e.g. <c>Oidc__Authority</c>) or a command-line argument still overrides the file.
+	/// </summary>
+	public static void AddSettingsFile(IConfigurationBuilder configuration, string settingsFile)
+	{
+		configuration.AddJsonFile(settingsFile, false, true);
+
+		var sources = configuration.Sources;
+		var settings = sources[^1];
+		sources.RemoveAt(sources.Count - 1);
+		var lastJsonFile = -1;
+		for (var index = 0; index < sources.Count; index++)
+			if (sources[index] is JsonConfigurationSource)
+			{
+				lastJsonFile = index;
+			}
+
+		sources.Insert(lastJsonFile + 1, settings);
 	}
 
 	/// <summary>
