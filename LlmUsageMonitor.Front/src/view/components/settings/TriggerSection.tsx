@@ -2,21 +2,30 @@ import BoltOutlinedIcon from "@mui/icons-material/BoltOutlined";
 import { Autocomplete, Box, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
-import { getDashboardQueryKey, updateTriggerSettingsMutation } from "@/core/apis/generated/@tanstack/react-query.gen";
+import { getDashboardQueryKey, getTriggerSettingsQueryKey, updateTriggerSettingsMutation } from "@/core/apis/generated/@tanstack/react-query.gen";
 import type { TriggerSettings } from "@/core/apis/generated/types.gen";
 import { modelSuggestions, providerLabel, providers } from "@/core/dashboard";
 import { collect, type FieldErrors, serverFieldErrors, validateModel } from "@/core/settings.validation";
-import { SaveBar, SettingsSection } from "./SettingsSection";
+import { SaveBar, SettingsSection, useDraft } from "./SettingsSection";
 
-export function TriggerSection({ initial }: { initial: TriggerSettings }) {
+export function TriggerSection({ settings }: { settings: TriggerSettings }) {
 	const queryClient = useQueryClient();
-	const [values, setValues] = useState(initial);
+	const { values, edit, discard } = useDraft(settings);
 	const [errors, setErrors] = useState<FieldErrors>({});
 	const save = useMutation({
 		...updateTriggerSettingsMutation(),
-		onSuccess: () => void queryClient.invalidateQueries({ queryKey: getDashboardQueryKey() }),
+		onSuccess: (saved) => {
+			queryClient.setQueryData(getTriggerSettingsQueryKey(), saved);
+			discard();
+			void queryClient.invalidateQueries({ queryKey: getDashboardQueryKey() });
+		},
 		onError: (error) => setErrors(serverFieldErrors(error)),
 	});
+
+	const setValues = (next: TriggerSettings) => {
+		edit(next);
+		if (save.isSuccess) save.reset();
+	};
 
 	const submit = (event: FormEvent) => {
 		event.preventDefault();
@@ -31,7 +40,7 @@ export function TriggerSection({ initial }: { initial: TriggerSettings }) {
 			subtitle="Restarts a usage window after a reset."
 			icon={<BoltOutlinedIcon fontSize="small" />}
 			onSubmit={submit}
-			actions={<SaveBar pending={save.isPending} saved={save.isSuccess} failed={save.isError} />}
+			actions={<SaveBar pending={save.isPending} saved={save.isSuccess} error={save.error} />}
 		>
 			<Box sx={{ overflowX: "auto" }}>
 				<Table size="small" aria-label="Trigger per provider" sx={{ minWidth: 440 }}>

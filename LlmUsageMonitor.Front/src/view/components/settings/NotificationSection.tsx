@@ -17,7 +17,10 @@ import {
 	validateTopic,
 } from "@/core/settings.validation";
 import { useNow } from "@hooks/useNow";
-import { SaveBar, SettingsSection } from "./SettingsSection";
+import { SaveBar, SettingsSection, useDraft } from "./SettingsSection";
+
+/** The editable fields; the token is apart, never read back from the server. */
+type NotificationForm = Pick<NotificationSettingsView, "url" | "events" | "readFailureThreshold" | "credentialExpiryAlertDays"> & { topic: string };
 
 const eventLabels: Record<keyof NotificationEvents, string> = {
 	triggerFailed: "Automatic trigger failed",
@@ -28,14 +31,14 @@ const eventLabels: Record<keyof NotificationEvents, string> = {
 	recovered: "Back to normal",
 };
 
-export function NotificationSection({ initial }: { initial: NotificationSettingsView }) {
+export function NotificationSection({ settings }: { settings: NotificationSettingsView }) {
 	const queryClient = useQueryClient();
-	const [values, setValues] = useState({
-		url: initial.url,
-		topic: initial.topic ?? "",
-		events: initial.events,
-		readFailureThreshold: initial.readFailureThreshold,
-		credentialExpiryAlertDays: initial.credentialExpiryAlertDays,
+	const { values, edit, discard } = useDraft<NotificationForm>({
+		url: settings.url,
+		topic: settings.topic ?? "",
+		events: settings.events,
+		readFailureThreshold: settings.readFailureThreshold,
+		credentialExpiryAlertDays: settings.credentialExpiryAlertDays,
 	});
 	const [token, setToken] = useState("");
 	const [removeToken, setRemoveToken] = useState(false);
@@ -43,23 +46,31 @@ export function NotificationSection({ initial }: { initial: NotificationSettings
 	const refresh = () => void queryClient.invalidateQueries({ queryKey: getNotificationSettingsQueryKey() });
 	const save = useMutation({
 		...updateNotificationSettingsMutation(),
-		onSuccess: () => {
+		onSuccess: (saved) => {
+			queryClient.setQueryData(getNotificationSettingsQueryKey(), saved);
+			discard();
 			setToken("");
 			setRemoveToken(false);
-			refresh();
 		},
 		onError: (error) => setErrors(serverFieldErrors(error)),
 	});
 	const test = useMutation({ ...sendTestNotificationMutation(), onSettled: refresh });
 	const now = useNow(60_000);
-	const current = queryClient.getQueryData<NotificationSettingsView>(getNotificationSettingsQueryKey()) ?? initial;
+	// A new edit hides the "Saved" message of the previous save.
+	const touched = () => {
+		if (save.isSuccess) save.reset();
+	};
+	const setValues = (next: NotificationForm) => {
+		edit(next);
+		touched();
+	};
 
 	const submit = (event: FormEvent) => {
 		event.preventDefault();
 		const local = collect({
 			url: validateNtfyUrl(values.url),
 			topic: validateTopic(values.topic),
-			token: validateTokenForServer({ savedUrl: current.url, url: values.url, tokenDefined: current.tokenDefined, token, removeToken }),
+			token: validateTokenForServer({ savedUrl: settings.url, url: values.url, tokenDefined: settings.tokenDefined, token, removeToken }),
 			readFailureThreshold: validateThreshold(values.readFailureThreshold),
 			credentialExpiryAlertDays: validateAlertDays(values.credentialExpiryAlertDays),
 		});
@@ -75,8 +86,8 @@ export function NotificationSection({ initial }: { initial: NotificationSettings
 			icon={<NotificationsOutlinedIcon fontSize="small" />}
 			onSubmit={submit}
 			actions={
-				<SaveBar pending={save.isPending} saved={save.isSuccess} failed={save.isError}>
-					<Button variant="outlined" loading={test.isPending} disabled={!current.topic} onClick={() => test.mutate({})}>
+				<SaveBar pending={save.isPending} saved={save.isSuccess} error={save.error}>
+					<Button variant="outlined" loading={test.isPending} disabled={!settings.topic} onClick={() => test.mutate({})}>
 						Send a test
 					</Button>
 				</SaveBar>
@@ -108,12 +119,26 @@ export function NotificationSection({ initial }: { initial: NotificationSettings
 							value={token}
 							disabled={removeToken}
 							autoComplete="new-password"
-							onChange={(event) => setToken(event.target.value)}
+							onChange={(event) => {
+								setToken(event.target.value);
+								touched();
+							}}
 							error={Boolean(errors.token)}
-							helperText={errors.token ?? (current.tokenDefined ? "A token is set: leave empty to keep it on the same server." : "Optional.")}
+							helperText={errors.token ?? (settings.tokenDefined ? "A token is set: leave empty to keep it on the same server." : "Optional.")}
 						/>
-						{current.tokenDefined && (
-							<FormControlLabel control={<Switch checked={removeToken} onChange={(event) => setRemoveToken(event.target.checked)} />} label="Remove the token" />
+						{settings.tokenDefined && (
+							<FormControlLabel
+								control={
+									<Switch
+										checked={removeToken}
+										onChange={(event) => {
+											setRemoveToken(event.target.checked);
+											touched();
+										}}
+									/>
+								}
+								label="Remove the token"
+							/>
 						)}
 						<TextField
 							type="number"
@@ -180,9 +205,9 @@ export function NotificationSection({ initial }: { initial: NotificationSettings
 					</Stack>
 				</Grid>
 			</Grid>
-			{current.lastSendFailure && (
+			{settings.lastSendFailure && (
 				<Alert severity="warning">
-					Last send failure {fmtWhen(current.lastSendFailure.at, now)}: {current.lastSendFailure.message}
+					Last send failure {fmtWhen(settings.lastSendFailure.at, now)}: {settings.lastSendFailure.message}
 				</Alert>
 			)}
 			{test.isSuccess && <Alert severity="success">Test notification sent.</Alert>}

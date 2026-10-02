@@ -2,21 +2,30 @@ import SpeedOutlinedIcon from "@mui/icons-material/SpeedOutlined";
 import { InputAdornment, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
-import { getDashboardQueryKey, updatePollingSettingsMutation } from "@/core/apis/generated/@tanstack/react-query.gen";
+import { getDashboardQueryKey, getPollingSettingsQueryKey, updatePollingSettingsMutation } from "@/core/apis/generated/@tanstack/react-query.gen";
 import type { PollingSettings } from "@/core/apis/generated/types.gen";
 import { providerLabel, providers } from "@/core/dashboard";
 import { collect, type FieldErrors, serverFieldErrors, validateInterval } from "@/core/settings.validation";
-import { SaveBar, SettingsSection } from "./SettingsSection";
+import { SaveBar, SettingsSection, useDraft } from "./SettingsSection";
 
-export function PollingSection({ initial }: { initial: PollingSettings }) {
+export function PollingSection({ settings }: { settings: PollingSettings }) {
 	const queryClient = useQueryClient();
-	const [values, setValues] = useState(initial);
+	const { values, edit, discard } = useDraft(settings);
 	const [errors, setErrors] = useState<FieldErrors>({});
 	const save = useMutation({
 		...updatePollingSettingsMutation(),
-		onSuccess: () => void queryClient.invalidateQueries({ queryKey: getDashboardQueryKey() }),
+		onSuccess: (saved) => {
+			queryClient.setQueryData(getPollingSettingsQueryKey(), saved);
+			discard();
+			void queryClient.invalidateQueries({ queryKey: getDashboardQueryKey() });
+		},
 		onError: (error) => setErrors(serverFieldErrors(error)),
 	});
+
+	const setValues = (next: PollingSettings) => {
+		edit(next);
+		if (save.isSuccess) save.reset();
+	};
 
 	const submit = (event: FormEvent) => {
 		event.preventDefault();
@@ -31,7 +40,7 @@ export function PollingSection({ initial }: { initial: PollingSettings }) {
 			subtitle="How often each provider is polled."
 			icon={<SpeedOutlinedIcon fontSize="small" />}
 			onSubmit={submit}
-			actions={<SaveBar pending={save.isPending} saved={save.isSuccess} failed={save.isError} />}
+			actions={<SaveBar pending={save.isPending} saved={save.isSuccess} error={save.error} />}
 		>
 			<Table size="small" aria-label="Reading intervals">
 				<TableHead>

@@ -23,13 +23,13 @@ export const SettingsPage = () => {
 			</Typography>
 			<Grid container spacing={3}>
 				<Grid size={{ xs: 12, lg: 6 }}>
-					<PollingSection initial={polling.data} />
+					<PollingSection settings={polling.data} />
 				</Grid>
 				<Grid size={{ xs: 12, lg: 6 }}>
-					<TriggerSection initial={triggers.data} />
+					<TriggerSection settings={triggers.data} />
 				</Grid>
 				<Grid size={12}>
-					<NotificationSection initial={notifications.data} />
+					<NotificationSection settings={notifications.data} />
 				</Grid>
 			</Grid>
 		</Stack>
