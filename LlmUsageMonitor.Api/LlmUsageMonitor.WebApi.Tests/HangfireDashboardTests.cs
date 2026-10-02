@@ -66,6 +66,7 @@ public sealed class HangfireDashboardApiFactory : ApiFactory
 	}
 }
 
+[Collection(HangfireCollection.Name)]
 public sealed partial class HangfireDashboardTests(HangfireDashboardApiFactory factory) : IClassFixture<HangfireDashboardApiFactory>
 {
 	private static CancellationToken Token => TestContext.Current.CancellationToken;

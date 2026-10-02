@@ -17,8 +17,8 @@ using Xunit;
 namespace LlmUsageMonitor.WebApi.Tests;
 
 /// <summary>
-///     Hosts the API on a real MongoDB, without Hangfire (jobs are recorded, never run) and with a local signing key in place
-///     of Keycloak, so tests issue their own access tokens.
+///     Hosts the API on a real MongoDB, without Hangfire unless a derived factory enables it (jobs are recorded, never run) and
+///     with a local signing key in place of Keycloak, so tests issue their own access tokens.
 /// </summary>
 public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
@@ -41,6 +41,9 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
 	/// <summary>The hosting environment: anything but Production exposes Swagger UI and the OpenAPI document.</summary>
 	protected virtual string EnvironmentName => "Testing";
+
+	/// <summary>Whether the real Hangfire storage and job server run; otherwise jobs are recorded by <see cref="Scheduler" />.</summary>
+	protected virtual bool HangfireEnabled => false;
 
 	/// <summary>Stands in for the published SPA: one index.html and one asset, as the front-end build produces them.</summary>
 	private string WebRoot { get; } = Path.Combine(Path.GetTempPath(), $"llm-usage-monitor-webroot-{Guid.NewGuid():N}");
@@ -70,17 +73,21 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 		builder.UseEnvironment(EnvironmentName);
 		builder.UseWebRoot(WebRoot);
 		builder.UseSetting("ConnectionStrings:MongoDB", connectionString);
-		builder.UseSetting("Hangfire:Enabled", "false");
+		builder.UseSetting("Hangfire:Enabled", HangfireEnabled ? "true" : "false");
 		builder.UseSetting("Oidc:Authority", Issuer);
 		builder.UseSetting("Oidc:ClientId", ClientId);
 		builder.ConfigureTestServices(services =>
 		{
-			services.RemoveAll<IJobScheduler>();
-			services.AddSingleton<IJobScheduler>(Scheduler);
+			if (!HangfireEnabled)
+			{
+				services.RemoveAll<IJobScheduler>();
+				services.AddSingleton<IJobScheduler>(Scheduler);
+				services.RemoveAll<IJobServerMonitor>();
+				services.AddSingleton<IJobServerMonitor>(JobServer);
+			}
+
 			services.RemoveAll<INotificationSender>();
 			services.AddSingleton<INotificationSender>(NotificationSender);
-			services.RemoveAll<IJobServerMonitor>();
-			services.AddSingleton<IJobServerMonitor>(JobServer);
 			// UnprotectedProbeController: an endpoint without authorization data, guarded by the fallback policy only.
 			services.AddControllers().AddApplicationPart(typeof(ApiFactory).Assembly);
 			services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>

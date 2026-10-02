@@ -15,6 +15,7 @@
     <Folder Name="/Tests/">
         <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Adapters.Tests\LlmUsageMonitor.Adapters.Tests.csproj"/>
         <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.Core.Tests\LlmUsageMonitor.Core.Tests.csproj"/>
+        <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.FakeCli\LlmUsageMonitor.FakeCli.csproj"/>
         <Project Path="LlmUsageMonitor.Api\LlmUsageMonitor.WebApi.Tests\LlmUsageMonitor.WebApi.Tests.csproj"/>
     </Folder>
     <Project Path="LlmUsageMonitor.AppHost/LlmUsageMonitor.AppHost.csproj"/>

@@ -39,6 +39,8 @@
     </ItemGroup>
 
     <ItemGroup Label="Tests">
+        <!-- The cron parser Hangfire embeds (internal there): the tests read the poll schedules with it. -->
+        <PackageVersion Include="Cronos" Version="0.13.0"/>
         <PackageVersion Include="Hangfire.InMemory" Version="1.0.0"/>
         <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12"/>
         <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.10.0"/>
