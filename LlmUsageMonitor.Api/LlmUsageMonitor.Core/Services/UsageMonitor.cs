@@ -49,7 +49,7 @@ public sealed class UsageMonitor(
 		{
 			if (provider == Provider.Claude)
 			{
-				state = keepAlive.ScheduleNext(state, await keepAlive.EnsureFresh(cancellationToken));
+				state = await keepAlive.EnsureFresh(state, cancellationToken);
 			}
 
 			var windows = await _readers[provider].Read(cancellationToken);

@@ -49,17 +49,15 @@ public interface ITriggerService
 /// </summary>
 public interface IClaudeKeepAlive
 {
-	/// <summary>Refreshes the token if needed and returns the up-to-date expiry. Throws <c>AUTH_EXPIRED</c> when it cannot.</summary>
-	Task<ClaudeTokenState> EnsureFresh(CancellationToken cancellationToken);
+	/// <summary>
+	///     Refreshes the token if needed, then returns the state with the up-to-date expiry and the next keep-alive scheduled
+	///     four minutes before it. Throws <c>AUTH_EXPIRED</c> when the token cannot be refreshed.
+	/// </summary>
+	Task<ProviderState> EnsureFresh(ProviderState state, CancellationToken cancellationToken);
 
 	/// <summary>The scheduled job: refreshes the token and records the outcome in the provider health.</summary>
 	Task Run(CancellationToken cancellationToken);
-
-	/// <summary>Records the token expiry and schedules the next keep-alive four minutes before it.</summary>
-	ProviderState ScheduleNext(ProviderState state, ClaudeTokenState token);
 }
-
-public sealed record ClaudeTokenState(DateTimeOffset? ExpiresAt, DateTimeOffset? RefreshTokenExpiresAt);
 
 public interface ISettingsService
 {

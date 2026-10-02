@@ -5,7 +5,13 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.DataProtection"/>
+        <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks"/>
         <PackageReference Include="MongoDB.Driver"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="LlmUsageMonitor.Adapters.Tests"/>
     </ItemGroup>
 
 </Project>

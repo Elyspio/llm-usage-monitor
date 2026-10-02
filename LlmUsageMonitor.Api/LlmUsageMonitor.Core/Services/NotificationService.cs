@@ -5,7 +5,6 @@ using LlmUsageMonitor.Abstractions.Exceptions;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
 using LlmUsageMonitor.Abstractions.Interfaces.Repositories;
 using LlmUsageMonitor.Abstractions.Interfaces.Services;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -96,20 +95,5 @@ public sealed class NotificationService(
 			_ => ($"{name} : rétabli", NotificationPriority.Default, "green_heart")
 		};
 		return new(title, NotificationDetail.Sanitize(detail), priority, [tag], appConfig.Value.PublicUrl);
-	}
-}
-
-public sealed class DataProtectionSecretProtector(IDataProtectionProvider provider) : ISecretProtector
-{
-	private readonly IDataProtector _protector = provider.CreateProtector("llm-usage-monitor.settings.secrets");
-
-	public string Protect(string value)
-	{
-		return _protector.Protect(value);
-	}
-
-	public string Unprotect(string value)
-	{
-		return _protector.Unprotect(value);
 	}
 }
