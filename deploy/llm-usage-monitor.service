@@ -13,18 +13,47 @@ Group=llm-monitor
 WorkingDirectory=/opt/llm-usage-monitor
 ExecStart=/opt/llm-usage-monitor/LlmUsageMonitor.WebApi
 Environment=ASPNETCORE_ENVIRONMENT=Production
+# Default binding; "Urls" in the settings file overrides it (address seen by HAProxy + loopback, see deploy/README.md).
 Environment=ASPNETCORE_URLS=http://0.0.0.0:5000
 Environment=LLM_USAGE_MONITOR_SETTINGS=/etc/llm-usage-monitor/appsettings.Production.json
 # The claude and codex CLIs are installed and signed in under the service account.
 Environment=PATH=/var/lib/llm-monitor/.local/bin:/usr/local/bin:/usr/bin:/bin
 Restart=on-failure
 RestartSec=10
+# The CLI processes are stopped with the service (same control group).
+TimeoutStopSec=30
+# The LXC has 1 GiB; the API and a running CLI peak around 650 MB.
+MemoryMax=900M
 
+# Sandboxing. The claude and codex CLIs run as child processes under the same restrictions: they need the network, their
+# writable home and a JIT (claude is a Bun executable, the API is .NET), hence no MemoryDenyWriteExecute.
 NoNewPrivileges=true
 ProtectSystem=strict
-PrivateTmp=true
 # The home holds the CLI credentials (refreshed in place) and the self-updating CLI binaries.
 ReadWritePaths=/var/lib/llm-monitor
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+# AF_NETLINK: interface enumeration (.NET network APIs, Node os.networkInterfaces).
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+# A filtered call fails with EPERM instead of killing the process: runtimes fall back on another call.
+SystemCallErrorNumber=EPERM
+UMask=0077
 
 [Install]
 WantedBy=multi-user.target

@@ -8,7 +8,7 @@ Cible : `ely-llm-wake-up.elylan` (Debian 13, CT 106), service systemd, derrière
 
 - `Dockerfile` : build de l'artefact sur le poste (SPA dans `wwwroot`, API self-contained `linux-x64` en fichier unique, sans ICU).
 - `deploy.ps1` : build Docker, scp, extraction dans `/opt/llm-usage-monitor/` (écrasement en place), redémarrage.
-- `llm-usage-monitor.service` : unité systemd durcie, compte `llm-monitor`.
+- `llm-usage-monitor.service` : unité systemd durcie (voir « Durcissement »), compte `llm-monitor`.
 - `appsettings.Production.example.json` : modèle de `/etc/llm-usage-monitor/appsettings.Production.json` (jamais commité).
 
 ## Mise en service (une fois)
@@ -29,7 +29,7 @@ Prérequis hors de ce repo, voir « Infra prod » (#21) : client Keycloak de pro
    ```powershell
    ./deploy/deploy.ps1 -UploadSettings deploy/appsettings.Production.json
    ```
-   Le fichier local n'est pas commité (`.gitignore`) ; il arrive en `600 llm-monitor` dans `/etc/llm-usage-monitor/`. Sans `-UploadSettings`, `deploy.ps1` refuse de déployer si le fichier manque sur l'hôte. L'unité systemd, elle, est réinstallée à chaque déploiement.
+   Le fichier local n'est pas commité (`.gitignore`) ; il transite par un dossier temporaire `700` (`umask 077`, `mktemp -d`) et arrive en `600 llm-monitor` dans `/etc/llm-usage-monitor/`. Sans `-UploadSettings`, `deploy.ps1` refuse de déployer si le fichier manque sur l'hôte. L'unité systemd, elle, est réinstallée à chaque déploiement.
 3. Bascule du cron, une fois l'application déployée et avant de la laisser déclencher :
    ```sh
    mv /etc/cron.hourly/llm-wake-up /etc/cron.hourly/llm-wake-up.disabled
@@ -57,6 +57,55 @@ mv /etc/cron.hourly/llm-wake-up.disabled /etc/cron.hourly/llm-wake-up
 ```
 
 Le cron tourne sous `root`, avec les logins CLI de `root` : ils doivent donc exister tant que ce retour arrière reste une option.
+
+## Exposition réseau
+
+Le LXC n'a qu'une interface, `eth0` en `10.0.10.221/24` (passerelle `10.0.10.254`) ; HAProxy (`proxy.elylan`, `10.0.0.20`) l'atteint par routage, et c'est la seule adresse autorisée à poser les en-têtes `X-Forwarded-*` (`ForwardedHeaders:KnownProxies`).
+
+**Liaison de Kestrel** : l'unité écoute par défaut sur `http://0.0.0.0:5000` (`ASPNETCORE_URLS`). La clé `Urls` du fichier de prod la remplace :
+
+```json
+"Urls": "http://10.0.10.221:5000;http://127.0.0.1:5000"
+```
+
+La boucle locale reste nécessaire : `deploy.ps1` sonde `http://127.0.0.1:5000/health/live`. Une interface unique rend cette liaison peu restrictive : un hôte du LAN joint toujours `10.0.10.221:5000` sans passer par HAProxy (pas de TLS, `X-Forwarded-*` ignorés car il n'est pas un proxy connu, mais l'API reste appelable avec un token).
+
+**Pare-feu (la vraie barrière)** : n'accepter le port 5000 que depuis HAProxy et la boucle locale. Au choix :
+
+- pare-feu Proxmox du CT 106 : règle `IN ACCEPT -source 10.0.0.20 -p tcp -dport 5000`, puis `IN DROP -p tcp -dport 5000` ;
+- nftables dans le LXC (aucune règle aujourd'hui, politique `accept`) :
+  ```sh
+  cat > /etc/nftables.conf <<'NFT'
+  #!/usr/sbin/nft -f
+  flush ruleset
+  table inet filter {
+  	chain input {
+  		type filter hook input priority filter; policy accept;
+  		iif "lo" accept
+  		tcp dport 5000 ip saddr 10.0.0.20 accept
+  		tcp dport 5000 drop
+  	}
+  }
+  NFT
+  systemctl enable --now nftables
+  ```
+
+Vérifier ensuite que `https://monitor.llm.elyspio.fr/health/live` répond et qu'un `curl http://10.0.10.221:5000/health/live` depuis un autre hôte du LAN échoue.
+
+## Durcissement
+
+L'unité systemd isole le service et les CLIs, qui tournent en processus enfants avec les mêmes restrictions : système en lecture seule sauf `/var/lib/llm-monitor`, `/home` et `/root` masqués, `/dev` privé, noyau (tunables, modules, logs) et cgroups protégés, familles d'adresses `AF_UNIX`/`AF_INET`/`AF_INET6`/`AF_NETLINK`, aucun namespace, aucune capability, appels système limités à `@system-service` (un appel filtré échoue en `EPERM` sans tuer le process), `umask 077`, `MemoryMax=900M` (pic observé : 640 Mo), arrêt en 30 s au plus. Pas de `MemoryDenyWriteExecute` : .NET et le CLI `claude` (exécutable Bun) ont un JIT.
+
+`systemd-analyze security llm-usage-monitor` : **8.5 EXPOSED** avant (relevé sur le LXC le 2 octobre 2026), **1.5 OK** après (même systemd 257, analyse hors ligne de l'unité).
+
+À chaque modification de l'unité, vérifier après le déploiement que les CLIs fonctionnent toujours : une lecture réussie de chaque provider sur le dashboard, puis un déclenchement manuel de chacun (Claude lance `claude -p`, Codex `codex app-server`), et rien de suspect dans `journalctl -u llm-usage-monitor` (`EPERM`, `Operation not permitted`). Si une directive bloque un CLI, la lever par un drop-in, conservé par `deploy.ps1` qui ne réinstalle que l'unité :
+
+```sh
+systemctl edit llm-usage-monitor   # par exemple [Service] puis RestrictNamespaces=false
+systemctl restart llm-usage-monitor
+```
+
+Le fichier de prod (`LLM_USAGE_MONITOR_SETTINGS`) passe au-dessus des `appsettings*.json` et des variables `ASPNETCORE_*`, mais une variable d'environnement non préfixée (`Oidc__Authority=...`) ou un argument de ligne de commande le remplacent toujours : un drop-in `Environment=` suffit pour une surcharge temporaire.
 
 ## Supervision
 
