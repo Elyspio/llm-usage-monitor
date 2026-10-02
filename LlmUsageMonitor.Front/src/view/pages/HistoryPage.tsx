@@ -4,10 +4,8 @@ import { HistoryCard } from "@components/dashboard/HistoryCard";
 import { TriggerJournal } from "@components/dashboard/TriggerJournal";
 import { QueryError } from "@components/QueryError";
 import { useDashboard } from "@hooks/useDashboard";
-import { useNow } from "@hooks/useNow";
 
 export const HistoryPage = () => {
-	const now = useNow();
 	const dashboard = useDashboard();
 	const { data } = dashboard;
 	const durations = useMemo(
@@ -34,10 +32,10 @@ export const HistoryPage = () => {
 			<QueryError query={dashboard} subject="the trigger log" />
 			<Grid container spacing={3}>
 				<Grid size={{ xs: 12, lg: 7 }}>
-					<HistoryCard durations={durations} now={now} />
+					<HistoryCard durations={durations} />
 				</Grid>
 				<Grid size={{ xs: 12, lg: 5 }}>
-					<TriggerJournal runs={data.recentTriggerRuns} now={now} />
+					<TriggerJournal runs={data.recentTriggerRuns} />
 				</Grid>
 			</Grid>
 		</Stack>
