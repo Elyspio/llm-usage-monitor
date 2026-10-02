@@ -83,14 +83,21 @@ describe("ProtectedRoute", () => {
 });
 
 describe("session", () => {
-	it.each([
-		["the silent renewal fails", "renewError"],
-		["the access token expires", "expired"],
-	])("goes back to the sign-in screen when %s", async (_, event) => {
+	it("keeps a still valid session when a silent renewal fails", async () => {
 		renderProtected();
 		await screen.findByText("Protected content");
 
-		act(() => fake.raise(event, new Error("renew failed")));
+		act(() => fake.raise("renewError", new Error("network down")));
+
+		expect(screen.getByText("Protected content")).toBeTruthy();
+		expect(fake.userManager.removeUser).not.toHaveBeenCalled();
+	});
+
+	it("goes back to the sign-in screen when the access token expires", async () => {
+		renderProtected();
+		await screen.findByText("Protected content");
+
+		act(() => fake.raise("expired"));
 
 		expect(await screen.findByText(/Your session has expired/)).toBeTruthy();
 		expect(screen.queryByText("Protected content")).toBeNull();

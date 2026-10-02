@@ -9,7 +9,7 @@ type AuthContextValue = {
 	user: User | null;
 	/** `true` until the stored session has been read. */
 	loading: boolean;
-	/** The session ended on its own (token expired, renewal failed, 401): the sign-in screen says so. */
+	/** The session ended on its own (token expired, 401): the sign-in screen says so. */
 	sessionExpired: boolean;
 	/** The API answered 403: the account is signed in but lacks the role. */
 	accessDenied: boolean;
@@ -49,15 +49,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		const onUserUnloaded = () => setUser(null);
 		userManager.events.addUserLoaded(onUserLoaded);
 		userManager.events.addUserUnloaded(onUserUnloaded);
+		// A failed silent renewal alone keeps the session: the error may be transient and the token still valid. The session
+		// ends when the token actually expires (no renewal succeeded until then) or when the API answers 401.
 		userManager.events.addAccessTokenExpired(expire);
-		userManager.events.addSilentRenewError(expire);
 		const stopListening = onAuthFailure((status) => (status === 401 ? expire() : setAccessDenied(true)));
 
 		return () => {
 			userManager.events.removeUserLoaded(onUserLoaded);
 			userManager.events.removeUserUnloaded(onUserUnloaded);
 			userManager.events.removeAccessTokenExpired(expire);
-			userManager.events.removeSilentRenewError(expire);
 			stopListening();
 		};
 	}, []);

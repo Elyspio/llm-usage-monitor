@@ -82,6 +82,10 @@ describe("HistoryCard", () => {
 
 		fireEvent.click(session);
 		expect(session.getAttribute("aria-pressed")).toBe("false");
+		// The text summary follows the chart: the hidden series is no longer described.
+		const summary = within(card).getByRole("list", { name: "Chart summary" });
+		expect(within(summary).queryByText(/Claude · 5 h session/)).toBeNull();
+		expect(within(summary).getByText(/Codex · Weekly/)).toBeTruthy();
 
 		const period = within(card).getByRole("group", { name: "History period" });
 		fireEvent.click(within(period).getByRole("button", { name: "7 d" }));
