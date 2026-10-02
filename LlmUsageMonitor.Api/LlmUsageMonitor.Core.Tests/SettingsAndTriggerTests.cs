@@ -137,6 +137,22 @@ public sealed class SettingsServiceTests
 		harness.SettingsRepository.Stored!.Notifications.ProtectedToken.ShouldBe("protected:secret");
 	}
 
+	[Theory]
+	[InlineData("https://ntfy.example.org/Team", "https://ntfy.example.org/team")]
+	[InlineData("https://ntfy.example.org/team", "https://ntfy.example.org/team?Key=1")]
+	[InlineData("https://ntfy.example.org", "http://ntfy.example.org")]
+	[InlineData("https://ntfy.example.org", "https://ntfy.example.org:8443")]
+	public async Task A_different_path_query_scheme_or_port_is_another_server(string saved, string updated)
+	{
+		var harness = new TestHarness();
+		var events = NotificationEventsByProvider.Default;
+		await harness.Settings.UpdateNotifications(new(saved, "topic_1", "secret", events, 3, 7), Token);
+
+		var exception = await Should.ThrowAsync<RequestValidationException>(() => harness.Settings.UpdateNotifications(new(updated, "topic_1", null, events, 3, 7), Token));
+
+		exception.Errors.Keys.ShouldBe(["token"]);
+	}
+
 	[Fact]
 	public async Task A_cli_error_is_sent_short_and_without_credentials()
 	{

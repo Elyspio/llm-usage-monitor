@@ -2,7 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 import type { UsageWindow } from "@/core/apis/generated/types.gen";
 import { errorInfo, isDegraded, providerColor, sortWindows, windowColor, windowLabel, windowTiming } from "@/core/dashboard";
 import { fmtDuration, fmtSpan } from "@/core/format";
-import { serverFieldErrors, validateAlertDays, validateInterval, validateThreshold, validateTopic } from "@/core/settings.validation";
+import { isSameNtfyServer, serverFieldErrors, validateAlertDays, validateInterval, validateThreshold, validateTokenForServer, validateTopic } from "@/core/settings.validation";
 
 const window = (id: string, duration: number | null, resetsAt: string | null = null): UsageWindow => ({
 	id,
@@ -62,6 +62,16 @@ describe("formatting", () => {
 });
 
 describe("settings validation", () => {
+	it("keeps the ntfy token only on the same server, path and query compared with their case", () => {
+		expect(isSameNtfyServer("https://ntfy.sh", " HTTPS://NTFY.sh/ ")).toBe(true);
+		expect(isSameNtfyServer("https://ntfy.example.org/Team", "https://NTFY.example.org/Team/")).toBe(true);
+		expect(isSameNtfyServer("https://ntfy.example.org/Team", "https://ntfy.example.org/team")).toBe(false);
+		expect(isSameNtfyServer("https://ntfy.example.org/team", "https://ntfy.example.org/team?Key=1")).toBe(false);
+		expect(isSameNtfyServer("https://ntfy.example.org", "http://ntfy.example.org")).toBe(false);
+		expect(isSameNtfyServer("https://ntfy.example.org", "https://ntfy.example.org:8443")).toBe(false);
+		expect(validateTokenForServer({ savedUrl: "https://ntfy.sh/Team", url: "https://ntfy.sh/team", tokenDefined: true, token: "", removeToken: false })).not.toBeNull();
+	});
+
 	it("applies the API bounds", () => {
 		expect(validateInterval(0)).not.toBeNull();
 		expect(validateInterval(60)).toBeNull();
