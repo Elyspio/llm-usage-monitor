@@ -1,13 +1,12 @@
 import { Alert, Box, CircularProgress, Grid, Stack, Typography } from "@mui/material";
-import { useQuery } from "@tanstack/react-query";
-import { getDashboardOptions } from "@/core/apis/generated/@tanstack/react-query.gen";
 import { ProviderColumn } from "@components/dashboard/ProviderColumn";
 import { UsageTimeline } from "@components/dashboard/UsageTimeline";
+import { useDashboard } from "@hooks/useDashboard";
 import { useNow } from "@hooks/useNow";
 
 export const DashboardPage = () => {
 	const now = useNow();
-	const { data, isPending, isError } = useQuery({ ...getDashboardOptions(), refetchInterval: 30_000, refetchOnWindowFocus: true });
+	const { data, isPending, isError } = useDashboard();
 
 	if (isPending) return <CircularProgress />;
 	if (isError) return <Alert severity="error">Could not load the dashboard.</Alert>;

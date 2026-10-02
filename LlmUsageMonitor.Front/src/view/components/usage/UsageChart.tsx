@@ -1,9 +1,9 @@
 import { Paper, Typography } from "@mui/material";
 import { LineChart } from "@mui/x-charts/LineChart";
 import type { TokenUsageStep } from "@/core/apis/generated/types.gen";
-import { providerColor, providerLabel } from "@/core/dashboard";
+import { providerColor, providerLabel, providers } from "@/core/dashboard";
 import { fmtHour, locale } from "@/core/format";
-import { type ChartPoint, fmtMetric, providers, type UsageMetric } from "@/core/usage";
+import { type ChartPoint, fmtMetric, type UsageMetric } from "@/core/usage";
 
 const dayFormat = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" });
 

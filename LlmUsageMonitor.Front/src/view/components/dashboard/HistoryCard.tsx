@@ -1,4 +1,4 @@
-import { Alert, Chip, CircularProgress, Paper, Stack, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
+import { Alert, Chip, CircularProgress, Paper, Stack, ToggleButton, ToggleButtonGroup, Typography, useTheme } from "@mui/material";
 import { ChartsReferenceLine } from "@mui/x-charts/ChartsReferenceLine";
 import { LineChart } from "@mui/x-charts/LineChart";
 import { useQuery } from "@tanstack/react-query";
@@ -37,6 +37,7 @@ export function toChart(history: UsageHistory, durations: Record<string, number 
 }
 
 export const HistoryCard = ({ durations, now }: { durations: Record<string, number | null>; now: number }) => {
+	const theme = useTheme();
 	const [range, setRange] = useState<Range>("24h");
 	const [hidden, setHidden] = useState<string[]>([]);
 	const { data, isPending, isError } = useQuery({ ...getHistoryOptions({ query: { range } }), refetchInterval: 60_000 });
@@ -94,7 +95,10 @@ export const HistoryCard = ({ durations, now }: { durations: Record<string, numb
 							<ChartsReferenceLine
 								key={run.id}
 								x={new Date(run.startedAt)}
-								lineStyle={{ stroke: run.status === "failed" ? "#d32f2f" : providerColor[run.provider], strokeDasharray: run.manual ? "4 4" : undefined }}
+								lineStyle={{
+									stroke: run.status === "failed" ? theme.palette.error.main : providerColor[run.provider],
+									strokeDasharray: run.manual ? "4 4" : undefined,
+								}}
 							/>
 						))}
 					</LineChart>

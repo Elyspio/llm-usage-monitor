@@ -1,10 +1,9 @@
 import type { Provider, TokenCounts, TokenUsageReport, TokenUsageRow } from "@/core/apis/generated/types.gen";
+import { providers } from "@/core/dashboard";
 import { locale } from "@/core/format";
 
 export type UsageRange = "24h" | "7d" | "30d" | "90d" | "all";
 export type UsageMetric = "cost" | "tokens";
-
-export const providers: Provider[] = ["claude", "codex"];
 
 export const totalTokens = (tokens: TokenCounts) => tokens.input + tokens.cacheRead + tokens.cacheWrite + tokens.output;
 

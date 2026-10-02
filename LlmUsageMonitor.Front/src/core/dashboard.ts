@@ -1,4 +1,6 @@
-import type { Provider, ProviderDashboard, ProviderHealth, UsageWindow } from "@/core/apis/generated/types.gen";
+import type { Provider, ProviderHealth, UsageWindow } from "@/core/apis/generated/types.gen";
+
+export const providers: Provider[] = ["claude", "codex"];
 
 export const providerLabel: Record<Provider, string> = { claude: "Claude", codex: "Codex" };
 export const providerColor: Record<Provider, string> = { claude: "#d97757", codex: "#10a37f" };
@@ -29,8 +31,6 @@ export function windowLabel(window: Pick<UsageWindow, "id" | "windowDurationMinu
 	if (window.windowDurationMinutes === 10_080) return "Weekly";
 	return window.id;
 }
-
-export const remainingColor = (remaining: number): "success" | "warning" | "error" => (remaining >= 50 ? "success" : remaining >= 20 ? "warning" : "error");
 
 /** The last failure is newer than the last success: the displayed values are stale. */
 export function isDegraded(health: ProviderHealth): boolean {
@@ -76,15 +76,14 @@ export function errorInfo(code: string, provider: Provider): ErrorInfo {
 	}
 }
 
-export type WindowTiming = { start: number; end: number; elapsedPercent: number };
+export type WindowTiming = { start: number; end: number };
 
-/** Start (reset − duration), end and elapsed share of a window; null when the reset or the duration is unknown. */
-export function windowTiming(window: UsageWindow, now: number): WindowTiming | null {
+/** Start (reset − duration) and end of a window; null when the reset or the duration is unknown. */
+export function windowTiming(window: UsageWindow): WindowTiming | null {
 	if (!window.resetsAt || !window.windowDurationMinutes) return null;
 	const end = Date.parse(window.resetsAt);
 	const start = end - window.windowDurationMinutes * 60_000;
-	const elapsedPercent = Math.min(100, Math.max(0, ((now - start) / (end - start)) * 100));
-	return { start, end, elapsedPercent };
+	return { start, end };
 }
 
 /** The trigger window first, then the others by duration. */
@@ -95,5 +94,3 @@ export function sortWindows(windows: UsageWindow[], triggerWindowId: string | nu
 		return (a.windowDurationMinutes ?? Number.MAX_SAFE_INTEGER) - (b.windowDurationMinutes ?? Number.MAX_SAFE_INTEGER);
 	});
 }
-
-export const isRunning = (provider: ProviderDashboard) => provider.runningTrigger != null;

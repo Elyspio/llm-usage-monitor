@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { UsageWindow } from "@/core/apis/generated/types.gen";
 import { errorInfo, isDegraded, providerColor, sortWindows, windowColor, windowLabel, windowTiming } from "@/core/dashboard";
-import { fmtDuration, fmtSpan } from "@/core/format";
+import { fmtSpan } from "@/core/format";
 import { isSameNtfyServer, serverFieldErrors, validateAlertDays, validateInterval, validateThreshold, validateTokenForServer, validateTopic } from "@/core/settings.validation";
 
 const window = (id: string, duration: number | null, resetsAt: string | null = null): UsageWindow => ({
@@ -13,13 +13,11 @@ const window = (id: string, duration: number | null, resetsAt: string | null = n
 });
 
 describe("dashboard logic", () => {
-	it("computes the window start and elapsed share from its reset and duration", () => {
-		const now = Date.parse("2026-09-14T12:00:00Z");
+	it("computes the window start from its reset and duration", () => {
+		const timing = windowTiming(window("five_hour", 300, "2026-09-14T14:00:00Z"));
 
-		const timing = windowTiming(window("five_hour", 300, "2026-09-14T14:00:00Z"), now);
-
-		expect(timing).toEqual({ start: Date.parse("2026-09-14T09:00:00Z"), end: Date.parse("2026-09-14T14:00:00Z"), elapsedPercent: 60 });
-		expect(windowTiming(window("five_hour", 300, null), now)).toBeNull();
+		expect(timing).toEqual({ start: Date.parse("2026-09-14T09:00:00Z"), end: Date.parse("2026-09-14T14:00:00Z") });
+		expect(windowTiming(window("five_hour", 300, null))).toBeNull();
 	});
 
 	it("colours a window like its provider, the Claude session in a lighter orange", () => {
@@ -52,12 +50,9 @@ describe("dashboard logic", () => {
 });
 
 describe("formatting", () => {
-	it("formats spans and durations", () => {
+	it("formats spans", () => {
 		expect(fmtSpan(3 * 86_400_000 + 4 * 3_600_000)).toBe("3 d 4 h");
 		expect(fmtSpan(7 * 60_000 + 5_000, true)).toBe("7 min 05 s");
-		expect(fmtDuration(10_080)).toBe("7 d");
-		expect(fmtDuration(300)).toBe("5 h");
-		expect(fmtDuration(null)).toBe("unknown duration");
 	});
 });
 
