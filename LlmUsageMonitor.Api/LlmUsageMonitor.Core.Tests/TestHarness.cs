@@ -314,16 +314,25 @@ internal sealed class FakeScheduler : IJobScheduler
 		EnqueuedTriggers.Add(runId);
 	}
 
+	public bool PriceRefreshScheduled { get; private set; }
+
+	public bool JobPurgeScheduled { get; private set; }
+
+	public int EnqueuedPriceRefreshes { get; private set; }
+
 	public void SchedulePriceRefresh()
 	{
+		PriceRefreshScheduled = true;
 	}
 
 	public void ScheduleJobPurge()
 	{
+		JobPurgeScheduled = true;
 	}
 
 	public void EnqueuePriceRefresh()
 	{
+		EnqueuedPriceRefreshes++;
 	}
 
 	public void Delete(string jobId)

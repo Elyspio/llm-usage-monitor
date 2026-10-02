@@ -8,4 +8,8 @@
         <PackageReference Include="Microsoft.Extensions.Http.Resilience"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="LlmUsageMonitor.Adapters.Tests"/>
+    </ItemGroup>
+
 </Project>

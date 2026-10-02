@@ -26,7 +26,6 @@ public sealed class MongoFixture : IAsyncLifetime
 		return _container.DisposeAsync();
 	}
 
-	/// <summary>A fresh database per test, on the shared container.</summary>
 	/// <summary>The URL of a fresh database on the shared container.</summary>
 	public string CreateDatabaseUrl()
 	{
@@ -37,9 +36,10 @@ public sealed class MongoFixture : IAsyncLifetime
 		}.ToString();
 	}
 
-	public async Task<ServiceProvider> CreateServices()
+	/// <summary>The MongoDB adapter on a fresh database per test, or on <paramref name="connectionString" /> when given.</summary>
+	public async Task<ServiceProvider> CreateServices(string? connectionString = null)
 	{
-		var connectionString = CreateDatabaseUrl();
+		connectionString ??= CreateDatabaseUrl();
 		var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:MongoDB"] = connectionString }).Build();
 
 		var services = new ServiceCollection();

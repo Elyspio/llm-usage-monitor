@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- Stands in for the claude and codex CLIs in the adapter tests, which copy it into their output (fake-cli/). -->
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <AssemblyName>fake-cli</AssemblyName>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+</Project>

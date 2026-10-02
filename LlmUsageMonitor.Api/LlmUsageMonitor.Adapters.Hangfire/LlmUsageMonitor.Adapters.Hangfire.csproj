@@ -11,4 +11,8 @@
         <PackageReference Include="Newtonsoft.Json"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="LlmUsageMonitor.Adapters.Tests"/>
+    </ItemGroup>
+
 </Project>
