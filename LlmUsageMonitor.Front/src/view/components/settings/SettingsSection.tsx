@@ -60,15 +60,18 @@ export const SaveBar = ({ pending, saved, error, children }: { pending: boolean;
 			Save
 		</Button>
 		{children}
-		{saved && (
-			<Typography variant="body2" sx={{ color: "success.main" }}>
-				Saved, applied immediately.
-			</Typography>
-		)}
-		{error != null && (
-			<Typography variant="body2" sx={{ color: "error.main" }}>
-				{saveErrorMessage(error)}
-			</Typography>
-		)}
+		{/* Always rendered, so screen readers announce the outcome of the save when it appears. */}
+		<Box component="output">
+			{saved && (
+				<Typography variant="body2" sx={{ color: "success.main" }}>
+					Saved, applied immediately.
+				</Typography>
+			)}
+			{error != null && (
+				<Typography variant="body2" sx={{ color: "error.main" }}>
+					{saveErrorMessage(error)}
+				</Typography>
+			)}
+		</Box>
 	</Stack>
 );

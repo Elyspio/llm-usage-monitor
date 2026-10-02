@@ -193,7 +193,7 @@ export function NotificationSection({ settings }: { settings: NotificationSettin
 																events: { ...values.events, [provider]: { ...values.events[provider], [event]: change.target.checked } },
 															})
 														}
-														slotProps={{ input: { "aria-label": providerLabel[provider] } }}
+														slotProps={{ input: { "aria-label": `${eventLabels[event]} — ${providerLabel[provider]}` } }}
 													/>
 												</TableCell>
 											))}

@@ -148,7 +148,7 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 									sx={{ position: "absolute", top: 4, height: 30, width: 2, bgcolor: "surface.monday", left: `${position(monday)}%` }}
 								/>
 							))}
-							<Box aria-label="Now" sx={{ position: "absolute", top: 4, height: 30, width: 2, bgcolor: "surface.now", left: `${position(now)}%` }} />
+							<Box aria-hidden="true" sx={{ position: "absolute", top: 4, height: 30, width: 2, bgcolor: "surface.now", left: `${position(now)}%` }} />
 							{validTiming && width < 5 && !expired && (
 								<Typography variant="caption" sx={{ ...mono, position: "absolute", top: -13, right: 0, color: "text.secondary" }}>
 									reset {fmtIn(window.resetsAt!, now)}

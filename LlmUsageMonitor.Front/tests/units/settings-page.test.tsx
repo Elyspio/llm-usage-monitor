@@ -143,10 +143,16 @@ describe("SettingsPage", () => {
 				.map((header) => header.textContent)
 		).toEqual(["Event", "Claude", "Codex"]);
 		const triggerFailed = within(table).getByRole("row", { name: /Automatic trigger failed/ });
-		expect((within(triggerFailed).getByRole("switch", { name: "Claude" }) as HTMLInputElement).checked).toBe(true);
-		expect((within(triggerFailed).getByRole("switch", { name: "Codex" }) as HTMLInputElement).checked).toBe(false);
+		expect((within(triggerFailed).getByRole("switch", { name: "Automatic trigger failed — Claude" }) as HTMLInputElement).checked).toBe(true);
+		expect((within(triggerFailed).getByRole("switch", { name: "Automatic trigger failed — Codex" }) as HTMLInputElement).checked).toBe(false);
+		// Every switch is named after its event and its provider.
+		expect(
+			within(table)
+				.getAllByRole("switch")
+				.map((input) => input.getAttribute("aria-label"))
+		).toContain("Back to normal — Codex");
 
-		fireEvent.click(within(triggerFailed).getByRole("switch", { name: "Codex" }));
+		fireEvent.click(within(triggerFailed).getByRole("switch", { name: "Automatic trigger failed — Codex" }));
 		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
 
 		await expect.poll(() => lastNotificationBody).toMatchObject({ events: { claude: { triggerFailed: true }, codex: { triggerFailed: true } } });
@@ -160,7 +166,7 @@ describe("SettingsPage", () => {
 
 		fireEvent.change(within(form).getByLabelText("Claude interval (minutes)"), { target: { value: "5" } });
 		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
-		expect(await within(form).findByText("Saved, applied immediately.")).toBeTruthy();
+		expect(within(await within(form).findByRole("status")).getByText("Saved, applied immediately.")).toBeTruthy();
 
 		fireEvent.change(within(form).getByLabelText("Claude interval (minutes)"), { target: { value: "10" } });
 		expect(within(form).queryByText("Saved, applied immediately.")).toBeNull();
