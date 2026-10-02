@@ -79,6 +79,7 @@ builder.Services.AddAuthorizationBuilder()
 var app = builder.Build();
 
 app.UseForwardedHeaders();
+app.UseContentSecurityPolicy();
 
 if (telemetryEnabled)
 {

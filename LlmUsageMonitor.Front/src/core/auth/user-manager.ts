@@ -1,9 +1,12 @@
-import { UserManager, WebStorageStateStore } from "oidc-client-ts";
+import { UserManager } from "oidc-client-ts";
 import { runtimeConfig } from "@/config/runtime.config";
 
 const { oauth } = runtimeConfig;
 
-/** Authorization code flow with PKCE against the public client. */
+/**
+ * Authorization code flow with PKCE against the public client. The tokens stay in the sessionStorage of the tab (default
+ * store): gone with the tab, never shared with the others; a new tab signs in again through the Keycloak session.
+ */
 export const userManager = new UserManager({
 	authority: oauth.authority,
 	client_id: oauth.clientId,
@@ -12,5 +15,10 @@ export const userManager = new UserManager({
 	response_type: "code",
 	scope: "openid",
 	automaticSilentRenew: true,
-	userStore: new WebStorageStateStore({ store: window.localStorage }),
 });
+
+// The user stored in localStorage by the previous versions would stay readable there forever. Only the user entries go:
+// the sign-in state of a pending redirect also lives in localStorage ("oidc.<state>").
+for (const key of Object.keys(window.localStorage)) {
+	if (key.startsWith("oidc.user:")) window.localStorage.removeItem(key);
+}

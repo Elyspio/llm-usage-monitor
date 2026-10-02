@@ -19,6 +19,17 @@ public sealed class HostingTests(ApiFactory factory) : IClassFixture<ApiFactory>
 		script.ShouldContain($"authority: \"{ApiFactory.Issuer}\"");
 		script.ShouldContain($"clientId: \"{ApiFactory.ClientId}\"");
 		script.ShouldContain("window.location.origin");
+		response.Headers.CacheControl!.NoStore.ShouldBeTrue();
+	}
+
+	[Fact]
+	public async Task Outside_production_no_content_security_policy_is_sent()
+	{
+		using var client = factory.CreateClient();
+
+		var response = await client.GetAsync("/", TestContext.Current.CancellationToken);
+
+		response.Headers.Contains("Content-Security-Policy").ShouldBeFalse();
 	}
 
 	[Fact]
@@ -56,5 +67,40 @@ public sealed class HostingTests(ApiFactory factory) : IClassFixture<ApiFactory>
 		var response = await client.GetAsync("/api/unknown", TestContext.Current.CancellationToken);
 
 		response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+	}
+}
+
+public sealed class ProductionHostingTests(ProductionApiFactory factory) : IClassFixture<ProductionApiFactory>
+{
+	[Theory]
+	[InlineData("/")]
+	[InlineData("/settings")]
+	[InlineData(ApiFactory.AssetPath)]
+	[InlineData("/conf.js")]
+	[InlineData("/api/dashboard")]
+	public async Task In_production_every_response_carries_a_strict_content_security_policy(string path)
+	{
+		using var client = factory.CreateClient();
+
+		var response = await client.GetAsync(path, TestContext.Current.CancellationToken);
+
+		var directives = response.Headers.GetValues("Content-Security-Policy").ShouldHaveSingleItem().Split("; ");
+		directives.ShouldContain("default-src 'self'");
+		directives.ShouldContain("script-src 'self'");
+		directives.ShouldContain("connect-src 'self' https://auth.test");
+		directives.ShouldContain("object-src 'none'");
+		directives.ShouldContain("frame-ancestors 'none'");
+		directives.ShouldAllBe(directive => directive.StartsWith("style-src") || !directive.Contains("'unsafe-inline'"));
+		directives.ShouldAllBe(directive => !directive.Contains("'unsafe-eval'"));
+	}
+
+	[Fact]
+	public async Task The_hangfire_dashboard_keeps_its_own_pages_without_the_policy()
+	{
+		using var client = factory.CreateClient();
+
+		var response = await client.GetAsync("/hangfire", TestContext.Current.CancellationToken);
+
+		response.Headers.Contains("Content-Security-Policy").ShouldBeFalse();
 	}
 }
