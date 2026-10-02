@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vite-plus/test";
@@ -21,9 +21,14 @@ const notifications = {
 };
 
 let lastNotificationBody: unknown = null;
+let polling = { claudeIntervalMinutes: 3, codexIntervalMinutes: 3 };
 
 const server = setupServer(
-	http.get(`${apiUrl}/api/settings/polling`, () => HttpResponse.json({ claudeIntervalMinutes: 3, codexIntervalMinutes: 3 })),
+	http.get(`${apiUrl}/api/settings/polling`, () => HttpResponse.json(polling)),
+	http.put(`${apiUrl}/api/settings/polling`, async ({ request }) => {
+		polling = (await request.json()) as typeof polling;
+		return HttpResponse.json(polling);
+	}),
 	http.get(`${apiUrl}/api/settings/triggers`, () => HttpResponse.json({ claude: { autoEnabled: true, model: "haiku" }, codex: { autoEnabled: false, model: "gpt-5.6-luna" } })),
 	http.get(`${apiUrl}/api/settings/notifications`, () => HttpResponse.json(notifications)),
 	http.put(`${apiUrl}/api/settings/notifications`, async ({ request }) => {
@@ -42,9 +47,9 @@ beforeAll(() => {
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-const renderPage = () =>
+const renderPage = (queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })) =>
 	render(
-		<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+		<QueryClientProvider client={queryClient}>
 			<SettingsPage />
 		</QueryClientProvider>
 	);
@@ -145,5 +150,46 @@ describe("SettingsPage", () => {
 		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
 
 		await expect.poll(() => lastNotificationBody).toMatchObject({ events: { claude: { triggerFailed: true }, codex: { triggerFailed: true } } });
+	});
+
+	it("shows the saved values when coming back to the page", async () => {
+		polling = { claudeIntervalMinutes: 3, codexIntervalMinutes: 3 };
+		const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+		const page = renderPage(queryClient);
+		const form = await screen.findByRole("form", { name: "Usage reading" });
+
+		fireEvent.change(within(form).getByLabelText("Claude interval (minutes)"), { target: { value: "5" } });
+		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
+		expect(await within(form).findByText("Saved, applied immediately.")).toBeTruthy();
+
+		fireEvent.change(within(form).getByLabelText("Claude interval (minutes)"), { target: { value: "10" } });
+		expect(within(form).queryByText("Saved, applied immediately.")).toBeNull();
+
+		page.unmount();
+		renderPage(queryClient);
+		const again = await screen.findByRole("form", { name: "Usage reading" });
+		expect((within(again).getByLabelText("Claude interval (minutes)") as HTMLInputElement).value).toBe("5");
+	});
+
+	it("follows the server values while the form is untouched", async () => {
+		polling = { claudeIntervalMinutes: 3, codexIntervalMinutes: 3 };
+		const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+		renderPage(queryClient);
+		const form = await screen.findByRole("form", { name: "Usage reading" });
+
+		polling = { claudeIntervalMinutes: 12, codexIntervalMinutes: 3 };
+		await queryClient.refetchQueries();
+
+		await waitFor(() => expect((within(form).getByLabelText("Claude interval (minutes)") as HTMLInputElement).value).toBe("12"));
+	});
+
+	it("tells a server failure apart from a field error", async () => {
+		server.use(http.put(`${apiUrl}/api/settings/polling`, () => HttpResponse.json({ title: "boom", status: 500 }, { status: 500 })));
+		renderPage();
+		const form = await screen.findByRole("form", { name: "Usage reading" });
+
+		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
+
+		expect(await within(form).findByText("Server error (500): see the service logs.")).toBeTruthy();
 	});
 });

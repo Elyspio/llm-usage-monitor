@@ -1,5 +1,6 @@
 import { Box, Button, Paper, Stack, Typography } from "@mui/material";
-import type { FormEvent, ReactNode } from "react";
+import { type FormEvent, type ReactNode, useState } from "react";
+import { apiErrorMessage } from "@/core/apis/api-error";
 
 /** One settings card: header with icon and intent, fields, then the actions pinned to the bottom edge. */
 export const SettingsSection = ({
@@ -41,7 +42,19 @@ export const SettingsSection = ({
 	</Paper>
 );
 
-export const SaveBar = ({ pending, saved, failed, children }: { pending: boolean; saved: boolean; failed: boolean; children?: ReactNode }) => (
+/**
+ * Form values over the server data: the draft only exists once the user edits a field, so an untouched form follows the
+ * server data (a save, a refetch, another tab) instead of a copy taken when it was mounted.
+ */
+export function useDraft<T>(server: T) {
+	const [draft, setDraft] = useState<T | null>(null);
+	return { values: draft ?? server, edit: setDraft, discard: () => setDraft(null) };
+}
+
+/** Message of a failed save: the fields for a validation error, the cause otherwise. */
+const saveErrorMessage = (error: unknown) => apiErrorMessage(error, { 400: "Save refused: see the fields." });
+
+export const SaveBar = ({ pending, saved, error, children }: { pending: boolean; saved: boolean; error: unknown; children?: ReactNode }) => (
 	<Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: { xs: "flex-start", sm: "center" } }}>
 		<Button type="submit" variant="outlined" color="inherit" loading={pending}>
 			Save
@@ -52,9 +65,9 @@ export const SaveBar = ({ pending, saved, failed, children }: { pending: boolean
 				Saved, applied immediately.
 			</Typography>
 		)}
-		{failed && (
+		{error != null && (
 			<Typography variant="body2" sx={{ color: "error.main" }}>
-				Save refused: see the fields.
+				{saveErrorMessage(error)}
 			</Typography>
 		)}
 	</Stack>
