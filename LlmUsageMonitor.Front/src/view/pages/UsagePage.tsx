@@ -1,4 +1,4 @@
-import { Alert, Box, CircularProgress, Grid, MenuItem, Paper, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
+import { Box, CircularProgress, Grid, MenuItem, Paper, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { getTokenUsageOptions } from "@/core/apis/generated/@tanstack/react-query.gen";
@@ -6,6 +6,7 @@ import { providerColor, providerLabel } from "@/core/dashboard";
 import { locale } from "@/core/format";
 import { browserTimeZone, fmtMetric, fmtShare, fmtTokens, fmtUsd, rangeLabel, summarize, type UsageMetric, type UsageRange } from "@/core/usage";
 import { ProviderLogo } from "@components/dashboard/ProviderLogo";
+import { QueryError } from "@components/QueryError";
 import { UsageBreakdown } from "@components/usage/UsageBreakdown";
 import { UsageChart } from "@components/usage/UsageChart";
 
@@ -17,12 +18,13 @@ export const UsagePage = () => {
 	const [range, setRange] = useState<UsageRange>("7d");
 	const [metric, setMetric] = useState<UsageMetric>("cost");
 	const [machineId, setMachineId] = useState(ALL_MACHINES);
-	const { data, isPending, isError, isFetching } = useQuery({
+	const usage = useQuery({
 		...getTokenUsageOptions({ query: { range, timeZone: browserTimeZone(), machineId: machineId === ALL_MACHINES ? undefined : machineId } }),
 		refetchInterval: 5 * 60_000,
 		refetchOnWindowFocus: true,
 		placeholderData: keepPreviousData,
 	});
+	const { data, isPending, isFetching } = usage;
 	const summary = useMemo(() => (data ? summarize(data, metric) : null), [data, metric]);
 
 	const period = data
@@ -68,10 +70,11 @@ export const UsagePage = () => {
 				</Stack>
 			</Stack>
 
+			{data !== undefined && <QueryError query={usage} subject="the usage" />}
 			{isPending ? (
 				<CircularProgress />
-			) : isError || !summary ? (
-				<Alert severity="error">Could not load the usage.</Alert>
+			) : !data || !summary ? (
+				<QueryError query={usage} subject="the usage" />
 			) : summary.total.tokens === 0 ? (
 				<Paper variant="outlined" sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
 					No usage received over the period. Workstations upload their Claude Code and Codex logs through the collector of the media-tools app.
@@ -111,7 +114,7 @@ export const UsagePage = () => {
 							</Paper>
 						</Grid>
 						<Grid size={{ xs: 12, lg: 8 }}>
-							<UsageChart points={summary.chart} step={data!.step} metric={metric} />
+							<UsageChart points={summary.chart} step={data.step} metric={metric} />
 						</Grid>
 					</Grid>
 
