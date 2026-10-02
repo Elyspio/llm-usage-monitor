@@ -3,6 +3,7 @@ using LlmUsageMonitor.Abstractions.Data;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,7 +20,7 @@ namespace LlmUsageMonitor.WebApi.Tests;
 ///     Hosts the API on a real MongoDB, without Hangfire (jobs are recorded, never run) and with a local signing key in place
 ///     of Keycloak, so tests issue their own access tokens.
 /// </summary>
-public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
+public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
 	public const string Issuer = "https://auth.test/realms/llm-usage-monitor";
 	public const string ClientId = "i-llm-usage-monitor";
@@ -37,6 +38,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 	public StubNotificationSender NotificationSender { get; } = new();
 
 	public StubJobServerMonitor JobServer { get; } = new();
+
+	/// <summary>The hosting environment: anything but Production exposes Swagger UI and the OpenAPI document.</summary>
+	protected virtual string EnvironmentName => "Testing";
 
 	/// <summary>Stands in for the published SPA: one index.html and one asset, as the front-end build produces them.</summary>
 	private string WebRoot { get; } = Path.Combine(Path.GetTempPath(), $"llm-usage-monitor-webroot-{Guid.NewGuid():N}");
@@ -63,7 +67,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 	{
 		var connectionString = new MongoUrlBuilder(_mongo.GetConnectionString()) { DatabaseName = "llm-usage-monitor", AuthenticationSource = "admin" }.ToString();
 
-		builder.UseEnvironment("Testing");
+		builder.UseEnvironment(EnvironmentName);
 		builder.UseWebRoot(WebRoot);
 		builder.UseSetting("ConnectionStrings:MongoDB", connectionString);
 		builder.UseSetting("Hangfire:Enabled", "false");
@@ -77,6 +81,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 			services.AddSingleton<INotificationSender>(NotificationSender);
 			services.RemoveAll<IJobServerMonitor>();
 			services.AddSingleton<IJobServerMonitor>(JobServer);
+			// UnprotectedProbeController: an endpoint without authorization data, guarded by the fallback policy only.
+			services.AddControllers().AddApplicationPart(typeof(ApiFactory).Assembly);
 			services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
 			{
 				// Set before the JwtBearer post-configuration, a static configuration keeps the handler from fetching Keycloak metadata.
@@ -197,5 +203,23 @@ public sealed class RecordingScheduler : IJobScheduler
 
 	public void Delete(string jobId)
 	{
+	}
+}
+
+/// <summary>Hosts the API as on the LXC (Production environment).</summary>
+public sealed class ProductionApiFactory : ApiFactory
+{
+	protected override string EnvironmentName => "Production";
+}
+
+/// <summary>An endpoint added without any authorization attribute, as a new controller would be.</summary>
+[ApiController]
+[Route("api/tests/unprotected")]
+public sealed class UnprotectedProbeController : ControllerBase
+{
+	[HttpGet]
+	public string Get()
+	{
+		return "reached";
 	}
 }

@@ -13,12 +13,16 @@ public static class AdminPolicy
 {
 	public const string Name = "Admin";
 
+	/// <summary>A bearer token carrying the admin role; also the fallback policy of the endpoints without authorization data.</summary>
+	public static AuthorizationPolicy Policy { get; } = new AuthorizationPolicyBuilder()
+		.RequireAuthenticatedUser()
+		.AddRequirements(new AdminRoleRequirement())
+		.Build();
+
 	public static AuthorizationBuilder AddAdminPolicy(this AuthorizationBuilder builder)
 	{
 		builder.Services.AddSingleton<IAuthorizationHandler, AdminRoleHandler>();
-		return builder.AddPolicy(Name, policy => policy
-			.RequireAuthenticatedUser()
-			.AddRequirements(new AdminRoleRequirement()));
+		return builder.AddPolicy(Name, Policy);
 	}
 
 	/// <summary>

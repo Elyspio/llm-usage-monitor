@@ -50,7 +50,8 @@ public sealed class HostingTests(ApiFactory factory) : IClassFixture<ApiFactory>
 	[Fact]
 	public async Task An_unknown_api_route_stays_a_404_instead_of_the_shell()
 	{
-		using var client = factory.CreateClient();
+		// Signed in: an anonymous request is turned away by the fallback policy before any route is looked up.
+		using var client = factory.CreateClientWithRoles(ApiFactory.AdminRole);
 
 		var response = await client.GetAsync("/api/unknown", TestContext.Current.CancellationToken);
 

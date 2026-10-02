@@ -70,8 +70,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 	.AddKeycloakBearer()
 	.AddHangfireDashboardSignIn();
 
+// Every endpoint requires the admin role unless it opts out: the anonymous ones are listed with AllowAnonymous.
 builder.Services.AddAuthorizationBuilder()
 	.AddAdminPolicy()
+	.SetFallbackPolicy(AdminPolicy.Policy)
 	.AddHangfireDashboardPolicy();
 
 var app = builder.Build();
@@ -84,23 +86,34 @@ if (telemetryEnabled)
 }
 
 // "/" serves index.html; the other client routes go through the SPA fallback (ProductionHosting.MapSpa).
+// Static files are served before the authorization: the published SPA and its assets are public.
 app.UseDefaultFiles();
 app.UseStaticFiles();
+
+// Swagger UI and the OpenAPI document outside production only: the document is committed with the front, and every call
+// made from Swagger UI still requires the admin role. Before the routing, so the fallback policy never applies to the UI.
+var exposeOpenApi = !app.Environment.IsProduction();
+if (exposeOpenApi)
+{
+	app.UseSwaggerUI(options =>
+	{
+		options.SwaggerEndpoint("/openapi/v1.json", "LLM Usage Monitor");
+		options.OAuthClientId(app.Services.GetRequiredService<IOptions<OidcConfig>>().Value.ClientId);
+		options.OAuthUsePkce();
+		options.OAuthScopes("openid");
+	});
+}
+
 // Explicit, and after the static files: routing is otherwise inserted at the top of the pipeline, the SPA fallback matches
 // every asset path, and the static file middleware steps aside for the endpoint already selected.
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// The document and Swagger UI are public; every call made from it still requires the admin role.
-app.MapOpenApi();
-app.UseSwaggerUI(options =>
+if (exposeOpenApi)
 {
-	options.SwaggerEndpoint("/openapi/v1.json", "LLM Usage Monitor");
-	options.OAuthClientId(app.Services.GetRequiredService<IOptions<OidcConfig>>().Value.ClientId);
-	options.OAuthUsePkce();
-	options.OAuthScopes("openid");
-});
+	app.MapOpenApi().AllowAnonymous();
+}
 
 app.MapControllers();
 
