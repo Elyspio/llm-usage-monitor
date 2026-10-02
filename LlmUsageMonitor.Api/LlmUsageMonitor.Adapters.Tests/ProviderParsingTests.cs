@@ -51,7 +51,8 @@ public sealed class ClaudeUsageParserTests
 	[InlineData(0, """{"subtype":"success","is_error":true,"result":"API Error: 529 Overloaded"}""", ProviderErrorCodes.Overloaded)]
 	[InlineData(1, """{"is_error":true,"api_error_status":529,"result":"Repeated server errors"}""", ProviderErrorCodes.Overloaded)]
 	[InlineData(1, """{"is_error":true,"api_error_status":500,"result":"Internal server error"}""", ProviderErrorCodes.TriggerFailed)]
-	[InlineData(1, "error: unknown option '--safe-mode'", ProviderErrorCodes.TriggerFailed)]
+	[InlineData(1, "error: unknown option '--safe-mode'", ProviderErrorCodes.CliUnsupportedOption)]
+	[InlineData(1, """{"is_error":true,"result":"The model asked about an unknown option"}""", ProviderErrorCodes.TriggerFailed)]
 	public void Prompt_results_are_classified_from_is_error_the_status_and_the_text(int exitCode, string output, string? expected)
 	{
 		ClaudePromptRunner.Classify(new(exitCode, output, ""))?.Code.ShouldBe(expected);
@@ -112,6 +113,29 @@ public sealed class CodexUsageParserTests
 	public void Turn_errors_are_mapped_from_codexErrorInfo(string error, string expected)
 	{
 		CodexPromptRunner.MapTurnError(Json(error)).Code.ShouldBe(expected);
+	}
+
+	[Fact]
+	public void A_signed_out_cli_is_recognized_from_the_account_state_not_from_the_error_text()
+	{
+		var error = new CodexRpcException(Fixtures.Load("codex-rate-limits-signed-out.json"));
+
+		CodexErrors.FromRpcError(error).ShouldBeNull();
+		CodexErrors.IsSignedOut(Fixtures.Load("codex-account-signed-out.json")).ShouldBeTrue();
+		CodexErrors.IsSignedOut(Json("""{ "account": { "type": "chatgpt", "email": null, "planType": "team" }, "requiresOpenaiAuth": true }""")).ShouldBeFalse();
+	}
+
+	[Theory]
+	[InlineData("""{ "code": -32603, "message": "denied", "data": { "codexErrorInfo": "unauthorized" } }""", ProviderErrorCodes.AuthExpired)]
+	[InlineData("""{ "code": -32603, "message": "slow down", "data": { "codexErrorInfo": "rateLimitExceeded" } }""", ProviderErrorCodes.RateLimited)]
+	[InlineData("""{ "code": -32603, "message": "http", "data": { "codexErrorInfo": { "httpConnectionFailed": { "httpStatusCode": 429 } } } }""", ProviderErrorCodes.RateLimited)]
+	[InlineData("""{ "code": -32603, "message": "http", "data": { "httpStatusCode": 401 } }""", ProviderErrorCodes.AuthExpired)]
+	[InlineData("""{ "code": -32601, "message": "method not found" }""", ProviderErrorCodes.CliUnsupportedOption)]
+	[InlineData("""{ "code": -32602, "message": "invalid params: unknown field `approvalPolicy`" }""", ProviderErrorCodes.CliUnsupportedOption)]
+	[InlineData("""{ "code": -32600, "message": "authentication required, please login" }""", null)]
+	public void Rpc_errors_are_classified_on_their_code_and_data(string error, string? expected)
+	{
+		CodexErrors.FromRpcError(new CodexRpcException(Json(error))).ShouldBe(expected);
 	}
 
 	private static JsonElement Json(string json)

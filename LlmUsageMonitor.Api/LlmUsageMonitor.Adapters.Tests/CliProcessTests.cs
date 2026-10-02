@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using LlmUsageMonitor.Abstractions.Exceptions;
-using LlmUsageMonitor.Adapters.Claude;
+using LlmUsageMonitor.Abstractions.Helpers;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 using Xunit;
 
@@ -21,7 +23,7 @@ public sealed class CliProcessTests
 	{
 		var (executable, arguments) = Shell("echo hello& exit 3", "echo hello; exit 3");
 
-		var result = await CliProcess.Run(executable, arguments, Path.GetTempPath(), TimeSpan.FromSeconds(10), Token);
+		var result = await CliProcess.Run(executable, arguments, Path.GetTempPath(), TimeSpan.FromSeconds(10), NullLogger.Instance, Token);
 
 		result.ExitCode.ShouldBe(3);
 		result.StandardOutput.Trim().ShouldBe("hello");
@@ -34,7 +36,7 @@ public sealed class CliProcessTests
 		var (executable, arguments) = Shell("start /b ping -n 20 127.0.0.1", "sleep 20 &");
 		var watch = Stopwatch.StartNew();
 
-		var exception = await Should.ThrowAsync<ProviderException>(() => CliProcess.Run(executable, arguments, Path.GetTempPath(), TimeSpan.FromSeconds(1), Token));
+		var exception = await Should.ThrowAsync<ProviderException>(() => CliProcess.Run(executable, arguments, Path.GetTempPath(), TimeSpan.FromSeconds(1), NullLogger.Instance, Token));
 
 		exception.Code.ShouldBe(ProviderErrorCodes.Timeout);
 		watch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(10));
@@ -46,10 +48,43 @@ public sealed class CliProcessTests
 		var (executable, arguments) = Shell("ping -n 20 127.0.0.1", "sleep 20");
 		var watch = Stopwatch.StartNew();
 
-		var exception = await Should.ThrowAsync<ProviderException>(() => CliProcess.Run(executable, arguments, Path.GetTempPath(), TimeSpan.FromSeconds(1), Token));
+		var exception = await Should.ThrowAsync<ProviderException>(() => CliProcess.Run(executable, arguments, Path.GetTempPath(), TimeSpan.FromSeconds(1), NullLogger.Instance, Token));
 
 		exception.Code.ShouldBe(ProviderErrorCodes.Timeout);
 		watch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(10));
+	}
+
+	[Fact]
+	public async Task Each_run_is_logged_with_its_command_exit_code_duration_and_stderr()
+	{
+		var logger = new ListLogger();
+		var (executable, arguments) = Shell("echo boom 1>&2& exit 2", "echo boom >&2; exit 2");
+
+		await CliProcess.Run(executable, arguments, Path.GetTempPath(), TimeSpan.FromSeconds(10), logger, Token);
+
+		logger.Entries.ShouldContain(entry => entry.Level == LogLevel.Warning && entry.Message.Contains("exited with code 2") && entry.Message.Contains(" ms"));
+		logger.Entries.ShouldContain(entry => entry.Message.Contains("stderr: boom"));
+	}
+
+	[Fact]
+	public async Task A_killed_run_is_logged()
+	{
+		var logger = new ListLogger();
+		var (executable, arguments) = Shell("ping -n 20 127.0.0.1", "sleep 20");
+
+		await Should.ThrowAsync<ProviderException>(() => CliProcess.Run(executable, arguments, Path.GetTempPath(), TimeSpan.FromSeconds(1), logger, Token));
+
+		logger.Entries.ShouldContain(entry => entry.Level == LogLevel.Warning && entry.Message.Contains("killed after") && entry.Message.Contains("timed out"));
+	}
+
+	[Theory]
+	[InlineData("error: unknown option '--safe-mode'", true)]
+	[InlineData("error: unexpected argument '--listen' found", true)]
+	[InlineData("error: unrecognized subcommand 'app-server'", true)]
+	[InlineData("API Error: 529 Overloaded", false)]
+	public void Argument_parser_errors_are_recognized(string output, bool expected)
+	{
+		CliProcess.IsUnsupportedOption(output).ShouldBe(expected);
 	}
 
 	[Fact]
@@ -62,5 +97,28 @@ public sealed class CliProcessTests
 		process.WaitForExit();
 
 		Should.NotThrow(() => CliProcess.KillTree(process));
+	}
+}
+
+internal sealed class ListLogger : ILogger
+{
+	public List<(LogLevel Level, string Message)> Entries { get; } = [];
+
+	public IDisposable? BeginScope<TState>(TState state) where TState : notnull
+	{
+		return null;
+	}
+
+	public bool IsEnabled(LogLevel logLevel)
+	{
+		return true;
+	}
+
+	public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+	{
+		lock (Entries)
+		{
+			Entries.Add((logLevel, formatter(state, exception)));
+		}
 	}
 }

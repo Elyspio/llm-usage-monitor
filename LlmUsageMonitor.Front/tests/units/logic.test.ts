@@ -2,7 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 import type { UsageWindow } from "@/core/apis/generated/types.gen";
 import { errorInfo, isDegraded, providerColor, sortWindows, windowColor, windowLabel, windowTiming } from "@/core/dashboard";
 import { fmtDuration, fmtSpan } from "@/core/format";
-import { serverFieldErrors, validateInterval, validateThreshold, validateTopic } from "@/core/settings.validation";
+import { serverFieldErrors, validateAlertDays, validateInterval, validateThreshold, validateTopic } from "@/core/settings.validation";
 
 const window = (id: string, duration: number | null, resetsAt: string | null = null): UsageWindow => ({
 	id,
@@ -69,6 +69,9 @@ describe("settings validation", () => {
 		expect(validateInterval(45)).not.toBeNull();
 		expect(validateInterval(7)).not.toBeNull();
 		expect(validateThreshold(21)).not.toBeNull();
+		expect(validateAlertDays(7)).toBeNull();
+		expect(validateAlertDays(0)).not.toBeNull();
+		expect(validateAlertDays(61)).not.toBeNull();
 		expect(validateTopic("bad topic")).not.toBeNull();
 		expect(validateTopic("")).toBeNull();
 	});

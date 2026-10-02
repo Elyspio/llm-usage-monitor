@@ -10,7 +10,7 @@ public sealed record AppSettings(PollingSettings Polling, TriggerSettings Trigge
 		return new(
 			new(3, 3),
 			new(new(autoTriggerEnabled, "haiku"), new(autoTriggerEnabled, "gpt-5.6-luna")),
-			new("https://ntfy.sh", null, null, NotificationEventsByProvider.Default, 3, null));
+			new("https://ntfy.sh", null, null, NotificationEventsByProvider.Default, 3, null, NotificationSettings.DefaultCredentialExpiryAlertDays));
 	}
 }
 
@@ -60,16 +60,21 @@ public sealed record ProviderTriggerSettings(bool AutoEnabled, string Model);
 /// <param name="Events">The notified events.</param>
 /// <param name="ReadFailureThreshold">Consecutive failed readings before an alert.</param>
 /// <param name="LastSendFailure">The last delivery failure, shown in the settings.</param>
+/// <param name="CredentialExpiryAlertDays">Days before the expiry of the CLI login (refresh token) when an alert is sent.</param>
 public sealed record NotificationSettings(
 	string Url,
 	string? Topic,
 	string? ProtectedToken,
 	NotificationEventsByProvider Events,
 	int ReadFailureThreshold,
-	NotificationSendFailure? LastSendFailure)
+	NotificationSendFailure? LastSendFailure,
+	int CredentialExpiryAlertDays)
 {
 	public const int MinReadFailureThreshold = 1;
 	public const int MaxReadFailureThreshold = 20;
+	public const int DefaultCredentialExpiryAlertDays = 7;
+	public const int MinCredentialExpiryAlertDays = 1;
+	public const int MaxCredentialExpiryAlertDays = 60;
 }
 
 public sealed record NotificationEvents(bool TriggerFailed, bool AuthExpired, bool ReadFailed, bool Reset, bool TriggerSucceeded, bool Recovered)
@@ -81,7 +86,8 @@ public sealed record NotificationEvents(bool TriggerFailed, bool AuthExpired, bo
 		return kind switch
 		{
 			NotificationKind.TriggerFailed => TriggerFailed,
-			NotificationKind.AuthExpired => AuthExpired,
+			// The early warning before the login expires goes with the expiry alert.
+			NotificationKind.AuthExpired or NotificationKind.AuthExpiring => AuthExpired,
 			NotificationKind.ReadFailed => ReadFailed,
 			NotificationKind.Reset => Reset,
 			NotificationKind.TriggerSucceeded => TriggerSucceeded,
@@ -110,7 +116,8 @@ public enum NotificationKind
 	ReadFailed,
 	Reset,
 	TriggerSucceeded,
-	Recovered
+	Recovered,
+	AuthExpiring
 }
 
 /// <summary>
@@ -122,10 +129,12 @@ public sealed record NotificationSettingsView(
 	bool TokenDefined,
 	NotificationEventsByProvider Events,
 	int ReadFailureThreshold,
-	NotificationSendFailure? LastSendFailure);
+	NotificationSendFailure? LastSendFailure,
+	int CredentialExpiryAlertDays);
 
 /// <summary>
 ///     The notification settings sent by the application.
 /// </summary>
 /// <param name="Token">The new token: <c>null</c> keeps the current one, an empty string removes it.</param>
-public sealed record NotificationSettingsUpdate(string Url, string? Topic, string? Token, NotificationEventsByProvider Events, int ReadFailureThreshold);
+/// <param name="CredentialExpiryAlertDays">Days before the expiry of the CLI login when an alert is sent.</param>
+public sealed record NotificationSettingsUpdate(string Url, string? Topic, string? Token, NotificationEventsByProvider Events, int ReadFailureThreshold, int CredentialExpiryAlertDays);

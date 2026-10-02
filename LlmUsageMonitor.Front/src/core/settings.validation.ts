@@ -4,6 +4,7 @@ export type FieldErrors = Record<string, string>;
 
 export const intervalBounds = { min: 1, max: 60 };
 export const thresholdBounds = { min: 1, max: 20 };
+export const alertDaysBounds = { min: 1, max: 60 };
 
 export function validateInterval(value: number): string | null {
 	if (!Number.isInteger(value) || value < intervalBounds.min || value > intervalBounds.max) {
@@ -36,6 +37,10 @@ export function validateTopic(value: string): string | null {
 
 export function validateThreshold(value: number): string | null {
 	return Number.isInteger(value) && value >= thresholdBounds.min && value <= thresholdBounds.max ? null : `Between ${thresholdBounds.min} and ${thresholdBounds.max}.`;
+}
+
+export function validateAlertDays(value: number): string | null {
+	return Number.isInteger(value) && value >= alertDaysBounds.min && value <= alertDaysBounds.max ? null : `Between ${alertDaysBounds.min} and ${alertDaysBounds.max} days.`;
 }
 
 /** Keeps the fields that have an error. */

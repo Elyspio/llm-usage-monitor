@@ -23,7 +23,7 @@ export type NotificationEventsByProvider = {
     codex: NotificationEvents;
 };
 
-export type NotificationKind = 'triggerFailed' | 'authExpired' | 'readFailed' | 'reset' | 'triggerSucceeded' | 'recovered';
+export type NotificationKind = 'triggerFailed' | 'authExpired' | 'readFailed' | 'reset' | 'triggerSucceeded' | 'recovered' | 'authExpiring';
 
 export type NotificationSendFailure = {
     at: string;
@@ -36,6 +36,7 @@ export type NotificationSettingsUpdate = {
     token: null | string;
     events: NotificationEventsByProvider;
     readFailureThreshold: number;
+    credentialExpiryAlertDays: number;
 };
 
 export type NotificationSettingsView = {
@@ -45,6 +46,7 @@ export type NotificationSettingsView = {
     events: NotificationEventsByProvider;
     readFailureThreshold: number;
     lastSendFailure: null | NotificationSendFailure;
+    credentialExpiryAlertDays: number;
 };
 
 export type PollingSettings = {

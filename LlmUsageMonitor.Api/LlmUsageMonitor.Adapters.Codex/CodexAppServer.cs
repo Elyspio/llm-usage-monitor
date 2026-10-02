@@ -5,36 +5,54 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
 using LlmUsageMonitor.Abstractions.Exceptions;
+using LlmUsageMonitor.Abstractions.Helpers;
+using Microsoft.Extensions.Logging;
 
 namespace LlmUsageMonitor.Adapters.Codex;
 
 public sealed record ServerNotification(string Method, JsonElement Params);
 
 /// <summary>
-///     A JSON-RPC error returned by the app-server.
+///     A JSON-RPC error returned by the app-server: <c>code</c>, <c>message</c> and optional <c>data</c>.
 /// </summary>
 public sealed class CodexRpcException(JsonElement error)
-	: Exception(error.TryGetProperty("message", out var message) && message.ValueKind == JsonValueKind.String ? message.GetString() : error.GetRawText());
+	: Exception(error.TryGetProperty("message", out var message) && message.ValueKind == JsonValueKind.String ? message.GetString() : error.GetRawText())
+{
+	public const int MethodNotFound = -32601;
+	public const int InvalidParams = -32602;
+
+	public int? Code { get; } = error.TryGetProperty("code", out var code) && code.ValueKind == JsonValueKind.Number && code.TryGetInt32(out var value) ? value : null;
+
+	/// <summary>The <c>data</c> member, <c>Undefined</c> when absent.</summary>
+	public JsonElement ErrorData { get; } = error.TryGetProperty("data", out var data) ? data.Clone() : default;
+
+	/// <summary>The method or its parameters are unknown to this CLI version: an update changed the protocol.</summary>
+	public bool IsProtocolMismatch => Code is MethodNotFound or InvalidParams;
+}
 
 /// <summary>
 ///     One <c>codex app-server --listen stdio://</c> process: newline-delimited JSON-RPC requests, responses and notifications.
-///     stdin stays open for the protocol; the process is killed on dispose.
+///     stdin stays open for the protocol; the process is killed on dispose, which logs its run.
 /// </summary>
 internal sealed class CodexAppServer : IAsyncDisposable
 {
-	private readonly Task _errors;
+	private readonly Task<string> _errors;
+	private readonly ILogger _logger;
 	private readonly Channel<ServerNotification> _notifications = Channel.CreateUnbounded<ServerNotification>();
+	private readonly string _operation;
 	private readonly ConcurrentDictionary<long, TaskCompletionSource<JsonElement>> _pending = new();
 	private readonly Process _process;
 	private readonly Task _reader;
+	private readonly Stopwatch _watch = Stopwatch.StartNew();
 	private readonly SemaphoreSlim _writeLock = new(1, 1);
 	private long _nextId;
 
-	private CodexAppServer(Process process)
+	private CodexAppServer(Process process, string operation, ILogger logger)
 	{
 		_process = process;
+		_operation = operation;
+		_logger = logger;
 		_reader = Task.Run(ReadMessages);
-		// Diagnostics are drained, never logged: they may contain account details.
 		_errors = process.StandardError.ReadToEndAsync();
 	}
 
@@ -44,6 +62,8 @@ internal sealed class CodexAppServer : IAsyncDisposable
 	{
 		try
 		{
+			// Still running when the client is done: the normal case. Exited earlier: the server stopped on its own.
+			var exitedOnItsOwn = _process.HasExited;
 			try
 			{
 				_process.StandardInput.Close();
@@ -53,8 +73,9 @@ internal sealed class CodexAppServer : IAsyncDisposable
 				// The pipe is already broken: the process exited.
 			}
 
-			KillTree(_process);
+			CliProcess.KillTree(_process);
 			await Task.WhenAny(Task.WhenAll(_reader, _errors), Task.Delay(TimeSpan.FromSeconds(5)));
+			Log(exitedOnItsOwn);
 		}
 		finally
 		{
@@ -63,26 +84,8 @@ internal sealed class CodexAppServer : IAsyncDisposable
 		}
 	}
 
-	/// <summary>
-	///     Kills the process and its descendants; a process that already exited is not an error.
-	/// </summary>
-	internal static void KillTree(Process process)
-	{
-		try
-		{
-			process.Kill(true);
-		}
-		catch (InvalidOperationException)
-		{
-			// Exited before the kill.
-		}
-		catch (Win32Exception)
-		{
-			// A descendant exited while the tree was walked.
-		}
-	}
-
-	public static async Task<CodexAppServer> Start(CodexOptions options, CancellationToken cancellationToken)
+	/// <param name="operation">What the server is started for, for the logs.</param>
+	public static async Task<CodexAppServer> Start(CodexOptions options, string operation, ILogger logger, CancellationToken cancellationToken)
 	{
 		var info = new ProcessStartInfo(options.Executable)
 		{
@@ -106,20 +109,58 @@ internal sealed class CodexAppServer : IAsyncDisposable
 		}
 		catch (Win32Exception exception)
 		{
+			logger.LogWarning("codex app-server could not start: {Error}", exception.Message);
 			throw new ProviderException(ProviderErrorCodes.CliUnavailable, "Cannot start Codex. Install its CLI or set Codex:Executable to its native executable.", exception);
 		}
 
-		var server = new CodexAppServer(process);
+		var server = new CodexAppServer(process, operation, logger);
 		try
 		{
 			await server.Request("initialize", new { clientInfo = new { name = "llm_usage_monitor", title = "LLM Usage Monitor", version = "1.0.0" } }, cancellationToken);
 			await server.Notify("initialized", new { });
 			return server;
 		}
+		catch (ProviderException exception) when (exception.Code == ProviderErrorCodes.CliExited)
+		{
+			// Exited before answering: an argument the CLI no longer accepts is reported with its version.
+			var stderr = await server.ReadErrors();
+			await server.DisposeAsync();
+			if (CliProcess.IsUnsupportedOption(stderr))
+			{
+				var version = await CliProcess.ReadVersion(options.Executable, options.ResolveWorkingDirectory(), logger, cancellationToken);
+				throw new ProviderException(ProviderErrorCodes.CliUnsupportedOption, $"{CliProcess.Truncate(stderr)} (codex {version}: update the arguments of CodexAppServer)");
+			}
+
+			throw;
+		}
 		catch
 		{
 			await server.DisposeAsync();
 			throw;
+		}
+	}
+
+	private async Task<string> ReadErrors()
+	{
+		var completed = await Task.WhenAny(_errors, Task.Delay(TimeSpan.FromSeconds(2)));
+		return completed == _errors && _errors.IsCompletedSuccessfully ? _errors.Result : "";
+	}
+
+	private void Log(bool exitedOnItsOwn)
+	{
+		var stderr = _errors.IsCompletedSuccessfully ? CliProcess.Truncate(_errors.Result) : "";
+		if (exitedOnItsOwn)
+		{
+			_logger.LogWarning("codex app-server ({Operation}) exited on its own with code {ExitCode} after {DurationMs} ms: {StandardError}", _operation, _process.ExitCode,
+				_watch.ElapsedMilliseconds, stderr);
+			return;
+		}
+
+		_logger.LogInformation("codex app-server ({Operation}) stopped after {DurationMs} ms", _operation, _watch.ElapsedMilliseconds);
+		if (stderr.Length > 0)
+		{
+			// stderr may hold account details: debug level only.
+			_logger.LogDebug("codex app-server ({Operation}) stderr: {StandardError}", _operation, stderr);
 		}
 	}
 

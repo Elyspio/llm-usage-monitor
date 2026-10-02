@@ -71,6 +71,7 @@ internal sealed class SettingsRepository(IMongoDatabase database) : ISettingsRep
 			.Set(settings => settings.Notifications.ProtectedToken, document.ProtectedToken)
 			.Set(settings => settings.Notifications.ProviderEvents, document.ProviderEvents)
 			.Set(settings => settings.Notifications.ReadFailureThreshold, document.ReadFailureThreshold)
+			.Set(settings => settings.Notifications.CredentialExpiryAlertDays, document.CredentialExpiryAlertDays)
 			.Unset(settings => settings.Notifications.LegacyEvents), cancellationToken);
 	}
 

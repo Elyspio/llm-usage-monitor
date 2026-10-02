@@ -15,6 +15,9 @@ public sealed record ProviderState(Provider Provider)
 	/// <summary>Consecutive failed readings, rate limiting excluded.</summary>
 	public int ConsecutiveFailures { get; init; }
 
+	/// <summary>Consecutive rate limited readings: past the failure threshold, they alert too.</summary>
+	public int ConsecutiveRateLimits { get; init; }
+
 	/// <summary>Rate limiting backoff step: 0 (none), then 15, 30 and 60 minutes.</summary>
 	public int BackoffLevel { get; init; }
 
@@ -35,6 +38,9 @@ public sealed record ProviderState(Provider Provider)
 	public DateTimeOffset? TokenExpiresAt { get; init; }
 
 	public DateTimeOffset? RefreshTokenExpiresAt { get; init; }
+
+	/// <summary>The login expiry already announced by the early warning: a new login (another expiry) is announced again.</summary>
+	public DateTimeOffset? CredentialExpiryAlertedFor { get; init; }
 }
 
 public sealed record ProviderFailure(string Code, string Message, DateTimeOffset At);

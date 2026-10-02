@@ -59,13 +59,14 @@ public sealed class ClaudeKeepAlive(
 		}
 
 		var state = await states.Get(Provider.Claude, cancellationToken);
+		var settings = await settingsService.Get(cancellationToken);
 		try
 		{
 			state = ScheduleNext(state, await EnsureFresh(cancellationToken));
+			state = await health.CheckCredentialExpiry(state, time.GetUtcNow(), settings.Notifications.CredentialExpiryAlertDays, cancellationToken);
 		}
 		catch (ProviderException exception)
 		{
-			var settings = await settingsService.Get(cancellationToken);
 			state = await health.RecordFailure(state, exception, time.GetUtcNow(), settings.Notifications.ReadFailureThreshold, cancellationToken);
 		}
 
