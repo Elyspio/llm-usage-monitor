@@ -43,12 +43,15 @@ public static class ProductionHosting
 	/// </summary>
 	public static void MapSpa(this WebApplication app)
 	{
+		// Read before the sign-in: public, like the SPA itself.
 		app.MapGet("/conf.js", (IOptions<OidcConfig> oidc) => Results.Text(RuntimeConfigScript(oidc.Value), "text/javascript; charset=utf-8"))
+			.AllowAnonymous()
 			.ExcludeFromDescription();
 
 		if (app.Environment.WebRootPath is { } webRoot && File.Exists(Path.Combine(webRoot, "index.html")))
 		{
-			app.MapFallbackToFile($"{{*path:regex(^(?!{ApiPaths}).*$)}}", "index.html");
+			app.MapFallbackToFile($"{{*path:regex(^(?!{ApiPaths}).*$)}}", "index.html")
+				.AllowAnonymous();
 		}
 	}
 
