@@ -7,4 +7,3 @@
 **/dist
 deploy/out
 deploy/*.tar.gz
-LlmUsageMonitor.Scripts
