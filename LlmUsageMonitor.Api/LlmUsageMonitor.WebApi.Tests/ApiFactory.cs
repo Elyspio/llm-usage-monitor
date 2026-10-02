@@ -91,14 +91,22 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 	/// </summary>
 	public HttpClient CreateClientWithRoles(params string[] clientRoles)
 	{
+		return CreateClientWithToken(CreateToken(clientRoles));
+	}
+
+	public HttpClient CreateClientWithToken(string accessToken)
+	{
 		var client = CreateClient();
-		client.DefaultRequestHeaders.Authorization = new("Bearer", CreateToken(clientRoles));
+		client.DefaultRequestHeaders.Authorization = new("Bearer", accessToken);
 		return client;
 	}
 
-	private static string CreateToken(string[] clientRoles)
+	/// <summary>
+	///     An access token as Keycloak issues it to the SPA client; <paramref name="configure" /> alters it for the negative cases.
+	/// </summary>
+	public static string CreateToken(string[] clientRoles, Action<SecurityTokenDescriptor>? configure = null)
 	{
-		return new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
+		var descriptor = new SecurityTokenDescriptor
 		{
 			Issuer = Issuer,
 			Audience = ClientId,
@@ -106,10 +114,13 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 			Claims = new Dictionary<string, object>
 			{
 				["sub"] = "test-user",
+				["azp"] = ClientId,
 				["resource_access"] = new Dictionary<string, object> { [ClientId] = new Dictionary<string, object> { ["roles"] = clientRoles } }
 			},
 			SigningCredentials = new(SigningKey, SecurityAlgorithms.RsaSha256)
-		});
+		};
+		configure?.Invoke(descriptor);
+		return new JsonWebTokenHandler().CreateToken(descriptor);
 	}
 }
 

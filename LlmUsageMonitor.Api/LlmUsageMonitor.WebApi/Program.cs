@@ -67,22 +67,8 @@ builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi(options => options.AddDocumentTransformer<OAuthSecurityTransformer>());
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-	.AddJwtBearer()
+	.AddKeycloakBearer()
 	.AddHangfireDashboardSignIn();
-
-builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
-	.Configure<IOptions<OidcConfig>, IHostEnvironment>((options, oidc, environment) =>
-	{
-		options.Authority = oidc.Value.Authority;
-		// The development Keycloak started by Aspire may listen on HTTP only.
-		options.RequireHttpsMetadata = !environment.IsDevelopment();
-		options.TokenValidationParameters = new()
-		{
-			ValidateAudience = false,
-			ValidIssuer = oidc.Value.Authority,
-			ClockSkew = TimeSpan.FromSeconds(30)
-		};
-	});
 
 builder.Services.AddAuthorizationBuilder()
 	.AddAdminPolicy()

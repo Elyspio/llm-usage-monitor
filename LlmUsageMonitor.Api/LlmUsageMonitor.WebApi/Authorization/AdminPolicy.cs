@@ -23,6 +23,7 @@ public static class AdminPolicy
 
 	/// <summary>
 	///     Reads the client roles from the Keycloak <c>resource_access</c> claim, a JSON object keyed by client identifier.
+	///     Any other shape grants nothing: a malformed claim is a 403, never a 500.
 	/// </summary>
 	public static bool HasClientRole(ClaimsPrincipal user, string clientId, string role)
 	{
@@ -32,16 +33,17 @@ public static class AdminPolicy
 				using var document = JsonDocument.Parse(claim.Value);
 				if (document.RootElement.ValueKind == JsonValueKind.Object
 				    && document.RootElement.TryGetProperty(clientId, out var client)
+				    && client.ValueKind == JsonValueKind.Object
 				    && client.TryGetProperty("roles", out var roles)
 				    && roles.ValueKind == JsonValueKind.Array
-				    && roles.EnumerateArray().Any(candidate => candidate.GetString() == role))
+				    && roles.EnumerateArray().Any(candidate => candidate.ValueKind == JsonValueKind.String && candidate.GetString() == role))
 				{
 					return true;
 				}
 			}
 			catch (JsonException)
 			{
-				// A malformed claim grants nothing; the other resource_access claims are still checked.
+				// Not JSON: the other resource_access claims are still checked.
 			}
 
 		return false;
