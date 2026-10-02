@@ -1,10 +1,15 @@
-import type { DashboardSnapshot, ProviderDashboard, UsageHistory } from "@/core/apis/generated/types.gen";
+import type { DashboardSnapshot, NotificationSettingsView, ProviderDashboard, TriggerRun, UsageHistory } from "@/core/apis/generated/types.gen";
 
 export const apiUrl = "http://api.test";
 
-const now = Date.now();
-const iso = (offsetMs: number) => new Date(now + offsetMs).toISOString();
-const hour = 3_600_000;
+/**
+ * The frozen "now" of every test (tests/setup.ts): a Wednesday at local noon, far from midnight and from the DST changes,
+ * so the day labels and the Mondays of the timeline never depend on when the tests run.
+ */
+export const fixtureNow = new Date(2026, 8, 23, 12, 0, 0).getTime();
+
+export const iso = (offsetMs: number) => new Date(fixtureNow + offsetMs).toISOString();
+export const hour = 3_600_000;
 
 const health = { lastSuccessAt: iso(-60_000), lastFailure: null, consecutiveFailures: 0, backoffUntil: null, activeAlerts: [], tokenExpiresAt: null, refreshTokenExpiresAt: null };
 
@@ -47,4 +52,52 @@ export const emptyHistory: UsageHistory = { from: iso(-24 * hour), to: iso(0), s
 export const degradedClaude: ProviderDashboard = {
 	...claude,
 	health: { ...health, lastFailure: { code: "AUTH_EXPIRED", message: "The Claude CLI could not refresh its login.", at: iso(-30_000) }, consecutiveFailures: 1 },
+};
+
+export const run = (overrides: Partial<TriggerRun> = {}): TriggerRun => ({
+	id: "run-1",
+	provider: "codex",
+	manual: true,
+	cycleKey: null,
+	model: "gpt-5.6-luna",
+	status: "running",
+	startedAt: iso(-5 * 60_000),
+	endedAt: null,
+	errorCode: null,
+	error: null,
+	attempts: 1,
+	nextRetryAt: null,
+	durationMs: null,
+	...overrides,
+});
+
+/** Two readings of the Claude session, the second after a manual trigger. */
+export const history24h: UsageHistory = {
+	from: iso(-24 * hour),
+	to: iso(0),
+	series: [
+		{
+			provider: "claude",
+			windowId: "five_hour",
+			points: [
+				{ fetchedAt: iso(-3 * hour), usedPercent: 10, resetsAt: null },
+				{ fetchedAt: iso(-1 * hour), usedPercent: 40, resetsAt: null },
+			],
+		},
+		{ provider: "codex", windowId: "codex/primary", points: [{ fetchedAt: iso(-2 * hour), usedPercent: 11, resetsAt: null }] },
+	],
+	triggerRuns: [run({ provider: "claude", status: "succeeded", startedAt: iso(-2 * hour) })],
+};
+
+export const notificationSettings: NotificationSettingsView = {
+	url: "https://ntfy.sh",
+	topic: "llm_usage",
+	tokenDefined: true,
+	events: {
+		claude: { triggerFailed: true, authExpired: true, readFailed: true, reset: false, triggerSucceeded: true, recovered: true },
+		codex: { triggerFailed: false, authExpired: true, readFailed: true, reset: false, triggerSucceeded: true, recovered: true },
+	},
+	readFailureThreshold: 3,
+	credentialExpiryAlertDays: 7,
+	lastSendFailure: { at: iso(-hour), message: "ntfy returned HTTP 502." },
 };

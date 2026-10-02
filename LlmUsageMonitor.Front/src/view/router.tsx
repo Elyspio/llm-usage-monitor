@@ -1,5 +1,5 @@
 import { CircularProgress, Stack } from "@mui/material";
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, type RouteObject } from "react-router";
 import { routes } from "@/config/routes";
 import { AppLayout } from "@components/AppLayout";
 import { ProtectedRoute } from "@components/auth/ProtectedRoute";
@@ -11,7 +11,7 @@ const PageLoader = () => (
 );
 
 // Each page is its own chunk: the charts (@mui/x-charts, d3) only load with History and Usage.
-export const router = createBrowserRouter([
+export const appRoutes: RouteObject[] = [
 	{ path: routes.authCallback, lazy: async () => ({ Component: (await import("@pages/AuthCallback")).AuthCallback }), HydrateFallback: PageLoader },
 	{
 		path: routes.dashboard,
@@ -28,4 +28,6 @@ export const router = createBrowserRouter([
 			{ path: routes.settings.slice(1), lazy: async () => ({ Component: (await import("@pages/SettingsPage")).SettingsPage }) },
 		],
 	},
-]);
+];
+
+export const router = createBrowserRouter(appRoutes);

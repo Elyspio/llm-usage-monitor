@@ -1,47 +1,15 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { setupServer } from "msw/node";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vite-plus/test";
-import { client } from "@/core/apis/generated/client.gen";
-import type { TriggerRun } from "@/core/apis/generated/types.gen";
+import { describe, expect, it } from "vite-plus/test";
 import { DashboardPage } from "@pages/DashboardPage";
-import { apiUrl, dashboard, degradedClaude, emptyHistory } from "./fixtures";
+import { apiUrl, claude, dashboard, degradedClaude, iso, run } from "./fixtures";
+import { mockApi, renderPage as render, testQueryClient } from "./render";
 
-const runningRun: TriggerRun = {
-	id: "run-1",
-	provider: "codex",
-	manual: true,
-	cycleKey: null,
-	model: "gpt-5.6-luna",
-	status: "running",
-	startedAt: new Date().toISOString(),
-	endedAt: null,
-	errorCode: null,
-	error: null,
-	attempts: 1,
-	nextRetryAt: null,
-	durationMs: null,
-};
+const runningRun = run();
 
-const server = setupServer(
-	http.get(`${apiUrl}/api/dashboard`, () => HttpResponse.json(dashboard)),
-	http.get(`${apiUrl}/api/history`, () => HttpResponse.json(emptyHistory))
-);
+const server = mockApi();
 
-beforeAll(() => {
-	client.setConfig({ baseUrl: apiUrl });
-	server.listen({ onUnhandledRequest: "error" });
-});
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
-
-const renderPage = (queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })) =>
-	render(
-		<QueryClientProvider client={queryClient}>
-			<DashboardPage />
-		</QueryClientProvider>
-	);
+const renderPage = (queryClient = testQueryClient()) => render(<DashboardPage />, { queryClient });
 
 describe("DashboardPage", () => {
 	it("shows all windows on the shared timeline with the trigger window first", async () => {
@@ -72,17 +40,17 @@ describe("DashboardPage", () => {
 	});
 
 	it("queues a manual trigger and follows it until it ends", async () => {
-		const run = runningRun;
+		const queued = runningRun;
 		let posted = 0;
 		let followed = 0;
 		server.use(
 			http.post(`${apiUrl}/api/providers/codex/trigger`, () => {
 				posted++;
-				return HttpResponse.json(run, { status: 202 });
+				return HttpResponse.json(queued, { status: 202 });
 			}),
 			http.get(`${apiUrl}/api/trigger-runs/run-1`, () => {
 				followed++;
-				return HttpResponse.json({ ...run, status: "succeeded", endedAt: new Date().toISOString(), durationMs: 2100 });
+				return HttpResponse.json({ ...queued, status: "succeeded", endedAt: iso(0), durationMs: 2100 });
 			})
 		);
 
@@ -103,7 +71,7 @@ describe("DashboardPage", () => {
 	});
 
 	it("keeps the values after a failed refresh, with a banner to retry", async () => {
-		const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+		const queryClient = testQueryClient();
 		renderPage(queryClient);
 		await screen.findByRole("region", { name: "Quota timeline" });
 
@@ -142,5 +110,29 @@ describe("DashboardPage", () => {
 
 		expect(await within(codex).findByText(/its progress could not be read. Server error \(500\)/)).toBeTruthy();
 		expect((within(codex).getByRole("button", { name: /Trigger now/ }) as HTMLButtonElement).disabled).toBe(false);
+	});
+
+	it("marks a window whose reset has passed until the next reading", async () => {
+		const expired = { ...claude.lastReading!.windows[1], resetsAt: iso(-10 * 60_000) };
+		server.use(
+			http.get(`${apiUrl}/api/dashboard`, () =>
+				HttpResponse.json({ ...dashboard, providers: [{ ...claude, lastReading: { ...claude.lastReading!, windows: [expired] } }, dashboard.providers[1]] })
+			)
+		);
+
+		renderPage();
+
+		expect(await screen.findByText("Reset passed · waiting for a reading")).toBeTruthy();
+	});
+
+	it("says when the API cannot be reached on the first load, and retries", async () => {
+		server.use(http.get(`${apiUrl}/api/dashboard`, () => HttpResponse.error()));
+
+		renderPage();
+
+		expect(await screen.findByText("The API could not be reached: check the connection.")).toBeTruthy();
+		server.resetHandlers();
+		fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+		expect(await screen.findByRole("region", { name: "Quota timeline" })).toBeTruthy();
 	});
 });

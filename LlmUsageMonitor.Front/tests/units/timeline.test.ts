@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
 import { toTimeline } from "@/core/timeline";
-import { claude } from "./fixtures";
+import { claude, fixtureNow } from "./fixtures";
 
 describe("shared timeline", () => {
 	it("preserves the duration ratio between a session and a week", () => {
-		const now = Date.now();
+		const now = fixtureNow;
 		const chart = toTimeline([claude], now);
 		const session = chart.rows.find((row) => row.window.id === "five_hour")!.timing!;
 		const week = chart.rows.find((row) => row.window.id === "seven_day")!.timing!;
@@ -16,7 +16,7 @@ describe("shared timeline", () => {
 		expect(chart.position(now)).toBeLessThan(100);
 	});
 	it("keeps an empty or undated timeline finite without inventing a window", () => {
-		const now = Date.now();
+		const now = fixtureNow;
 		const empty = toTimeline([], now);
 		expect(empty.rows).toEqual([]);
 		expect(Number.isFinite(empty.position(now))).toBe(true);
@@ -27,7 +27,7 @@ describe("shared timeline", () => {
 		expect(chart.rows[0].timing).toBeNull();
 	});
 	it("marks every Monday midnight of the range", () => {
-		const chart = toTimeline([claude], Date.now());
+		const chart = toTimeline([claude], fixtureNow);
 		const expected: number[] = [];
 		for (const day = new Date(chart.start); day.getTime() < chart.end; day.setDate(day.getDate() + 1)) {
 			if (day.getDay() === 1) expected.push(day.getTime());
@@ -38,7 +38,7 @@ describe("shared timeline", () => {
 		expect(toTimeline([], new Date(2026, 8, 21, 12).getTime()).mondays).toEqual([new Date(2026, 8, 21).getTime()]);
 	});
 	it("includes now after all windows have expired", () => {
-		const now = Date.now() + 30 * 86400000;
+		const now = fixtureNow + 30 * 86400000;
 		const chart = toTimeline([claude], now);
 		expect(chart.end).toBeGreaterThan(now);
 		expect(chart.ticks.length).toBeLessThanOrEqual(10);
