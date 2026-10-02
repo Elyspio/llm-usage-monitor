@@ -4,7 +4,6 @@ using LlmUsageMonitor.Abstractions.Injections;
 using LlmUsageMonitor.Core.Health;
 using LlmUsageMonitor.Core.Hosting;
 using LlmUsageMonitor.Core.Services;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -21,12 +20,12 @@ public sealed class CoreModule : IModule
 		services.Configure<AppConfig>(configuration.GetSection(AppConfig.Section));
 
 		services.TryAddSingleton(TimeProvider.System);
-		services.AddDataProtection().SetApplicationName("llm-usage-monitor");
 
 		services.Scan(selector => selector
 			.FromAssemblyOf<CoreModule>()
 			.AddClasses(filter => filter.InNamespaceOf<DashboardService>())
-			.AsImplementedInterfaces()
+			// One instance per class, behind each of its interfaces (TriggerService is both ITriggerService and IAutomaticTrigger).
+			.AsSelfWithInterfaces()
 			.WithSingletonLifetime()
 		);
 

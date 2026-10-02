@@ -20,30 +20,8 @@ public static partial class CliProcess
 	public static async Task<CliResult> Run(string executable, IReadOnlyList<string> arguments, string workingDirectory, TimeSpan timeout, ILogger logger,
 		CancellationToken cancellationToken)
 	{
-		var info = new ProcessStartInfo(executable)
-		{
-			RedirectStandardInput = true,
-			RedirectStandardOutput = true,
-			RedirectStandardError = true,
-			UseShellExecute = false,
-			CreateNoWindow = true,
-			WorkingDirectory = workingDirectory,
-			StandardOutputEncoding = Encoding.UTF8,
-			StandardErrorEncoding = Encoding.UTF8
-		};
-		foreach (var argument in arguments) info.ArgumentList.Add(argument);
-		var command = string.Join(' ', [Path.GetFileName(executable), .. arguments]);
-
-		Process process;
-		try
-		{
-			process = Process.Start(info) ?? throw new ProviderException(ProviderErrorCodes.CliUnavailable, $"Cannot start {executable}.");
-		}
-		catch (Win32Exception exception)
-		{
-			logger.LogWarning("{Command} could not start: {Error}", command, exception.Message);
-			throw new ProviderException(ProviderErrorCodes.CliUnavailable, $"Cannot start {executable}. Install its CLI or fix the configured executable path.", exception);
-		}
+		var command = Describe(executable, arguments);
+		var process = Start(executable, arguments, workingDirectory, logger);
 
 		var watch = Stopwatch.StartNew();
 		using (process)
@@ -85,6 +63,43 @@ public static partial class CliProcess
 
 			return result;
 		}
+	}
+
+	/// <summary>
+	///     Starts the CLI with its three standard streams redirected in UTF-8. Throws <c>CLI_UNAVAILABLE</c> when the executable
+	///     cannot start; <paramref name="unavailableHint" /> tells how to fix it.
+	/// </summary>
+	public static Process Start(string executable, IReadOnlyList<string> arguments, string workingDirectory, ILogger logger,
+		string unavailableHint = "Install its CLI or fix the configured executable path.")
+	{
+		var info = new ProcessStartInfo(executable)
+		{
+			RedirectStandardInput = true,
+			RedirectStandardOutput = true,
+			RedirectStandardError = true,
+			UseShellExecute = false,
+			CreateNoWindow = true,
+			WorkingDirectory = workingDirectory,
+			StandardOutputEncoding = Encoding.UTF8,
+			StandardErrorEncoding = Encoding.UTF8
+		};
+		foreach (var argument in arguments) info.ArgumentList.Add(argument);
+
+		try
+		{
+			return Process.Start(info) ?? throw new ProviderException(ProviderErrorCodes.CliUnavailable, $"Cannot start {executable}.");
+		}
+		catch (Win32Exception exception)
+		{
+			logger.LogWarning("{Command} could not start: {Error}", Describe(executable, arguments), exception.Message);
+			throw new ProviderException(ProviderErrorCodes.CliUnavailable, $"Cannot start {executable}. {unavailableHint}", exception);
+		}
+	}
+
+	/// <summary>The command as logged: the executable name and the arguments.</summary>
+	public static string Describe(string executable, IReadOnlyList<string> arguments)
+	{
+		return string.Join(' ', [Path.GetFileName(executable), .. arguments]);
 	}
 
 	/// <summary>

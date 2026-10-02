@@ -1,7 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+    <!-- Contracts only: no ASP.NET Core, the modules and helpers need the Microsoft.Extensions abstractions alone. -->
     <ItemGroup>
-        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
     </ItemGroup>
 
 </Project>

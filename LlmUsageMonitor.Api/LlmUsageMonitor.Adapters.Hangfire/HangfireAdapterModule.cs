@@ -31,17 +31,14 @@ public sealed class HangfireAdapterModule : IModule
 			return;
 		}
 
-		var connectionString = configuration.GetConnectionString("MongoDB") ?? throw new InvalidOperationException("ConnectionStrings:MongoDB is required.");
-		// The connection string of the Aspire resource carries no database name, which Hangfire.Mongo requires.
-		var storageUrl = new MongoUrlBuilder(connectionString) { DatabaseName = MongoUrl.Create(connectionString).DatabaseName ?? StorageDefaults.DatabaseName }.ToString();
-
-		services.AddHangfire(config => config
+		// The storage shares the client and the database of the MongoDB adapter (MongoAdapterModule): one connection pool.
+		services.AddHangfire((sp, config) => config
 			.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
 			.UseSimpleAssemblyNameTypeSerializer()
 			.UseRecommendedSerializerSettings()
 			// Hangfire never replays a job: the automatic trigger schedules its own bounded retries (TriggerService.RetryDelays).
 			.UseFilter(new AutomaticRetryAttribute { Attempts = 0 })
-			.UseMongoStorage(storageUrl, new MongoStorageOptions
+			.UseMongoStorage(sp.GetRequiredService<IMongoClient>(), sp.GetRequiredService<IMongoDatabase>().DatabaseNamespace.DatabaseName, new MongoStorageOptions
 			{
 				MigrationOptions = new()
 				{

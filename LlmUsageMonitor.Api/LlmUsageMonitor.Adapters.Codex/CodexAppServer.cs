@@ -1,7 +1,5 @@
 using System.Collections.Concurrent;
-using System.ComponentModel;
 using System.Diagnostics;
-using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
 using LlmUsageMonitor.Abstractions.Exceptions;
@@ -87,31 +85,8 @@ internal sealed class CodexAppServer : IAsyncDisposable
 	/// <param name="operation">What the server is started for, for the logs.</param>
 	public static async Task<CodexAppServer> Start(CodexOptions options, string operation, ILogger logger, CancellationToken cancellationToken)
 	{
-		var info = new ProcessStartInfo(options.Executable)
-		{
-			RedirectStandardInput = true,
-			RedirectStandardOutput = true,
-			RedirectStandardError = true,
-			UseShellExecute = false,
-			CreateNoWindow = true,
-			WorkingDirectory = options.ResolveWorkingDirectory(),
-			StandardOutputEncoding = Encoding.UTF8,
-			StandardErrorEncoding = Encoding.UTF8
-		};
-		info.ArgumentList.Add("app-server");
-		info.ArgumentList.Add("--listen");
-		info.ArgumentList.Add("stdio://");
-
-		Process process;
-		try
-		{
-			process = Process.Start(info) ?? throw new ProviderException(ProviderErrorCodes.CliUnavailable, "Cannot start Codex.");
-		}
-		catch (Win32Exception exception)
-		{
-			logger.LogWarning("codex app-server could not start: {Error}", exception.Message);
-			throw new ProviderException(ProviderErrorCodes.CliUnavailable, "Cannot start Codex. Install its CLI or set Codex:Executable to its native executable.", exception);
-		}
+		var process = CliProcess.Start(options.Executable, ["app-server", "--listen", "stdio://"], options.ResolveWorkingDirectory(), logger,
+			"Install its CLI or set Codex:Executable to its native executable.");
 
 		var server = new CodexAppServer(process, operation, logger);
 		try

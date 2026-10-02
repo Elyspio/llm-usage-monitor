@@ -37,9 +37,8 @@ public sealed class HttpExceptionFilter(ProblemDetailsFactory problems) : IExcep
 				return;
 		}
 
-		// Ajout de l'exception dans les tags de l'activité pour le suivi et le traçage
-		var activity = context.HttpContext.Features[typeof(IHttpActivityFeature)] as IHttpActivityFeature;
-		activity?.Activity.SetTag("exception", context.Exception);
+		// Recorded as an "exception" event of the request activity (type, message, stack trace), as OpenTelemetry expects.
+		context.HttpContext.Features.Get<IHttpActivityFeature>()?.Activity.AddException(context.Exception);
 
 		context.ExceptionHandled = true;
 	}

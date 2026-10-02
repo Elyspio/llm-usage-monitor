@@ -1,10 +1,10 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Elyspio.Utils.Telemetry.Technical.Extensions;
 using Elyspio.Utils.Telemetry.Tracing.Builder;
 using Hangfire;
 using LlmUsageMonitor.Abstractions.Configurations;
-using LlmUsageMonitor.Abstractions.Extensions;
 using LlmUsageMonitor.Abstractions.Helpers;
 using LlmUsageMonitor.Adapters.Claude;
 using LlmUsageMonitor.Adapters.Codex;
@@ -21,11 +21,15 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using OpenTelemetry.Trace;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddProductionHosting();
 
-builder.Logging.AddSimpleConsole(x => x.SingleLine = true);
+// A single log pipeline: Serilog, levels from the "Serilog" section, one line per event on the console. No timestamp:
+// journald (on the LXC) and the Aspire dashboard date each line.
+const string consoleTemplate = "{Level:u3} {SourceContext}: {Message:lj}{NewLine}{Exception}";
+builder.Host.UseSerilogWithTelemetry((_, logger) => logger.WriteTo.Console(outputTemplate: consoleTemplate, formatProvider: CultureInfo.InvariantCulture));
 
 var telemetryEnabled = builder.Configuration.IsTelemetryEnabled(out var telemetryOptions);
 if (telemetryEnabled)
@@ -79,6 +83,8 @@ builder.Services.AddAuthorizationBuilder()
 var app = builder.Build();
 
 app.UseForwardedHeaders();
+// Unhandled errors become a 500 ProblemDetails; the application exceptions are mapped before, by HttpExceptionFilter.
+app.UseExceptionHandler();
 app.UseContentSecurityPolicy();
 
 if (telemetryEnabled)
