@@ -109,6 +109,17 @@ public sealed record NotificationEventsByProvider(NotificationEvents Claude, Not
 
 public sealed record NotificationSendFailure(DateTimeOffset At, string Message);
 
+/// <summary>
+///     What became of a notification: only a delivered alert counts as sent, so a skipped one (no topic, event disabled) is
+///     sent once the notifications are enabled.
+/// </summary>
+public enum NotificationOutcome
+{
+	Delivered,
+	Skipped,
+	Failed
+}
+
 public enum NotificationKind
 {
 	TriggerFailed,

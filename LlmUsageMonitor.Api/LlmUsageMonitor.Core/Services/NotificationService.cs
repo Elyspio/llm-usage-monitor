@@ -22,18 +22,18 @@ public sealed class NotificationService(
 {
 	public const string DeliveryFailedCode = "NOTIFICATION_FAILED";
 
-	public async Task<bool> Notify(NotificationKind kind, Provider provider, string detail, CancellationToken cancellationToken)
+	public async Task<NotificationOutcome> Notify(NotificationKind kind, Provider provider, string detail, CancellationToken cancellationToken)
 	{
 		var settings = (await settingsService.Get(cancellationToken)).Notifications;
 		if (string.IsNullOrWhiteSpace(settings.Topic) || !settings.Events.For(provider).IsEnabled(kind))
 		{
-			return true;
+			return NotificationOutcome.Skipped;
 		}
 
 		try
 		{
 			await Deliver(Build(kind, provider, detail), settings, cancellationToken);
-			return true;
+			return NotificationOutcome.Delivered;
 		}
 		// An HTTP timeout is an OperationCanceledException too: only the cancellation of the caller is let through.
 		catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
@@ -42,7 +42,7 @@ public sealed class NotificationService(
 			logger.LogWarning(exception, "ntfy delivery failed for {Kind} ({Provider})", kind, provider);
 			Activity.Current?.SetStatus(ActivityStatusCode.Error, exception.Message);
 			await SaveSendFailure(new(time.GetUtcNow(), exception.Message), cancellationToken);
-			return false;
+			return NotificationOutcome.Failed;
 		}
 	}
 

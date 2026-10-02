@@ -92,6 +92,46 @@ public sealed class CredentialAlertTests
 	}
 
 	[Fact]
+	public async Task A_warning_skipped_before_ntfy_is_configured_is_sent_once_it_is()
+	{
+		var harness = Claude();
+		var settings = harness.SettingsRepository.Stored!;
+		harness.SettingsRepository.Stored = settings with { Notifications = settings.Notifications with { Topic = null } };
+		harness.Time.SetUtcNow(Start.AddDays(4));
+		await harness.Monitor.Poll(Provider.Claude, Token);
+		harness.States.Stored[Provider.Claude].CredentialExpiryAlertedFor.ShouldBeNull();
+
+		harness.SettingsRepository.Stored = settings;
+		harness.Time.Advance(TimeSpan.FromMinutes(3));
+		await harness.Monitor.Poll(Provider.Claude, Token);
+
+		harness.Sender.Sent.ShouldContain(message => message.Title == Expiring);
+		harness.States.Stored[Provider.Claude].CredentialExpiryAlertedFor.ShouldBe(Start.AddDays(10));
+	}
+
+	[Fact]
+	public async Task An_error_alert_skipped_while_its_event_is_disabled_is_sent_once_enabled()
+	{
+		var harness = new TestHarness();
+		var settings = harness.SettingsRepository.Stored!;
+		var events = settings.Notifications.Events;
+		harness.SettingsRepository.Stored = settings with
+		{
+			Notifications = settings.Notifications with { Events = events with { Claude = events.Claude with { AuthExpired = false } } }
+		};
+		harness.Session.ExpiresAt = Start.AddMinutes(-1);
+
+		await harness.Monitor.Poll(Provider.Claude, Token);
+		harness.States.Stored[Provider.Claude].ActiveAlerts.ShouldBeEmpty();
+		harness.SettingsRepository.Stored = settings;
+		await harness.Monitor.Poll(Provider.Claude, Token);
+		await harness.Monitor.Poll(Provider.Claude, Token);
+
+		harness.Sender.Sent.ShouldHaveSingleItem().Title.ShouldBe("Claude : connexion expirée");
+		harness.States.Stored[Provider.Claude].ActiveAlerts.ShouldBe([NotificationKind.AuthExpired]);
+	}
+
+	[Fact]
 	public async Task The_keep_alive_announces_the_expiry_too()
 	{
 		var harness = Claude();

@@ -80,11 +80,11 @@ public sealed class NotificationDeliveryTests
 	{
 		var harness = new TestHarness();
 		harness.Sender.Failure = new HttpRequestException("ntfy returned HTTP 502.");
-		(await harness.Notifications.Notify(NotificationKind.TriggerFailed, Provider.Codex, "boom", Token)).ShouldBeFalse();
+		(await harness.Notifications.Notify(NotificationKind.TriggerFailed, Provider.Codex, "boom", Token)).ShouldBe(NotificationOutcome.Failed);
 		harness.SettingsRepository.Stored!.Notifications.LastSendFailure.ShouldNotBeNull();
 
 		harness.Sender.Failure = null;
-		(await harness.Notifications.Notify(NotificationKind.TriggerFailed, Provider.Codex, "boom", Token)).ShouldBeTrue();
+		(await harness.Notifications.Notify(NotificationKind.TriggerFailed, Provider.Codex, "boom", Token)).ShouldBe(NotificationOutcome.Delivered);
 
 		harness.SettingsRepository.Stored!.Notifications.LastSendFailure.ShouldBeNull();
 	}
