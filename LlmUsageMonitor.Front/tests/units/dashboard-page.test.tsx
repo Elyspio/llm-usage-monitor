@@ -47,6 +47,7 @@ describe("DashboardPage", () => {
 	it("shows all windows on the shared timeline with the trigger window first", async () => {
 		renderPage();
 
+		expect(screen.getByRole("heading", { level: 1, name: "Dashboard" })).toBeTruthy();
 		const timeline = await screen.findByRole("region", { name: "Quota timeline" });
 		const cards = within(timeline).getAllByText(/Claude · 5 h session|Claude · Weekly · all models/);
 		expect(cards.map((card) => card.textContent)).toEqual(["Claude · 5 h session", "Claude · Weekly · all models"]);
@@ -125,6 +126,7 @@ describe("DashboardPage", () => {
 		fireEvent.click(within(codex).getByRole("button", { name: /Trigger now/ }));
 
 		expect(await within(codex).findByText("Trigger refused. A CLI process is already running for this provider.")).toBeTruthy();
+		expect(within(codex).getByRole("alert").textContent).toContain("A CLI process is already running");
 		expect((within(codex).getByRole("button", { name: /Trigger now/ }) as HTMLButtonElement).disabled).toBe(false);
 	});
 

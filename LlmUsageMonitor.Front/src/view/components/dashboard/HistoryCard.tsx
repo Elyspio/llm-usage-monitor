@@ -1,4 +1,4 @@
-import { Chip, CircularProgress, Paper, Stack, ToggleButton, ToggleButtonGroup, Typography, useTheme } from "@mui/material";
+import { Box, Chip, CircularProgress, Paper, Stack, ToggleButton, ToggleButtonGroup, Typography, useTheme } from "@mui/material";
 import { ChartsReferenceLine } from "@mui/x-charts/ChartsReferenceLine";
 import { LineChart } from "@mui/x-charts/LineChart";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -6,9 +6,10 @@ import { useMemo, useState } from "react";
 import { getHistoryOptions } from "@/core/apis/generated/@tanstack/react-query.gen";
 import type { UsageHistory } from "@/core/apis/generated/types.gen";
 import { providerColor, providerLabel, windowColor, windowLabel } from "@/core/dashboard";
-import { fmtDayLabel, fmtHour } from "@/core/format";
+import { fmtDayLabel, fmtHour, fmtPercent } from "@/core/format";
 import { QueryError } from "@components/QueryError";
 import { useNow } from "@hooks/useNow";
+import { visuallyHidden } from "@/view/theme";
 
 type Range = "24h" | "7d";
 
@@ -41,6 +42,15 @@ export function toChart(history: UsageHistory, durations: Record<string, number 
 }
 
 /** Usage history over 24 h or 7 days. Its own clock ticks every minute: the chart is never redrawn for a countdown. */
+/** Text alternative of the chart: per series, the remaining share at the end of the period and its lowest point. */
+export function describeChart(series: Series[]): string[] {
+	return series.map((item) => {
+		const values = item.data.filter((value): value is number => value !== null);
+		if (values.length === 0) return `${item.label}: no reading over the period.`;
+		return `${item.label}: ${fmtPercent(values.at(-1)!)} remaining at the end of the period, lowest ${fmtPercent(Math.min(...values))}.`;
+	});
+}
+
 export const HistoryCard = ({ durations }: { durations: Record<string, number | null> }) => {
 	const theme = useTheme();
 	const now = useNow(60_000);
@@ -75,7 +85,7 @@ export const HistoryCard = ({ durations }: { durations: Record<string, number | 
 				<Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
 					History · % remaining
 				</Typography>
-				<ToggleButtonGroup size="small" exclusive value={range} onChange={(_, value: Range | null) => value && setRange(value)}>
+				<ToggleButtonGroup size="small" exclusive value={range} onChange={(_, value: Range | null) => value && setRange(value)} aria-label="History period">
 					<ToggleButton value="24h">24 h</ToggleButton>
 					<ToggleButton value="7d">7 d</ToggleButton>
 				</ToggleButtonGroup>
@@ -93,7 +103,10 @@ export const HistoryCard = ({ durations }: { durations: Record<string, number | 
 				<Typography sx={{ color: "text.secondary", py: 8, textAlign: "center" }}>No reading over the period.</Typography>
 			) : (
 				<>
-					<Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", mb: 1 }}>
+					<Stack component="fieldset" direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", border: 0, p: 0, mx: 0, mt: 0, mb: 1, minWidth: 0 }}>
+						<Box component="legend" sx={visuallyHidden}>
+							Series shown on the chart
+						</Box>
 						{chart.series.map((series) => (
 							<Chip
 								key={series.key}
@@ -101,10 +114,16 @@ export const HistoryCard = ({ durations }: { durations: Record<string, number | 
 								label={series.label}
 								variant={hidden.includes(series.key) ? "outlined" : "filled"}
 								onClick={() => toggle(series.key)}
+								aria-pressed={!hidden.includes(series.key)}
 								sx={{ borderColor: series.color }}
 							/>
 						))}
 					</Stack>
+					<Box component="ul" aria-label="Chart summary" sx={visuallyHidden}>
+						{describeChart(chart.series).map((line) => (
+							<li key={line}>{line}</li>
+						))}
+					</Box>
 					<LineChart height={300} skipAnimation hideLegend grid={{ horizontal: true }} xAxis={xAxis} yAxis={yAxis} series={series}>
 						{data.triggerRuns.map((run) => (
 							<ChartsReferenceLine

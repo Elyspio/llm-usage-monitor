@@ -31,7 +31,9 @@ export const AuthCallback = () => {
 		<Stack spacing={2} sx={{ minHeight: "100vh", alignItems: "center", justifyContent: "center", px: 3 }}>
 			{failed ? (
 				<>
-					<Typography variant="h6">Sign in failed</Typography>
+					<Typography variant="h6" component="h1">
+						Sign in failed
+					</Typography>
 					<Button variant="contained" onClick={signIn}>
 						Try again
 					</Button>
@@ -39,7 +41,9 @@ export const AuthCallback = () => {
 			) : (
 				<>
 					<CircularProgress />
-					<Typography sx={{ color: "text.secondary" }}>Signing in…</Typography>
+					<Typography component="h1" sx={{ color: "text.secondary" }}>
+						Signing in…
+					</Typography>
 				</>
 			)}
 		</Stack>

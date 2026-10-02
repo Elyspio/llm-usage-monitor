@@ -42,7 +42,7 @@ export const AppLayout = () => {
 					<AppLogo />
 					<Box>
 						<Typography sx={{ fontWeight: 700, letterSpacing: "-0.04em" }}>LLM Monitor</Typography>
-						<Typography variant="overline" sx={{ color: "text.secondary", fontSize: "0.65rem" }}>
+						<Typography variant="overline" sx={{ color: "text.secondary" }}>
 							Usage & automation
 						</Typography>
 					</Box>

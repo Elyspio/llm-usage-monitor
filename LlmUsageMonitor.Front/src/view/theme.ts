@@ -55,7 +55,8 @@ export const theme = createTheme({
 		h5: { fontSize: "2rem", fontWeight: 600, letterSpacing: "-0.04em" },
 		h6: { fontSize: "1.12rem", fontWeight: 700, letterSpacing: "-0.025em" },
 		body2: { fontSize: "0.8rem", lineHeight: 1.7 },
-		caption: { fontSize: "0.7rem", lineHeight: 1.6 },
+		// 0.75rem is the smallest text of the application.
+		caption: { fontSize: "0.75rem", lineHeight: 1.6 },
 		button: { textTransform: "none", fontWeight: 700, fontSize: "0.78rem" },
 		overline: { fontFamily: '"IBM Plex Mono", monospace', fontSize: "0.75rem", letterSpacing: "0.1em" },
 	},
@@ -70,11 +71,11 @@ export const theme = createTheme({
 		},
 		MuiPaper: { styleOverrides: { root: { backgroundImage: "none" } } },
 		MuiButton: { defaultProps: { disableElevation: true }, styleOverrides: { root: { borderRadius: 8, padding: "9px 14px" } } },
-		MuiChip: { styleOverrides: { root: { borderRadius: 6, fontSize: "0.65rem", fontWeight: 600 }, sizeSmall: { height: 23 } } },
+		MuiChip: { styleOverrides: { root: { borderRadius: 6, fontSize: "0.75rem", fontWeight: 600 }, sizeSmall: { height: 23 } } },
 		MuiTableCell: {
 			styleOverrides: {
 				root: { borderColor: divider, padding: "14px 10px", fontSize: "0.75rem" },
-				head: { color: textSecondary, fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.08em" },
+				head: { color: textSecondary, fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.08em" },
 			},
 		},
 		MuiTextField: { defaultProps: { size: "small" } },
@@ -83,3 +84,16 @@ export const theme = createTheme({
 		MuiToggleButton: { styleOverrides: { root: { borderRadius: 7, padding: "5px 14px" } } },
 	},
 });
+
+/** Read by screen readers, invisible on screen: the text alternatives of the charts. */
+export const visuallyHidden = {
+	position: "absolute",
+	width: 1,
+	height: 1,
+	margin: -1,
+	padding: 0,
+	border: 0,
+	overflow: "hidden",
+	clip: "rect(0 0 0 0)",
+	whiteSpace: "nowrap",
+} as const;

@@ -1,5 +1,5 @@
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import { Button, Stack, Typography } from "@mui/material";
+import { Box, Button, Stack, Typography } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { apiErrorMessage } from "@/core/apis/api-error";
@@ -47,16 +47,19 @@ export const TriggerButton = ({ provider, runningTrigger }: { provider: Provider
 			>
 				Trigger now
 			</Button>
-			{trigger.isError && (
-				<Typography variant="caption" sx={{ color: "error.main", mt: 0.5 }}>
-					Trigger refused. {apiErrorMessage(trigger.error, { 409: "A CLI process is already running for this provider." })}
-				</Typography>
-			)}
-			{status === "lost" && (
-				<Typography variant="caption" sx={{ color: "warning.main", mt: 0.5 }}>
-					Trigger queued, its progress could not be read. {apiErrorMessage(followed.error)}
-				</Typography>
-			)}
+			{/* Always rendered, so screen readers announce a refusal when it appears. */}
+			<Box role="alert" sx={{ textAlign: "right" }}>
+				{trigger.isError && (
+					<Typography variant="caption" sx={{ color: "error.main", mt: 0.5, display: "block" }}>
+						Trigger refused. {apiErrorMessage(trigger.error, { 409: "A CLI process is already running for this provider." })}
+					</Typography>
+				)}
+				{status === "lost" && (
+					<Typography variant="caption" sx={{ color: "warning.main", mt: 0.5, display: "block" }}>
+						Trigger queued, its progress could not be read. {apiErrorMessage(followed.error)}
+					</Typography>
+				)}
+			</Box>
 		</Stack>
 	);
 };
