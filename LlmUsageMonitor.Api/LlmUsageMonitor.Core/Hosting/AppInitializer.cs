@@ -37,6 +37,7 @@ public sealed class AppInitializer(
 		}
 
 		scheduler.SchedulePriceRefresh();
+		scheduler.ScheduleJobPurge();
 		if (!await prices.Any(cancellationToken))
 		{
 			scheduler.EnqueuePriceRefresh();

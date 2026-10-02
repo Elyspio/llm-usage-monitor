@@ -104,8 +104,11 @@ internal sealed class InMemorySnapshots : IUsageSnapshotRepository
 		return Task.CompletedTask;
 	}
 
-	public Task<IReadOnlyList<UsageSeries>> GetHistory(Provider? provider, string? windowId, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken)
+	public TimeSpan? LastBucket { get; private set; }
+
+	public Task<IReadOnlyList<UsageSeries>> GetHistory(Provider? provider, string? windowId, DateTimeOffset from, DateTimeOffset to, TimeSpan bucket, CancellationToken cancellationToken)
 	{
+		LastBucket = bucket;
 		return Task.FromResult<IReadOnlyList<UsageSeries>>([]);
 	}
 }
@@ -312,6 +315,10 @@ internal sealed class FakeScheduler : IJobScheduler
 	}
 
 	public void SchedulePriceRefresh()
+	{
+	}
+
+	public void ScheduleJobPurge()
 	{
 	}
 

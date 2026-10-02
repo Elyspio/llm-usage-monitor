@@ -6,7 +6,8 @@ public interface IUsageSnapshotRepository
 {
 	Task Add(Provider provider, UsageReading reading, CancellationToken cancellationToken);
 
-	Task<IReadOnlyList<UsageSeries>> GetHistory(Provider? provider, string? windowId, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken);
+	/// <summary>One point per window and <paramref name="bucket" />: the last reading of the bucket.</summary>
+	Task<IReadOnlyList<UsageSeries>> GetHistory(Provider? provider, string? windowId, DateTimeOffset from, DateTimeOffset to, TimeSpan bucket, CancellationToken cancellationToken);
 }
 
 public interface IResetRepository

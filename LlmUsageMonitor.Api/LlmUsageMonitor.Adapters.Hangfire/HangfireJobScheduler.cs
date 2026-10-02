@@ -42,6 +42,15 @@ internal sealed class HangfireJobScheduler(IBackgroundJobClient jobs, IRecurring
 		jobs.Enqueue<ProviderJobs>(job => job.RunTrigger(runId, CancellationToken.None));
 	}
 
+	public void ScheduleJobPurge()
+	{
+		recurringJobs.AddOrUpdate<FailedJobPurge>(
+			"purge-failed-jobs",
+			job => job.Purge(CancellationToken.None),
+			Cron.Daily(5),
+			new() { TimeZone = TimeZoneInfo.Utc });
+	}
+
 	public void SchedulePriceRefresh()
 	{
 		recurringJobs.AddOrUpdate<ProviderJobs>(

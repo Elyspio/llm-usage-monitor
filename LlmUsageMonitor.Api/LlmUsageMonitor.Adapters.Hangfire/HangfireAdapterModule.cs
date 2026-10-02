@@ -55,6 +55,7 @@ public sealed class HangfireAdapterModule : IModule
 		services.AddHangfireServer(options => options.WorkerCount = 4);
 
 		services.AddTransient<ProviderJobs>();
+		services.AddTransient<FailedJobPurge>();
 		services.AddSingleton<IJobScheduler, HangfireJobScheduler>();
 		services.AddSingleton<IJobServerMonitor, HangfireServerMonitor>();
 	}
@@ -128,6 +129,11 @@ internal sealed class LoggingJobScheduler(ILogger<LoggingJobScheduler> logger) :
 	public void EnqueueTrigger(string runId)
 	{
 		logger.LogInformation("Hangfire disabled: trigger {RunId} not queued", runId);
+	}
+
+	public void ScheduleJobPurge()
+	{
+		logger.LogInformation("Hangfire disabled: daily job purge not scheduled");
 	}
 
 	public void SchedulePriceRefresh()

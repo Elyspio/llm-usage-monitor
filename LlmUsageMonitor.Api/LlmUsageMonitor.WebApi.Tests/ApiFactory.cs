@@ -176,6 +176,10 @@ public sealed class RecordingScheduler : IJobScheduler
 	{
 	}
 
+	public void ScheduleJobPurge()
+	{
+	}
+
 	public void EnqueuePriceRefresh()
 	{
 	}

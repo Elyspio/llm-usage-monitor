@@ -27,16 +27,23 @@ public sealed class MongoFixture : IAsyncLifetime
 	}
 
 	/// <summary>A fresh database per test, on the shared container.</summary>
-	public async Task<ServiceProvider> CreateServices()
+	/// <summary>The URL of a fresh database on the shared container.</summary>
+	public string CreateDatabaseUrl()
 	{
-		var connectionString = new MongoUrlBuilder(_container.GetConnectionString())
+		return new MongoUrlBuilder(_container.GetConnectionString())
 		{
 			DatabaseName = $"tests-{Guid.NewGuid():N}",
 			AuthenticationSource = "admin"
 		}.ToString();
+	}
+
+	public async Task<ServiceProvider> CreateServices()
+	{
+		var connectionString = CreateDatabaseUrl();
 		var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:MongoDB"] = connectionString }).Build();
 
 		var services = new ServiceCollection();
+		services.AddLogging();
 		new MongoAdapterModule().Load(services, configuration);
 		var provider = services.BuildServiceProvider();
 		await provider.GetRequiredService<IStorageInitializer>().Initialize(CancellationToken.None);
@@ -160,11 +167,67 @@ public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<Mon
 		await snapshots.Add(Provider.Claude, new(Now.AddMinutes(-3), [new("five_hour", 10, Now.AddHours(2), 300), new("seven_day", 20, null, 10_080)]), Token);
 		await snapshots.Add(Provider.Claude, new(Now, [new("five_hour", 12, Now.AddHours(2), 300)]), Token);
 
-		var series = await snapshots.GetHistory(Provider.Claude, null, Now.AddHours(-1), Now, Token);
+		var series = await snapshots.GetHistory(Provider.Claude, null, Now.AddHours(-1), Now, TimeSpan.FromMinutes(1), Token);
 
 		series.Select(item => item.WindowId).ShouldBe(["five_hour", "seven_day"]);
 		series[0].Points.Select(point => point.UsedPercent).ShouldBe([10, 12]);
 		series[0].Points[0].ResetsAt.ShouldBe(Now.AddHours(2));
+	}
+
+	[Fact]
+	public async Task History_keeps_the_last_reading_of_each_bucket()
+	{
+		await using var services = await mongo.CreateServices();
+		var snapshots = services.GetRequiredService<IUsageSnapshotRepository>();
+		var start = new DateTimeOffset(2026, 9, 14, 11, 0, 0, TimeSpan.Zero);
+		for (var minute = 0; minute < 60; minute += 3)
+			await snapshots.Add(Provider.Codex, new(start.AddMinutes(minute), [new("codex/primary", minute, start.AddHours(5), 300)]), Token);
+
+		var fiveMinutes = (await snapshots.GetHistory(Provider.Codex, "codex/primary", start, Now, TimeSpan.FromMinutes(5), Token)).ShouldHaveSingleItem();
+		var hourly = (await snapshots.GetHistory(null, null, start, Now, TimeSpan.FromHours(1), Token)).ShouldHaveSingleItem();
+
+		fiveMinutes.Points.Count.ShouldBe(12);
+		fiveMinutes.Points.Select(point => point.UsedPercent).Take(3).ShouldBe([3, 9, 12]);
+		fiveMinutes.Points[0].FetchedAt.ShouldBe(start.AddMinutes(3));
+		fiveMinutes.Points[0].ResetsAt.ShouldBe(start.AddHours(5));
+		var point = hourly.Points.ShouldHaveSingleItem();
+		(point.UsedPercent, point.FetchedAt).ShouldBe((57, start.AddMinutes(57)));
+	}
+
+	[Fact]
+	public async Task Resets_and_trigger_runs_expire_after_90_days()
+	{
+		await using var services = await mongo.CreateServices();
+		var database = services.GetRequiredService<IMongoDatabase>();
+
+		(await ExpireAfter(database, "resets", "detectedAt")).ShouldBe((long)TimeSpan.FromDays(90).TotalSeconds);
+		(await ExpireAfter(database, "triggerRuns", "startedAt")).ShouldBe((long)TimeSpan.FromDays(90).TotalSeconds);
+	}
+
+	[Fact]
+	public async Task The_retention_is_applied_to_collections_created_before_it()
+	{
+		await using var services = await mongo.CreateServices();
+		var database = services.GetRequiredService<IMongoDatabase>();
+		// As created by an earlier version: snapshots kept 7 days, a plain sort index on the runs.
+		await database.DropCollectionAsync("usageSnapshots", Token);
+		await database.CreateCollectionAsync("usageSnapshots", new() { TimeSeriesOptions = new("fetchedAt", "meta", TimeSeriesGranularity.Minutes), ExpireAfter = TimeSpan.FromDays(7) },
+			Token);
+		await database.DropCollectionAsync("triggerRuns", Token);
+		await database.GetCollection<BsonDocument>("triggerRuns").Indexes.CreateOneAsync(new CreateIndexModel<BsonDocument>(new BsonDocument("startedAt", -1)), cancellationToken: Token);
+
+		await services.GetRequiredService<IStorageInitializer>().Initialize(Token);
+
+		var collection = await (await database.ListCollectionsAsync(new() { Filter = new BsonDocument("name", "usageSnapshots") }, Token)).SingleAsync(Token);
+		collection["options"]["expireAfterSeconds"].ToInt64().ShouldBe((long)TimeSpan.FromDays(30).TotalSeconds);
+		(await ExpireAfter(database, "triggerRuns", "startedAt")).ShouldBe((long)TimeSpan.FromDays(90).TotalSeconds);
+	}
+
+	private static async Task<long?> ExpireAfter(IMongoDatabase database, string collection, string field)
+	{
+		var indexes = await (await database.GetCollection<BsonDocument>(collection).Indexes.ListAsync(Token)).ToListAsync(Token);
+		var index = indexes.Single(candidate => candidate["key"].AsBsonDocument.Names.SequenceEqual([field]));
+		return index.TryGetValue("expireAfterSeconds", out var seconds) ? seconds.ToInt64() : null;
 	}
 
 	[Fact]
