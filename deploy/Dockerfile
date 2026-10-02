@@ -11,7 +11,7 @@ RUN pnpm run build
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS api
 WORKDIR /src
-COPY global.json nuget.config Directory.Build.props ./
+COPY global.json nuget.config Directory.Build.props Directory.Packages.props ./
 COPY LlmUsageMonitor.Api/ LlmUsageMonitor.Api/
 # The OpenAPI document is generated on the dev machine and committed; the container build does not run the application.
 RUN dotnet publish LlmUsageMonitor.Api/LlmUsageMonitor.WebApi/LlmUsageMonitor.WebApi.csproj \

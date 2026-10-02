@@ -6,7 +6,7 @@ Spec : [PRD](https://github.com/Elyspio/llm-usage-monitor/issues/19) — fermé,
 
 ## Structure
 
-- `LlmUsageMonitor.slnx`, `global.json` (SDK .NET 10, runner de tests Microsoft.Testing.Platform), `aspire.config.json`.
+- `LlmUsageMonitor.slnx`, `global.json` (SDK .NET 10, runner de tests Microsoft.Testing.Platform : ni `Microsoft.NET.Test.Sdk` ni `xunit.runner.visualstudio`), `Directory.Packages.props` (versions NuGet centralisées de tous les projets, AppHost compris ; une prerelease y est justifiée en commentaire), `aspire.config.json`.
 - `LlmUsageMonitor.AppHost/` : AppHost Aspire 13.5 (C#). MongoDB, Keycloak de dev (realm importé depuis `Realms/`, comptes `admin`/`admin` avec le rôle et `norole`/`norole` sans rôle), API, front sur `https://localhost:3000`.
 - `LlmUsageMonitor.Api/` : ASP.NET Core 10.
   - `Abstractions` (contrats, config), `Core` (règles de cycle et de reset, lecture, déclenchements, keep-alive, santé, notifications, réglages), `WebApi` (contrôleurs, auth, OpenAPI).

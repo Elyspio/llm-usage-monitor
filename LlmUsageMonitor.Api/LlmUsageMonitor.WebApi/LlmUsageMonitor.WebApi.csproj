@@ -8,16 +8,16 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Elyspio.Utils.Telemetry" Version="2.1.0"/>
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12"/>
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.12"/>
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12"/>
-        <PackageReference Include="OpenTelemetry.Instrumentation.Hangfire" Version="1.19.0-beta.1"/>
-        <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.12">
+        <PackageReference Include="Elyspio.Utils.Telemetry"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect"/>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi"/>
+        <PackageReference Include="OpenTelemetry.Instrumentation.Hangfire"/>
+        <PackageReference Include="Microsoft.Extensions.ApiDescription.Server">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.2.3"/>
+        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI"/>
     </ItemGroup>
 
     <ItemGroup>

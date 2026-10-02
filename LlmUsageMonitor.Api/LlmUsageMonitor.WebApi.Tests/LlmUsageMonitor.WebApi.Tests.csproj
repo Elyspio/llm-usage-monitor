@@ -6,16 +6,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Hangfire.InMemory" Version="1.0.0"/>
-        <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12"/>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
-        <PackageReference Include="Shouldly" Version="4.3.0"/>
-        <PackageReference Include="Testcontainers.MongoDb" Version="4.15.0"/>
-        <PackageReference Include="xunit.v3" Version="4.0.1"/>
-        <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
+        <PackageReference Include="Hangfire.InMemory"/>
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing"/>
+        <PackageReference Include="Shouldly"/>
+        <PackageReference Include="Testcontainers.MongoDb"/>
+        <PackageReference Include="xunit.v3"/>
     </ItemGroup>
 
     <ItemGroup>
