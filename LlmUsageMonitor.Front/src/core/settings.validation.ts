@@ -31,6 +31,13 @@ export function validateNtfyUrl(value: string): string | null {
 	}
 }
 
+/** The stored token was given for its server: a new URL needs its token again, or the token removed. */
+export function validateTokenForServer(change: { savedUrl: string; url: string; tokenDefined: boolean; token: string; removeToken: boolean }): string | null {
+	const normalize = (url: string) => url.trim().replace(/\/+$/, "").toLowerCase();
+	const serverChanged = normalize(change.savedUrl) !== normalize(change.url);
+	return serverChanged && change.tokenDefined && !change.token && !change.removeToken ? "The server changed: enter its token again, or remove the token." : null;
+}
+
 export function validateTopic(value: string): string | null {
 	return value.trim() === "" || /^[A-Za-z0-9_-]{1,64}$/.test(value.trim()) ? null : "Letters, digits, _ and - only, 64 characters at most.";
 }

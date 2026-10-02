@@ -110,6 +110,23 @@ describe("SettingsPage", () => {
 		await expect.poll(() => lastNotificationBody).toMatchObject({ topic: "llm_usage", token: null, credentialExpiryAlertDays: 7 });
 	});
 
+	it("asks for the token again when the ntfy server changes", async () => {
+		lastNotificationBody = null;
+		renderPage();
+		const form = await screen.findByRole("form", { name: "Notifications ntfy" });
+
+		fireEvent.change(within(form).getByLabelText("ntfy server"), { target: { value: "https://ntfy.example.org" } });
+		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
+
+		expect(within(form).getByText("The server changed: enter its token again, or remove the token.")).toBeTruthy();
+		expect(lastNotificationBody).toBeNull();
+
+		fireEvent.change(within(form).getByLabelText("Access token"), { target: { value: "tk_new_server" } });
+		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
+
+		await expect.poll(() => lastNotificationBody).toMatchObject({ url: "https://ntfy.example.org", token: "tk_new_server" });
+	});
+
 	it("shows notification events as a provider matrix and saves each provider independently", async () => {
 		renderPage();
 		const form = await screen.findByRole("form", { name: "Notifications ntfy" });

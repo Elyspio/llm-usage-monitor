@@ -95,7 +95,7 @@ public sealed class NotificationService(
 			NotificationKind.AuthExpiring => ($"{name} : connexion bientôt expirée", NotificationPriority.High, "hourglass_flowing_sand"),
 			_ => ($"{name} : rétabli", NotificationPriority.Default, "green_heart")
 		};
-		return new(title, detail, priority, [tag], appConfig.Value.PublicUrl);
+		return new(title, NotificationDetail.Sanitize(detail), priority, [tag], appConfig.Value.PublicUrl);
 	}
 }
 

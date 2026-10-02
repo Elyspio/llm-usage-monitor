@@ -95,6 +95,81 @@ public sealed class SettingsServiceTests
 	}
 
 	[Fact]
+	public async Task A_new_ntfy_server_does_not_inherit_the_stored_token()
+	{
+		var harness = new TestHarness();
+		var events = NotificationEventsByProvider.Default;
+		await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "secret", events, 3, 7), Token);
+
+		var exception = await Should.ThrowAsync<RequestValidationException>(() =>
+			harness.Settings.UpdateNotifications(new("https://ntfy.example.org", "topic_1", null, events, 3, 7), Token));
+
+		exception.Errors.Keys.ShouldBe(["token"]);
+		harness.SettingsRepository.Stored!.Notifications.Url.ShouldBe("https://ntfy.sh");
+		harness.SettingsRepository.Stored!.Notifications.ProtectedToken.ShouldBe("protected:secret");
+	}
+
+	[Fact]
+	public async Task A_new_ntfy_server_is_saved_with_its_own_token_or_none()
+	{
+		var harness = new TestHarness();
+		var events = NotificationEventsByProvider.Default;
+		await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "secret", events, 3, 7), Token);
+
+		var reentered = await harness.Settings.UpdateNotifications(new("https://ntfy.example.org", "topic_1", "other", events, 3, 7), Token);
+		harness.SettingsRepository.Stored!.Notifications.ProtectedToken.ShouldBe("protected:other");
+		var removed = await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "", events, 3, 7), Token);
+
+		(reentered.TokenDefined, removed.TokenDefined).ShouldBe((true, false));
+		harness.SettingsRepository.Stored!.Notifications.Url.ShouldBe("https://ntfy.sh");
+	}
+
+	[Fact]
+	public async Task The_same_ntfy_server_written_differently_keeps_the_token()
+	{
+		var harness = new TestHarness();
+		var events = NotificationEventsByProvider.Default;
+		await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "secret", events, 3, 7), Token);
+
+		var kept = await harness.Settings.UpdateNotifications(new(" https://NTFY.sh/ ", "topic_1", null, events, 3, 7), Token);
+
+		kept.TokenDefined.ShouldBeTrue();
+		harness.SettingsRepository.Stored!.Notifications.ProtectedToken.ShouldBe("protected:secret");
+	}
+
+	[Fact]
+	public async Task A_cli_error_is_sent_short_and_without_credentials()
+	{
+		var harness = new TestHarness();
+		var error = "TRIGGER_FAILED : request failed\n\tAuthorization: Bearer abc.def.ghi for user@example.com, refresh_token=rt_0123456789 "
+		            + "key sk-ant-oat01-ABCDEFGHIJKLMNOPQRSTUV " + string.Join(" ", Enumerable.Repeat("at stack frame", 40));
+
+		await harness.Notifications.Notify(NotificationKind.TriggerFailed, Provider.Claude, error, Token);
+
+		var body = harness.Sender.Sent.ShouldHaveSingleItem().Body;
+		body.Length.ShouldBeLessThanOrEqualTo(NotificationDetail.MaxLength);
+		body.ShouldStartWith("TRIGGER_FAILED : request failed Authorization: [redacted]");
+		body.ShouldNotContain("abc.def.ghi");
+		body.ShouldNotContain("user@example.com");
+		body.ShouldNotContain("rt_0123456789");
+		body.ShouldNotContain("sk-ant-");
+		body.ShouldNotContain("\n");
+		body.ShouldEndWith("…");
+	}
+
+	[Theory]
+	[InlineData("Prompt envoyé : un nouveau cycle est ouvert.", "Prompt envoyé : un nouveau cycle est ouvert.")]
+	[InlineData("AUTH_EXPIRED : refresh token expired, run `claude auth login`", "AUTH_EXPIRED : refresh token expired, run `claude auth login`")]
+	[InlineData("CLI_EXITED : /var/lib/llm-monitor/.local/bin/claude exited with 1", "CLI_EXITED : /var/lib/llm-monitor/.local/bin/claude exited with 1")]
+	[InlineData("HTTP_ERROR : 401 with eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2lnbmF0dXJl", "HTTP_ERROR : 401 with [redacted]")]
+	[InlineData("FETCH_FAILED : {\"access_token\": \"abc\", \"api_key\":\"def\"}", "FETCH_FAILED : {\"access_token\": \"[redacted]\", \"api_key\":\"[redacted]\"}")]
+	[InlineData("INVALID_RESPONSE : 0123456789abcdef0123456789abcdef01234567", "INVALID_RESPONSE : [redacted]")]
+	public void A_notification_detail_keeps_the_message_and_drops_the_secrets(string detail, string expected)
+	{
+		NotificationDetail.Sanitize(detail).ShouldBe(expected);
+	}
+
+	[Fact]
 	public async Task Invalid_notification_settings_are_rejected_per_field()
 	{
 		var harness = new TestHarness();

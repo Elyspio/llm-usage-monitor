@@ -47,6 +47,7 @@ import {
 	validateModel,
 	validateNtfyUrl,
 	validateThreshold,
+	validateTokenForServer,
 	validateTopic,
 } from "@/core/settings.validation";
 
@@ -331,6 +332,7 @@ function NotificationSection({ initial }: { initial: NotificationSettingsView })
 		const local = collect({
 			url: validateNtfyUrl(values.url),
 			topic: validateTopic(values.topic),
+			token: validateTokenForServer({ savedUrl: current.url, url: values.url, tokenDefined: current.tokenDefined, token, removeToken }),
 			readFailureThreshold: validateThreshold(values.readFailureThreshold),
 			credentialExpiryAlertDays: validateAlertDays(values.credentialExpiryAlertDays),
 		});
@@ -380,7 +382,8 @@ function NotificationSection({ initial }: { initial: NotificationSettingsView })
 							disabled={removeToken}
 							autoComplete="new-password"
 							onChange={(event) => setToken(event.target.value)}
-							helperText={current.tokenDefined ? "A token is set: leave empty to keep it." : "Optional."}
+							error={Boolean(errors.token)}
+							helperText={errors.token ?? (current.tokenDefined ? "A token is set: leave empty to keep it on the same server." : "Optional.")}
 						/>
 						{current.tokenDefined && (
 							<FormControlLabel control={<Switch checked={removeToken} onChange={(event) => setRemoveToken(event.target.checked)} />} label="Remove the token" />
