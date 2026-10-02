@@ -2,13 +2,14 @@ import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "react-router/dom";
 import { missingRuntimeConfig } from "@/config/runtime.config";
+import { retryQuery } from "@/core/apis/api-error";
 import { MissingConfig } from "@components/MissingConfig";
 import { AuthProvider } from "@/view/context/auth.context";
 import { router } from "@/view/router";
 import { theme } from "@/view/theme";
 
 const queryClient = new QueryClient({
-	defaultOptions: { queries: { retry: 1 } },
+	defaultOptions: { queries: { retry: retryQuery } },
 });
 
 export const App = () => (
