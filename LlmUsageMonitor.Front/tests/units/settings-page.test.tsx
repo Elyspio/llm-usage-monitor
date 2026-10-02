@@ -1,58 +1,29 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { setupServer } from "msw/node";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vite-plus/test";
-import { client } from "@/core/apis/generated/client.gen";
+import { describe, expect, it } from "vite-plus/test";
 import { SettingsPage } from "@pages/SettingsPage";
-import { apiUrl } from "./fixtures";
-
-const notifications = {
-	url: "https://ntfy.sh",
-	topic: "llm_usage",
-	tokenDefined: true,
-	events: {
-		claude: { triggerFailed: true, authExpired: true, readFailed: true, reset: false, triggerSucceeded: true, recovered: true },
-		codex: { triggerFailed: false, authExpired: true, readFailed: true, reset: false, triggerSucceeded: true, recovered: true },
-	},
-	readFailureThreshold: 3,
-	credentialExpiryAlertDays: 7,
-	lastSendFailure: { at: new Date().toISOString(), message: "ntfy returned HTTP 502." },
-};
+import { apiUrl, notificationSettings } from "./fixtures";
+import { mockApi, renderPage as render, testQueryClient } from "./render";
 
 let lastNotificationBody: unknown = null;
 let polling = { claudeIntervalMinutes: 3, codexIntervalMinutes: 3 };
 
-const server = setupServer(
+const server = mockApi(
 	http.get(`${apiUrl}/api/settings/polling`, () => HttpResponse.json(polling)),
 	http.put(`${apiUrl}/api/settings/polling`, async ({ request }) => {
 		polling = (await request.json()) as typeof polling;
 		return HttpResponse.json(polling);
 	}),
-	http.get(`${apiUrl}/api/settings/triggers`, () => HttpResponse.json({ claude: { autoEnabled: true, model: "haiku" }, codex: { autoEnabled: false, model: "gpt-5.6-luna" } })),
-	http.get(`${apiUrl}/api/settings/notifications`, () => HttpResponse.json(notifications)),
 	http.put(`${apiUrl}/api/settings/notifications`, async ({ request }) => {
 		lastNotificationBody = await request.json();
-		return HttpResponse.json(notifications);
+		return HttpResponse.json(notificationSettings);
 	}),
 	http.put(`${apiUrl}/api/settings/triggers`, () =>
 		HttpResponse.json({ title: "invalid", status: 400, errors: { "codex.model": ["Model unknown to the server."] } }, { status: 400 })
 	)
 );
 
-beforeAll(() => {
-	client.setConfig({ baseUrl: apiUrl });
-	server.listen({ onUnhandledRequest: "error" });
-});
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
-
-const renderPage = (queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })) =>
-	render(
-		<QueryClientProvider client={queryClient}>
-			<SettingsPage />
-		</QueryClientProvider>
-	);
+const renderPage = (queryClient = testQueryClient()) => render(<SettingsPage />, { queryClient });
 
 describe("SettingsPage", () => {
 	it("checks the polling interval before sending it", async () => {
@@ -160,7 +131,7 @@ describe("SettingsPage", () => {
 
 	it("shows the saved values when coming back to the page", async () => {
 		polling = { claudeIntervalMinutes: 3, codexIntervalMinutes: 3 };
-		const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+		const queryClient = testQueryClient();
 		const page = renderPage(queryClient);
 		const form = await screen.findByRole("form", { name: "Usage reading" });
 
@@ -179,7 +150,7 @@ describe("SettingsPage", () => {
 
 	it("follows the server values while the form is untouched", async () => {
 		polling = { claudeIntervalMinutes: 3, codexIntervalMinutes: 3 };
-		const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+		const queryClient = testQueryClient();
 		renderPage(queryClient);
 		const form = await screen.findByRole("form", { name: "Usage reading" });
 
@@ -197,5 +168,48 @@ describe("SettingsPage", () => {
 		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
 
 		expect(await within(form).findByText("Server error (500): see the service logs.")).toBeTruthy();
+	});
+
+	it("removes the stored token on demand", async () => {
+		lastNotificationBody = null;
+		renderPage();
+		const form = await screen.findByRole("form", { name: "Notifications ntfy" });
+
+		fireEvent.click(within(form).getByRole("switch", { name: "Remove the token" }));
+		expect((within(form).getByLabelText("Access token") as HTMLInputElement).disabled).toBe(true);
+		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
+
+		await expect.poll(() => lastNotificationBody).toMatchObject({ token: "" });
+	});
+
+	it("sends a test notification and tells how it went", async () => {
+		let status = 204;
+		server.use(http.post(`${apiUrl}/api/settings/notifications/test`, () => new HttpResponse(null, { status })));
+		renderPage();
+		const form = await screen.findByRole("form", { name: "Notifications ntfy" });
+
+		fireEvent.click(within(form).getByRole("button", { name: "Send a test" }));
+		expect(await within(form).findByText("Test notification sent.")).toBeTruthy();
+
+		status = 502;
+		fireEvent.click(within(form).getByRole("button", { name: "Send a test" }));
+		expect(await within(form).findByText("The test send failed.")).toBeTruthy();
+	});
+
+	it("cannot send a test without a topic", async () => {
+		server.use(http.get(`${apiUrl}/api/settings/notifications`, () => HttpResponse.json({ ...notificationSettings, topic: null })));
+		renderPage();
+		const form = await screen.findByRole("form", { name: "Notifications ntfy" });
+
+		expect((within(form).getByRole("button", { name: "Send a test" }) as HTMLButtonElement).disabled).toBe(true);
+	});
+
+	it("shows an error with a retry when the settings cannot be loaded", async () => {
+		server.use(http.get(`${apiUrl}/api/settings/triggers`, () => HttpResponse.json({ title: "boom" }, { status: 500 })));
+		renderPage();
+
+		expect(await screen.findByText("Could not load the settings.")).toBeTruthy();
+		expect(screen.getByRole("heading", { level: 1, name: "Settings" })).toBeTruthy();
+		expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
 	});
 });

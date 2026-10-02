@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { UsageWindow } from "@/core/apis/generated/types.gen";
 import { errorInfo, isDegraded, providerColor, sortWindows, windowColor, windowLabel, windowTiming } from "@/core/dashboard";
-import { fmtSpan } from "@/core/format";
+import { fmtAgo, fmtDayLabel, fmtHour, fmtIn, fmtPercent, fmtSpan, fmtWhen } from "@/core/format";
 import { isSameNtfyServer, serverFieldErrors, validateAlertDays, validateInterval, validateThreshold, validateTokenForServer, validateTopic } from "@/core/settings.validation";
 
 const window = (id: string, duration: number | null, resetsAt: string | null = null): UsageWindow => ({
@@ -53,6 +53,28 @@ describe("formatting", () => {
 	it("formats spans", () => {
 		expect(fmtSpan(3 * 86_400_000 + 4 * 3_600_000)).toBe("3 d 4 h");
 		expect(fmtSpan(7 * 60_000 + 5_000, true)).toBe("7 min 05 s");
+		expect(fmtSpan(2 * 3_600_000 + 10 * 60_000)).toBe("2 h 10 min");
+		expect(fmtSpan(12_000)).toBe("12 s");
+	});
+
+	it("labels the days around now and the hours on a 24-hour clock", () => {
+		const now = new Date(2026, 8, 23, 12).getTime();
+
+		expect(fmtHour(new Date(2026, 8, 23, 17, 52))).toBe("17:52");
+		expect(fmtDayLabel(new Date(2026, 8, 23, 0, 5), now)).toBe("today");
+		expect(fmtDayLabel(new Date(2026, 8, 22, 23, 55), now)).toBe("yesterday");
+		expect(fmtDayLabel(new Date(2026, 8, 24, 0, 0), now)).toBe("tomorrow");
+		expect(fmtWhen(new Date(2026, 8, 23, 17, 52), now)).toBe("today 17:52");
+		expect(fmtWhen(new Date(2026, 8, 15, 4, 0), now)).toBe("Tue 15 Sept 04:00");
+	});
+
+	it("counts down to a future time and up from a past one", () => {
+		const now = new Date(2026, 8, 23, 12).getTime();
+
+		expect(fmtIn(now + 6 * 60_000 + 59_000, now)).toBe("in 6 min 59 s");
+		expect(fmtIn(now - 3 * 3_600_000, now)).toBe("3 h 00 min ago");
+		expect(fmtAgo(now - 90 * 60_000, now)).toBe("1 h 30 min ago");
+		expect(fmtPercent(59.6)).toBe("60%");
 	});
 });
 

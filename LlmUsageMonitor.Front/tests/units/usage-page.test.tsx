@@ -1,25 +1,23 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { setupServer } from "msw/node";
-import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
+import { describe, expect, it } from "vite-plus/test";
 import type { TokenUsageReport } from "@/core/apis/generated/types.gen";
-import { client } from "@/core/apis/generated/client.gen";
 import { UsagePage } from "@pages/UsagePage";
-import { apiUrl } from "./fixtures";
+import { apiUrl, fixtureNow, iso } from "./fixtures";
+import { mockApi, renderPage } from "./render";
 
-const today = new Date();
+const today = new Date(fixtureNow);
 today.setHours(0, 0, 0, 0);
 const from = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6);
 
 const report: TokenUsageReport = {
 	from: from.toISOString(),
-	to: new Date().toISOString(),
+	to: iso(0),
 	step: "day",
 	timeZone: "Europe/Paris",
 	machines: [
-		{ id: "pc-1", name: "PC bureau", lastUploadAt: new Date().toISOString() },
-		{ id: "pc-2", name: "Laptop", lastUploadAt: new Date().toISOString() },
+		{ id: "pc-1", name: "PC bureau", lastUploadAt: iso(0) },
+		{ id: "pc-2", name: "Laptop", lastUploadAt: iso(0) },
 	],
 	rows: [
 		{
@@ -44,26 +42,16 @@ const report: TokenUsageReport = {
 };
 
 const requests: URL[] = [];
-const server = setupServer(
+const server = mockApi(
 	http.get(`${apiUrl}/api/token-usage`, ({ request }) => {
 		requests.push(new URL(request.url));
 		return HttpResponse.json(report);
 	})
 );
 
-beforeAll(() => {
-	client.setConfig({ baseUrl: apiUrl });
-	server.listen({ onUnhandledRequest: "error" });
-});
-afterAll(() => server.close());
-
 describe("UsagePage", () => {
 	it("shows the total cost, the providers and the models, and asks the report in the browser time zone", async () => {
-		render(
-			<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-				<UsagePage />
-			</QueryClientProvider>
-		);
+		renderPage(<UsagePage />);
 
 		const total = await screen.findByRole("region", { name: "Total" });
 		expect(within(total).getAllByText(/141\.47/).length).toBeGreaterThan(0);
@@ -82,5 +70,14 @@ describe("UsagePage", () => {
 
 		fireEvent.click(screen.getByRole("button", { name: "All" }));
 		await waitFor(() => expect(requests.at(-1)!.searchParams.get("range")).toBe("all"));
+	});
+
+	it("shows an error with a retry when the usage cannot be loaded", async () => {
+		server.use(http.get(`${apiUrl}/api/token-usage`, () => HttpResponse.json({ title: "boom" }, { status: 500 })));
+
+		renderPage(<UsagePage />);
+
+		expect(await screen.findByText("Could not load the usage.")).toBeTruthy();
+		expect(screen.getByRole("heading", { level: 1, name: "Usage" })).toBeTruthy();
 	});
 });
