@@ -60,13 +60,8 @@ export const HistoryCard = ({ durations }: { durations: Record<string, number | 
 	const history = useQuery({ ...getHistoryOptions({ query: { range } }), refetchInterval: 60_000, placeholderData: keepPreviousData });
 	const { data, isPending } = history;
 	const chart = useMemo(() => (data ? toChart(data, durations) : null), [data, durations]);
-	const series = useMemo(
-		() =>
-			(chart?.series ?? [])
-				.filter((item) => !hidden.includes(item.key))
-				.map((item) => ({ id: item.key, label: item.label, data: item.data, color: item.color, showMark: false, connectNulls: false })),
-		[chart, hidden]
-	);
+	const shown = useMemo(() => (chart?.series ?? []).filter((item) => !hidden.includes(item.key)), [chart, hidden]);
+	const series = useMemo(() => shown.map((item) => ({ id: item.key, label: item.label, data: item.data, color: item.color, showMark: false, connectNulls: false })), [shown]);
 	const xAxis = useMemo(
 		() => [
 			{
@@ -120,7 +115,7 @@ export const HistoryCard = ({ durations }: { durations: Record<string, number | 
 						))}
 					</Stack>
 					<Box component="ul" aria-label="Chart summary" sx={visuallyHidden}>
-						{describeChart(chart.series).map((line) => (
+						{describeChart(shown).map((line) => (
 							<li key={line}>{line}</li>
 						))}
 					</Box>

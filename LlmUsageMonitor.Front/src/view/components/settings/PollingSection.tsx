@@ -10,13 +10,13 @@ import { SaveBar, SettingsSection, useDraft } from "./SettingsSection";
 
 export function PollingSection({ settings }: { settings: PollingSettings }) {
 	const queryClient = useQueryClient();
-	const { values, edit, discard } = useDraft(settings);
+	const { values, edit, settle } = useDraft(settings);
 	const [errors, setErrors] = useState<FieldErrors>({});
 	const save = useMutation({
 		...updatePollingSettingsMutation(),
-		onSuccess: (saved) => {
+		onSuccess: (saved, { body }) => {
 			queryClient.setQueryData(getPollingSettingsQueryKey(), saved);
-			discard();
+			settle(body);
 			void queryClient.invalidateQueries({ queryKey: getDashboardQueryKey() });
 		},
 		onError: (error) => setErrors(serverFieldErrors(error)),

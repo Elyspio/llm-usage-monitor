@@ -212,4 +212,30 @@ describe("SettingsPage", () => {
 		expect(screen.getByRole("heading", { level: 1, name: "Settings" })).toBeTruthy();
 		expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
 	});
+
+	it("keeps an edit made while the save is running", async () => {
+		polling = { claudeIntervalMinutes: 3, codexIntervalMinutes: 3 };
+		let release = () => {};
+		server.use(
+			http.put(`${apiUrl}/api/settings/polling`, async ({ request }) => {
+				const body = (await request.json()) as typeof polling;
+				await new Promise<void>((resolve) => (release = resolve));
+				polling = body;
+				return HttpResponse.json(body);
+			})
+		);
+		renderPage();
+		const form = await screen.findByRole("form", { name: "Usage reading" });
+		const claude = () => within(form).getByLabelText("Claude interval (minutes)") as HTMLInputElement;
+
+		fireEvent.change(claude(), { target: { value: "5" } });
+		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
+		await waitFor(() => expect(within(form).getByRole("button", { name: "Save" }).hasAttribute("disabled")).toBe(true));
+		fireEvent.change(claude(), { target: { value: "10" } });
+		release();
+
+		await waitFor(() => expect(polling.claudeIntervalMinutes).toBe(5));
+		await waitFor(() => expect(within(form).getByRole("button", { name: "Save" }).hasAttribute("disabled")).toBe(false));
+		expect(claude().value).toBe("10");
+	});
 });

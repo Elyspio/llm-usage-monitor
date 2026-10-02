@@ -10,13 +10,13 @@ import { SaveBar, SettingsSection, useDraft } from "./SettingsSection";
 
 export function TriggerSection({ settings }: { settings: TriggerSettings }) {
 	const queryClient = useQueryClient();
-	const { values, edit, discard } = useDraft(settings);
+	const { values, edit, settle } = useDraft(settings);
 	const [errors, setErrors] = useState<FieldErrors>({});
 	const save = useMutation({
 		...updateTriggerSettingsMutation(),
-		onSuccess: (saved) => {
+		onSuccess: (saved, { body }) => {
 			queryClient.setQueryData(getTriggerSettingsQueryKey(), saved);
-			discard();
+			settle(body);
 			void queryClient.invalidateQueries({ queryKey: getDashboardQueryKey() });
 		},
 		onError: (error) => setErrors(serverFieldErrors(error)),

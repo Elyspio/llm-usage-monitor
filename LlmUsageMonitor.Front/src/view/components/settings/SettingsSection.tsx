@@ -48,7 +48,12 @@ export const SettingsSection = ({
  */
 export function useDraft<T>(server: T) {
 	const [draft, setDraft] = useState<T | null>(null);
-	return { values: draft ?? server, edit: setDraft, discard: () => setDraft(null) };
+	return {
+		values: draft ?? server,
+		edit: setDraft,
+		/** After a save of `submitted`: back to the server data, unless the user edited the form while the save was running. */
+		settle: (submitted: T) => setDraft((current) => (current === submitted ? null : current)),
+	};
 }
 
 /** Message of a failed save: the fields for a validation error, the cause otherwise. */

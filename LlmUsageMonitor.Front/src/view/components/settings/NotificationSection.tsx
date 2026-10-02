@@ -33,7 +33,7 @@ const eventLabels: Record<keyof NotificationEvents, string> = {
 
 export function NotificationSection({ settings }: { settings: NotificationSettingsView }) {
 	const queryClient = useQueryClient();
-	const { values, edit, discard } = useDraft<NotificationForm>({
+	const { values, edit, settle } = useDraft<NotificationForm>({
 		url: settings.url,
 		topic: settings.topic ?? "",
 		events: settings.events,
@@ -46,12 +46,7 @@ export function NotificationSection({ settings }: { settings: NotificationSettin
 	const refresh = () => void queryClient.invalidateQueries({ queryKey: getNotificationSettingsQueryKey() });
 	const save = useMutation({
 		...updateNotificationSettingsMutation(),
-		onSuccess: (saved) => {
-			queryClient.setQueryData(getNotificationSettingsQueryKey(), saved);
-			discard();
-			setToken("");
-			setRemoveToken(false);
-		},
+		onSuccess: (saved) => queryClient.setQueryData(getNotificationSettingsQueryKey(), saved),
 		onError: (error) => setErrors(serverFieldErrors(error)),
 	});
 	const test = useMutation({ ...sendTestNotificationMutation(), onSettled: refresh });
@@ -76,7 +71,18 @@ export function NotificationSection({ settings }: { settings: NotificationSettin
 		});
 		setErrors(local);
 		if (Object.keys(local).length > 0) return;
-		save.mutate({ body: { ...values, topic: values.topic.trim() || null, token: removeToken ? "" : token || null } });
+		const submitted = { form: values, token, removeToken };
+		save.mutate(
+			{ body: { ...values, topic: values.topic.trim() || null, token: removeToken ? "" : token || null } },
+			{
+				// Only what was saved is reset: an edit made while the save was running stays.
+				onSuccess: () => {
+					settle(submitted.form);
+					setToken((current) => (current === submitted.token ? "" : current));
+					setRemoveToken((current) => (current === submitted.removeToken ? false : current));
+				},
+			}
+		);
 	};
 
 	return (
