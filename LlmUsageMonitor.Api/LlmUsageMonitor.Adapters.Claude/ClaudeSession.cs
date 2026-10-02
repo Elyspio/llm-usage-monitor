@@ -1,6 +1,8 @@
 using System.Text.Json;
 using LlmUsageMonitor.Abstractions.Exceptions;
+using LlmUsageMonitor.Abstractions.Helpers;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace LlmUsageMonitor.Adapters.Claude;
@@ -51,7 +53,7 @@ internal static class ClaudeCredentialsFile
 ///     The CLI refreshes its token only when it expires within five minutes, and only if the refresh is awaited before the
 ///     command exits: <c>claude auth status</c> exits first, <c>claude mcp list</c> awaits it (checked on Claude Code 2.1.270).
 /// </summary>
-internal sealed class ClaudeSession(IOptions<ClaudeOptions> options) : IClaudeSession
+internal sealed class ClaudeSession(IOptions<ClaudeOptions> options, ILogger<ClaudeSession> logger) : IClaudeSession
 {
 	public async Task<ClaudeTokenInfo> ReadToken(CancellationToken cancellationToken)
 	{
@@ -59,9 +61,24 @@ internal sealed class ClaudeSession(IOptions<ClaudeOptions> options) : IClaudeSe
 		return new(credentials.ExpiresAt, credentials.RefreshTokenExpiresAt);
 	}
 
-	public Task RefreshThroughCli(CancellationToken cancellationToken)
+	public async Task RefreshThroughCli(CancellationToken cancellationToken)
 	{
 		var settings = options.Value;
-		return CliProcess.Run(settings.Executable, ["mcp", "list"], settings.ResolveWorkingDirectory(), TimeSpan.FromSeconds(settings.RefreshTimeoutSeconds), cancellationToken);
+		var result = await CliProcess.Run(settings.Executable, ["mcp", "list"], settings.ResolveWorkingDirectory(), TimeSpan.FromSeconds(settings.RefreshTimeoutSeconds), logger,
+			cancellationToken);
+		if (result.ExitCode == 0)
+		{
+			return;
+		}
+
+		var output = string.IsNullOrWhiteSpace(result.StandardError) ? result.StandardOutput : result.StandardError;
+		if (CliProcess.IsUnsupportedOption(output))
+		{
+			var version = await CliProcess.ReadVersion(settings.Executable, settings.ResolveWorkingDirectory(), logger, cancellationToken);
+			throw new ProviderException(ProviderErrorCodes.CliUnsupportedOption, $"{CliProcess.Truncate(output)} (claude {version}: `claude mcp list` no longer refreshes the token)");
+		}
+
+		// An MCP server failing to start is not fatal: the refreshed expiry, read next, decides.
+		logger.LogWarning("claude mcp list exited with code {ExitCode}: the token expiry read next tells whether the refresh happened", result.ExitCode);
 	}
 }

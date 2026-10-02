@@ -1,7 +1,9 @@
 using System.Text.Json;
 using LlmUsageMonitor.Abstractions.Data;
 using LlmUsageMonitor.Abstractions.Exceptions;
+using LlmUsageMonitor.Abstractions.Helpers;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace LlmUsageMonitor.Adapters.Codex;
@@ -9,7 +11,7 @@ namespace LlmUsageMonitor.Adapters.Codex;
 /// <summary>
 ///     Sends the minimal prompt in an ephemeral, read-only thread and waits for <c>turn/completed</c>.
 /// </summary>
-internal sealed class CodexPromptRunner(IOptions<CodexOptions> options) : IPromptRunner
+internal sealed class CodexPromptRunner(IOptions<CodexOptions> options, ILogger<CodexPromptRunner> logger) : IPromptRunner
 {
 	public const string Prompt = "1+1=?";
 
@@ -22,7 +24,7 @@ internal sealed class CodexPromptRunner(IOptions<CodexOptions> options) : IPromp
 		timeout.CancelAfter(TimeSpan.FromSeconds(settings.PromptTimeoutSeconds));
 		try
 		{
-			await using var server = await CodexAppServer.Start(settings, timeout.Token);
+			await using var server = await CodexAppServer.Start(settings, "prompt", logger, timeout.Token);
 
 			var thread = await server.Request("thread/start", new
 			{
@@ -73,7 +75,15 @@ internal sealed class CodexPromptRunner(IOptions<CodexOptions> options) : IPromp
 		}
 		catch (CodexRpcException exception)
 		{
-			throw new ProviderException(ProviderErrorCodes.TriggerFailed, exception.Message ?? "Codex rejected the prompt.", exception);
+			var code = CodexErrors.FromRpcError(exception) ?? ProviderErrorCodes.TriggerFailed;
+			var message = exception.Message;
+			if (code == ProviderErrorCodes.CliUnsupportedOption)
+			{
+				var version = await CliProcess.ReadVersion(settings.Executable, settings.ResolveWorkingDirectory(), logger, cancellationToken);
+				message = $"{message} (codex {version}: update the requests of CodexPromptRunner)";
+			}
+
+			throw new ProviderException(code, message, exception);
 		}
 		catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
 		{
@@ -89,28 +99,12 @@ internal sealed class CodexPromptRunner(IOptions<CodexOptions> options) : IPromp
 	}
 
 	/// <summary>
-	///     Maps a <c>TurnError</c>: <c>codexErrorInfo</c> is either a string or an object keyed by the error kind.
+	///     Maps a <c>TurnError</c> from its <c>codexErrorInfo</c>.
 	/// </summary>
 	internal static ProviderException MapTurnError(JsonElement error)
 	{
 		var message = error.TryGetProperty("message", out var text) ? text.GetString() ?? "Codex turn failed." : "Codex turn failed.";
-		var kind = error.TryGetProperty("codexErrorInfo", out var info)
-			? info.ValueKind switch
-			{
-				JsonValueKind.String => info.GetString(),
-				JsonValueKind.Object => info.EnumerateObject().Select(property => property.Name).FirstOrDefault(),
-				_ => null
-			}
-			: null;
-
-		var code = kind switch
-		{
-			"unauthorized" => ProviderErrorCodes.AuthExpired,
-			"usageLimitExceeded" => ProviderErrorCodes.UsageLimit,
-			"rateLimitExceeded" => ProviderErrorCodes.RateLimited,
-			"serverOverloaded" => ProviderErrorCodes.Overloaded,
-			_ => ProviderErrorCodes.TriggerFailed
-		};
-		return new(code, message);
+		var code = error.TryGetProperty("codexErrorInfo", out var info) ? CodexErrors.FromErrorInfo(info) : null;
+		return new(code ?? ProviderErrorCodes.TriggerFailed, message);
 	}
 }

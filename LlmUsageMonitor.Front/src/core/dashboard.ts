@@ -60,6 +60,14 @@ export function errorInfo(code: string, provider: Provider): ErrorInfo {
 			return { title: "Provider unreachable", action: "Check the network connection of the service host.", severity: "warning" };
 		case "ACCESS_DENIED":
 			return { title: "Access denied", action: "The account has no access to its usage: check the subscription.", severity: "error" };
+		case "CLI_UNSUPPORTED_OPTION":
+			return {
+				title: "CLI updated: option rejected",
+				action: "The CLI updated itself and rejects an option of the service: see the message for its version.",
+				severity: "error",
+			};
+		case "OVERLOADED":
+			return { title: "Provider overloaded", action: "Transient: the trigger is retried after 2, 5 then 10 min.", severity: "warning" };
 		case "INVALID_RESPONSE":
 		case "NO_USAGE_DATA":
 			return { title: "Unexpected response", action: "The provider format may have changed: see the service logs.", severity: "error" };

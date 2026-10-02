@@ -363,6 +363,8 @@ internal sealed class FakeSession : IClaudeSession
 {
 	public DateTimeOffset? ExpiresAt { get; set; }
 
+	public DateTimeOffset? RefreshTokenExpiresAt { get; set; }
+
 	/// <summary>What the CLI does to the token when it runs; nothing by default (the refresh fails).</summary>
 	public Func<DateTimeOffset?, DateTimeOffset?> OnRefresh { get; set; } = expiry => expiry;
 
@@ -370,7 +372,7 @@ internal sealed class FakeSession : IClaudeSession
 
 	public Task<ClaudeTokenInfo> ReadToken(CancellationToken cancellationToken)
 	{
-		return Task.FromResult(new ClaudeTokenInfo(ExpiresAt, null));
+		return Task.FromResult(new ClaudeTokenInfo(ExpiresAt, RefreshTokenExpiresAt));
 	}
 
 	public Task RefreshThroughCli(CancellationToken cancellationToken)

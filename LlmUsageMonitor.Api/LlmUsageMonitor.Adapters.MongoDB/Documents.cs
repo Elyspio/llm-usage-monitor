@@ -74,6 +74,7 @@ internal sealed class ProviderStateDocument
 	public DateTime? LastSuccessAt { get; set; }
 	public FailureDocument? LastFailure { get; set; }
 	public int ConsecutiveFailures { get; set; }
+	public int ConsecutiveRateLimits { get; set; }
 	public int BackoffLevel { get; set; }
 	public DateTime? BackoffUntil { get; set; }
 	public List<NotificationKind> ActiveAlerts { get; set; } = [];
@@ -82,6 +83,7 @@ internal sealed class ProviderStateDocument
 	public JobDocument? KeepAlive { get; set; }
 	public DateTime? TokenExpiresAt { get; set; }
 	public DateTime? RefreshTokenExpiresAt { get; set; }
+	public DateTime? CredentialExpiryAlertedFor { get; set; }
 
 	public static ProviderStateDocument FromDomain(ProviderState state)
 	{
@@ -92,6 +94,7 @@ internal sealed class ProviderStateDocument
 			LastSuccessAt = state.LastSuccessAt.ToUtc(),
 			LastFailure = state.LastFailure is { } failure ? new FailureDocument { Code = failure.Code, Message = failure.Message, At = failure.At.ToUtc() } : null,
 			ConsecutiveFailures = state.ConsecutiveFailures,
+			ConsecutiveRateLimits = state.ConsecutiveRateLimits,
 			BackoffLevel = state.BackoffLevel,
 			BackoffUntil = state.BackoffUntil.ToUtc(),
 			ActiveAlerts = [.. state.ActiveAlerts],
@@ -99,7 +102,8 @@ internal sealed class ProviderStateDocument
 			PendingResetCheck = JobDocument.FromDomain(state.PendingResetCheck),
 			KeepAlive = JobDocument.FromDomain(state.KeepAlive),
 			TokenExpiresAt = state.TokenExpiresAt.ToUtc(),
-			RefreshTokenExpiresAt = state.RefreshTokenExpiresAt.ToUtc()
+			RefreshTokenExpiresAt = state.RefreshTokenExpiresAt.ToUtc(),
+			CredentialExpiryAlertedFor = state.CredentialExpiryAlertedFor.ToUtc()
 		};
 	}
 
@@ -111,6 +115,7 @@ internal sealed class ProviderStateDocument
 			LastSuccessAt = LastSuccessAt.ToOffset(),
 			LastFailure = LastFailure is { } failure ? new ProviderFailure(failure.Code, failure.Message, failure.At.ToOffset()) : null,
 			ConsecutiveFailures = ConsecutiveFailures,
+			ConsecutiveRateLimits = ConsecutiveRateLimits,
 			BackoffLevel = BackoffLevel,
 			BackoffUntil = BackoffUntil.ToOffset(),
 			ActiveAlerts = ActiveAlerts,
@@ -118,7 +123,8 @@ internal sealed class ProviderStateDocument
 			PendingResetCheck = PendingResetCheck?.ToDomain(),
 			KeepAlive = KeepAlive?.ToDomain(),
 			TokenExpiresAt = TokenExpiresAt.ToOffset(),
-			RefreshTokenExpiresAt = RefreshTokenExpiresAt.ToOffset()
+			RefreshTokenExpiresAt = RefreshTokenExpiresAt.ToOffset(),
+			CredentialExpiryAlertedFor = CredentialExpiryAlertedFor.ToOffset()
 		};
 	}
 }
@@ -243,6 +249,9 @@ internal sealed class NotificationsDocument
 	public int ReadFailureThreshold { get; set; }
 	public FailureDocument? LastSendFailure { get; set; }
 
+	/// <summary>Absent from the settings saved before the early warning existed: the default applies.</summary>
+	public int? CredentialExpiryAlertDays { get; set; }
+
 	public static NotificationsDocument FromDomain(NotificationSettings settings)
 	{
 		return new()
@@ -252,7 +261,8 @@ internal sealed class NotificationsDocument
 			ProtectedToken = settings.ProtectedToken,
 			ProviderEvents = settings.Events,
 			ReadFailureThreshold = settings.ReadFailureThreshold,
-			LastSendFailure = FailureFromDomain(settings.LastSendFailure)
+			LastSendFailure = FailureFromDomain(settings.LastSendFailure),
+			CredentialExpiryAlertDays = settings.CredentialExpiryAlertDays
 		};
 	}
 
@@ -269,7 +279,8 @@ internal sealed class NotificationsDocument
 			ProtectedToken,
 			ProviderEvents ?? new(LegacyEvents ?? NotificationEvents.Default, LegacyEvents ?? NotificationEvents.Default),
 			ReadFailureThreshold,
-			LastSendFailure is { } failure ? new NotificationSendFailure(failure.At.ToOffset(), failure.Message) : null);
+			LastSendFailure is { } failure ? new NotificationSendFailure(failure.At.ToOffset(), failure.Message) : null,
+			CredentialExpiryAlertDays ?? NotificationSettings.DefaultCredentialExpiryAlertDays);
 	}
 }
 

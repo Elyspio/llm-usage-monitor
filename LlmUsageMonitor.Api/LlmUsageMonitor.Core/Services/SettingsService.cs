@@ -92,6 +92,11 @@ public sealed partial class SettingsService(
 			errors["readFailureThreshold"] = [$"Between {NotificationSettings.MinReadFailureThreshold} and {NotificationSettings.MaxReadFailureThreshold}."];
 		}
 
+		if (update.CredentialExpiryAlertDays is < NotificationSettings.MinCredentialExpiryAlertDays or > NotificationSettings.MaxCredentialExpiryAlertDays)
+		{
+			errors["credentialExpiryAlertDays"] = [$"Between {NotificationSettings.MinCredentialExpiryAlertDays} and {NotificationSettings.MaxCredentialExpiryAlertDays} days."];
+		}
+
 		ThrowIfAny(errors);
 
 		var settings = await Get(cancellationToken);
@@ -107,7 +112,8 @@ public sealed partial class SettingsService(
 			Topic = topic,
 			ProtectedToken = protectedToken,
 			Events = update.Events,
-			ReadFailureThreshold = update.ReadFailureThreshold
+			ReadFailureThreshold = update.ReadFailureThreshold,
+			CredentialExpiryAlertDays = update.CredentialExpiryAlertDays
 		};
 		await repository.SaveNotifications(notifications, cancellationToken);
 		return ToView((await Get(cancellationToken)).Notifications);
@@ -138,7 +144,8 @@ public sealed partial class SettingsService(
 
 	private static NotificationSettingsView ToView(NotificationSettings settings)
 	{
-		return new(settings.Url, settings.Topic, settings.ProtectedToken is not null, settings.Events, settings.ReadFailureThreshold, settings.LastSendFailure);
+		return new(settings.Url, settings.Topic, settings.ProtectedToken is not null, settings.Events, settings.ReadFailureThreshold, settings.LastSendFailure,
+			settings.CredentialExpiryAlertDays);
 	}
 
 	private static void ValidateInterval(Dictionary<string, string[]> errors, string field, int minutes)

@@ -84,11 +84,11 @@ public sealed class SettingsServiceTests
 		var harness = new TestHarness();
 		var events = NotificationEventsByProvider.Default;
 
-		var set = await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "secret", events, 3), Token);
+		var set = await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "secret", events, 3, 7), Token);
 		harness.SettingsRepository.Stored!.Notifications.ProtectedToken.ShouldBe("protected:secret");
-		var kept = await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", null, events, 3), Token);
+		var kept = await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", null, events, 3, 7), Token);
 		harness.SettingsRepository.Stored!.Notifications.ProtectedToken.ShouldBe("protected:secret");
-		var removed = await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "", events, 3), Token);
+		var removed = await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "", events, 3, 7), Token);
 
 		(set.TokenDefined, kept.TokenDefined, removed.TokenDefined).ShouldBe((true, true, false));
 		harness.SettingsRepository.Stored!.Notifications.ProtectedToken.ShouldBeNull();
@@ -100,9 +100,9 @@ public sealed class SettingsServiceTests
 		var harness = new TestHarness();
 
 		var exception = await Should.ThrowAsync<RequestValidationException>(() =>
-			harness.Settings.UpdateNotifications(new("ftp://ntfy", "bad topic!", null, NotificationEventsByProvider.Default, 21), Token));
+			harness.Settings.UpdateNotifications(new("ftp://ntfy", "bad topic!", null, NotificationEventsByProvider.Default, 21, 0), Token));
 
-		exception.Errors.Keys.ShouldBe(["url", "topic", "readFailureThreshold"], true);
+		exception.Errors.Keys.ShouldBe(["url", "topic", "readFailureThreshold", "credentialExpiryAlertDays"], true);
 	}
 
 	[Fact]

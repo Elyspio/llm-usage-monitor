@@ -553,7 +553,8 @@
           "readFailed",
           "reset",
           "triggerSucceeded",
-          "recovered"
+          "recovered",
+          "authExpiring"
         ]
       },
       "NotificationSendFailure": {
@@ -578,7 +579,8 @@
           "topic",
           "token",
           "events",
-          "readFailureThreshold"
+          "readFailureThreshold",
+          "credentialExpiryAlertDays"
         ],
         "type": "object",
         "properties": {
@@ -603,6 +605,10 @@
           "readFailureThreshold": {
             "type": "integer",
             "format": "int32"
+          },
+          "credentialExpiryAlertDays": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -613,7 +619,8 @@
           "tokenDefined",
           "events",
           "readFailureThreshold",
-          "lastSendFailure"
+          "lastSendFailure",
+          "credentialExpiryAlertDays"
         ],
         "type": "object",
         "properties": {
@@ -645,6 +652,10 @@
                 "$ref": "#/components/schemas/NotificationSendFailure"
               }
             ]
+          },
+          "credentialExpiryAlertDays": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },

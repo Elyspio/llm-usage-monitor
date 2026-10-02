@@ -29,6 +29,9 @@ public static class ProviderErrorCodes
 	public const string Overloaded = "OVERLOADED";
 	public const string Cancelled = "CANCELLED";
 	public const string Unexpected = "UNEXPECTED_ERROR";
+
+	/// <summary>The CLI updated itself and rejects an option or a protocol method the adapter uses; the message carries its version.</summary>
+	public const string CliUnsupportedOption = "CLI_UNSUPPORTED_OPTION";
 }
 
 /// <summary>

@@ -16,6 +16,7 @@ const notifications = {
 		codex: { triggerFailed: false, authExpired: true, readFailed: true, reset: false, triggerSucceeded: true, recovered: true },
 	},
 	readFailureThreshold: 3,
+	credentialExpiryAlertDays: 7,
 	lastSendFailure: { at: new Date().toISOString(), message: "ntfy returned HTTP 502." },
 };
 
@@ -106,7 +107,7 @@ describe("SettingsPage", () => {
 
 		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
 
-		await expect.poll(() => lastNotificationBody).toMatchObject({ topic: "llm_usage", token: null });
+		await expect.poll(() => lastNotificationBody).toMatchObject({ topic: "llm_usage", token: null, credentialExpiryAlertDays: 7 });
 	});
 
 	it("shows notification events as a provider matrix and saves each provider independently", async () => {

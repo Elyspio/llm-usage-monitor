@@ -38,7 +38,17 @@ import type { NotificationEvents, NotificationSettingsView, PollingSettings, Pro
 import { modelSuggestions, providerLabel } from "@/core/dashboard";
 import { fmtWhen } from "@/core/format";
 import { useNow } from "@hooks/useNow";
-import { collect, type FieldErrors, serverFieldErrors, validateInterval, validateModel, validateNtfyUrl, validateThreshold, validateTopic } from "@/core/settings.validation";
+import {
+	collect,
+	type FieldErrors,
+	serverFieldErrors,
+	validateAlertDays,
+	validateInterval,
+	validateModel,
+	validateNtfyUrl,
+	validateThreshold,
+	validateTopic,
+} from "@/core/settings.validation";
 
 const providers: Provider[] = ["claude", "codex"];
 
@@ -292,7 +302,13 @@ const eventLabels: Record<keyof NotificationEvents, string> = {
 
 function NotificationSection({ initial }: { initial: NotificationSettingsView }) {
 	const queryClient = useQueryClient();
-	const [values, setValues] = useState({ url: initial.url, topic: initial.topic ?? "", events: initial.events, readFailureThreshold: initial.readFailureThreshold });
+	const [values, setValues] = useState({
+		url: initial.url,
+		topic: initial.topic ?? "",
+		events: initial.events,
+		readFailureThreshold: initial.readFailureThreshold,
+		credentialExpiryAlertDays: initial.credentialExpiryAlertDays,
+	});
 	const [token, setToken] = useState("");
 	const [removeToken, setRemoveToken] = useState(false);
 	const [errors, setErrors] = useState<FieldErrors>({});
@@ -312,7 +328,12 @@ function NotificationSection({ initial }: { initial: NotificationSettingsView })
 
 	const submit = (event: FormEvent) => {
 		event.preventDefault();
-		const local = collect({ url: validateNtfyUrl(values.url), topic: validateTopic(values.topic), readFailureThreshold: validateThreshold(values.readFailureThreshold) });
+		const local = collect({
+			url: validateNtfyUrl(values.url),
+			topic: validateTopic(values.topic),
+			readFailureThreshold: validateThreshold(values.readFailureThreshold),
+			credentialExpiryAlertDays: validateAlertDays(values.credentialExpiryAlertDays),
+		});
 		setErrors(local);
 		if (Object.keys(local).length > 0) return;
 		save.mutate({ body: { ...values, topic: values.topic.trim() || null, token: removeToken ? "" : token || null } });
@@ -370,8 +391,17 @@ function NotificationSection({ initial }: { initial: NotificationSettingsView })
 							value={values.readFailureThreshold}
 							onChange={(event) => setValues({ ...values, readFailureThreshold: Number(event.target.value) })}
 							error={Boolean(errors.readFailureThreshold)}
-							helperText={errors.readFailureThreshold ?? "Between 1 and 20; 429s do not count."}
+							helperText={errors.readFailureThreshold ?? "Between 1 and 20; repeated 429s are counted apart, with the same threshold."}
 							slotProps={{ htmlInput: { min: 1, max: 20 } }}
+						/>
+						<TextField
+							type="number"
+							label="Login expiry warning (days before)"
+							value={values.credentialExpiryAlertDays}
+							onChange={(event) => setValues({ ...values, credentialExpiryAlertDays: Number(event.target.value) })}
+							error={Boolean(errors.credentialExpiryAlertDays)}
+							helperText={errors.credentialExpiryAlertDays ?? 'Between 1 and 60; sent with the "Login expired" event, before the CLI login runs out.'}
+							slotProps={{ htmlInput: { min: 1, max: 60 } }}
 						/>
 					</Stack>
 				</Grid>

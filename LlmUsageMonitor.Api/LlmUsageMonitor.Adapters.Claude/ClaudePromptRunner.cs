@@ -1,7 +1,9 @@
 using System.Text.Json;
 using LlmUsageMonitor.Abstractions.Data;
 using LlmUsageMonitor.Abstractions.Exceptions;
+using LlmUsageMonitor.Abstractions.Helpers;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace LlmUsageMonitor.Adapters.Claude;
@@ -10,7 +12,7 @@ namespace LlmUsageMonitor.Adapters.Claude;
 ///     <c>claude -p</c> with no tools, no session file and no project context. Never <c>--bare</c>: that mode ignores the OAuth
 ///     login and would not consume the subscription.
 /// </summary>
-internal sealed class ClaudePromptRunner(IOptions<ClaudeOptions> options) : IPromptRunner
+internal sealed class ClaudePromptRunner(IOptions<ClaudeOptions> options, ILogger<ClaudePromptRunner> logger) : IPromptRunner
 {
 	public const string Prompt = "1+1=?";
 
@@ -32,11 +34,20 @@ internal sealed class ClaudePromptRunner(IOptions<ClaudeOptions> options) : IPro
 			"--max-turns", "1"
 		];
 
-		var result = await CliProcess.Run(settings.Executable, arguments, settings.ResolveWorkingDirectory(), TimeSpan.FromSeconds(settings.PromptTimeoutSeconds), cancellationToken);
-		if (Classify(result) is { } failure)
+		var result = await CliProcess.Run(settings.Executable, arguments, settings.ResolveWorkingDirectory(), TimeSpan.FromSeconds(settings.PromptTimeoutSeconds), logger,
+			cancellationToken);
+		if (Classify(result) is not { } failure)
 		{
-			throw failure;
+			return;
 		}
+
+		if (failure.Code == ProviderErrorCodes.CliUnsupportedOption)
+		{
+			var version = await CliProcess.ReadVersion(settings.Executable, settings.ResolveWorkingDirectory(), logger, cancellationToken);
+			throw new ProviderException(failure.Code, $"{failure.Message} (claude {version}: update the options of ClaudePromptRunner)");
+		}
+
+		throw failure;
 	}
 
 	/// <summary>
@@ -63,6 +74,8 @@ internal sealed class ClaudePromptRunner(IOptions<ClaudeOptions> options) : IPro
 
 		var code = true switch
 		{
+			// No JSON result: the argument parser stopped the CLI before the run.
+			_ when isError is null && CliProcess.IsUnsupportedOption(message) => ProviderErrorCodes.CliUnsupportedOption,
 			_ when status is 401 or 403 || Contains(message, "Login expired") || Contains(message, "Not logged in") || Contains(message, "OAuth token") => ProviderErrorCodes.AuthExpired,
 			_ when Contains(message, "hit your") && Contains(message, "limit") => ProviderErrorCodes.UsageLimit,
 			_ when status == 429 || Contains(message, "429") => ProviderErrorCodes.RateLimited,

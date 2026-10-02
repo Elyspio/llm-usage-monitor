@@ -92,6 +92,7 @@ public sealed class NotificationService(
 			NotificationKind.ReadFailed => ($"{name} : lectures en échec", NotificationPriority.High, "warning"),
 			NotificationKind.Reset => ($"{name} : reset détecté", NotificationPriority.Default, "arrows_counterclockwise"),
 			NotificationKind.TriggerSucceeded => ($"{name} : nouveau cycle ouvert", NotificationPriority.Default, "white_check_mark"),
+			NotificationKind.AuthExpiring => ($"{name} : connexion bientôt expirée", NotificationPriority.High, "hourglass_flowing_sand"),
 			_ => ($"{name} : rétabli", NotificationPriority.Default, "green_heart")
 		};
 		return new(title, detail, priority, [tag], appConfig.Value.PublicUrl);

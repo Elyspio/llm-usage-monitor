@@ -75,6 +75,7 @@ public sealed class UsageMonitor(
 				CurrentCycleKey = cycleKey
 			};
 			state = SchedulePostResetCheck(state, reading, settings.Triggers.For(provider).AutoEnabled, readAt);
+			state = await health.CheckCredentialExpiry(state, readAt, settings.Notifications.CredentialExpiryAlertDays, cancellationToken);
 			await states.Save(state, cancellationToken);
 		}
 		// Any failure counts, not only the provider ones (storage, CLI process): the health, the alerts and the state follow.

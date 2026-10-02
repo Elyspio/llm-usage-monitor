@@ -3,6 +3,7 @@ using LlmUsageMonitor.Abstractions.Data;
 using LlmUsageMonitor.Abstractions.Exceptions;
 using LlmUsageMonitor.Abstractions.Helpers;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace LlmUsageMonitor.Adapters.Codex;
@@ -10,31 +11,60 @@ namespace LlmUsageMonitor.Adapters.Codex;
 /// <summary>
 ///     Reads the Codex limits with <c>account/rateLimits/read</c>; never starts a thread or a model turn.
 /// </summary>
-internal sealed class CodexUsageReader(IOptions<CodexOptions> options) : IUsageReader
+internal sealed class CodexUsageReader(IOptions<CodexOptions> options, ILogger<CodexUsageReader> logger) : IUsageReader
 {
 	public Provider Provider => Provider.Codex;
 
 	public async Task<IReadOnlyList<UsageWindow>> Read(CancellationToken cancellationToken)
 	{
+		var settings = options.Value;
 		using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-		timeout.CancelAfter(TimeSpan.FromSeconds(options.Value.ReadTimeoutSeconds));
+		timeout.CancelAfter(TimeSpan.FromSeconds(settings.ReadTimeoutSeconds));
 		try
 		{
-			await using var server = await CodexAppServer.Start(options.Value, timeout.Token);
-			var result = await server.Request("account/rateLimits/read", new { }, timeout.Token);
-			return CodexUsageParser.Parse(result);
-		}
-		catch (CodexRpcException exception)
-		{
-			var code = exception.Message.Contains("auth", StringComparison.OrdinalIgnoreCase) || exception.Message.Contains("login", StringComparison.OrdinalIgnoreCase)
-				? ProviderErrorCodes.AuthExpired
-				: ProviderErrorCodes.FetchFailed;
-			throw new ProviderException(code, "Codex rejected the account request. Check `codex login status` on the service host.", exception);
+			await using var server = await CodexAppServer.Start(settings, "account/rateLimits/read", logger, timeout.Token);
+			try
+			{
+				var result = await server.Request("account/rateLimits/read", new { }, timeout.Token);
+				return CodexUsageParser.Parse(result);
+			}
+			catch (CodexRpcException exception)
+			{
+				// The error has no structure of its own when the login is gone: the account state tells.
+				var code = CodexErrors.FromRpcError(exception) ?? await ReadAccountFailure(server, timeout.Token) ?? ProviderErrorCodes.FetchFailed;
+				throw await Failure(code, exception, cancellationToken);
+			}
 		}
 		catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
 		{
 			throw new ProviderException(ProviderErrorCodes.Timeout, "Codex usage request timed out.");
 		}
+	}
+
+	private static async Task<string?> ReadAccountFailure(CodexAppServer server, CancellationToken cancellationToken)
+	{
+		try
+		{
+			return CodexErrors.IsSignedOut(await server.Request("account/read", new { }, cancellationToken)) ? ProviderErrorCodes.AuthExpired : null;
+		}
+		catch (CodexRpcException)
+		{
+			return null;
+		}
+	}
+
+	private async Task<ProviderException> Failure(string code, CodexRpcException exception, CancellationToken cancellationToken)
+	{
+		var settings = options.Value;
+		var message = code switch
+		{
+			ProviderErrorCodes.AuthExpired => "The Codex CLI is no longer signed in. Run `codex login --device-auth` on the service host.",
+			ProviderErrorCodes.RateLimited => "Codex rate limits the account request.",
+			ProviderErrorCodes.CliUnsupportedOption =>
+				$"{exception.Message} (codex {await CliProcess.ReadVersion(settings.Executable, settings.ResolveWorkingDirectory(), logger, cancellationToken)}: update the requests of CodexUsageReader)",
+			_ => $"Codex rejected the account request: {exception.Message}"
+		};
+		return new(code, message, exception);
 	}
 }
 
