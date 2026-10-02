@@ -46,7 +46,9 @@ public sealed class HangfireAdapterModule : IModule
 				MigrationOptions = new()
 				{
 					MigrationStrategy = new MigrateMongoMigrationStrategy(),
-					BackupStrategy = new NoneMongoBackupStrategy()
+					// A schema migration of a new Hangfire.Mongo version first copies the hangfire.* collections (suffix
+					// "migrationbackup") in the same database: a failed migration can be rolled back.
+					BackupStrategy = new CollectionMongoBackupStrategy()
 				},
 				// The Aspire MongoDB container is a standalone server, without the replica set change streams need.
 				CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.TailNotificationsCollection,
