@@ -155,9 +155,20 @@ public sealed partial class SettingsService(
 			settings.CredentialExpiryAlertDays);
 	}
 
+	/// <summary>
+	///     Scheme and host are case-insensitive, the path and the query are not: the sender posts to the URL as written, so
+	///     <c>/Team</c> and <c>/team</c> are two endpoints. Only a trailing slash is ignored.
+	/// </summary>
 	private static bool IsSameServer(string current, string updated)
 	{
-		return string.Equals(current.Trim().TrimEnd('/'), updated.Trim().TrimEnd('/'), StringComparison.OrdinalIgnoreCase);
+		if (!Uri.TryCreate(current.Trim(), UriKind.Absolute, out var currentUri) || !Uri.TryCreate(updated.Trim(), UriKind.Absolute, out var updatedUri))
+		{
+			return false;
+		}
+
+		return Uri.Compare(currentUri, updatedUri, UriComponents.SchemeAndServer, UriFormat.UriEscaped, StringComparison.OrdinalIgnoreCase) == 0
+		       && currentUri.AbsolutePath.TrimEnd('/') == updatedUri.AbsolutePath.TrimEnd('/')
+		       && currentUri.Query == updatedUri.Query;
 	}
 
 	private static void ValidateInterval(Dictionary<string, string[]> errors, string field, int minutes)

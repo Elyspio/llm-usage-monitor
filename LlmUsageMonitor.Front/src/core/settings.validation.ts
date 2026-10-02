@@ -31,10 +31,22 @@ export function validateNtfyUrl(value: string): string | null {
 	}
 }
 
+/**
+ * Scheme and host are case-insensitive (URL lowercases them), the path and the query are not: the API posts to the URL as
+ * written. Only a trailing slash is ignored. Same rule as the API.
+ */
+export function isSameNtfyServer(saved: string, updated: string): boolean {
+	try {
+		const [a, b] = [new URL(saved.trim()), new URL(updated.trim())];
+		return a.protocol === b.protocol && a.host === b.host && a.pathname.replace(/\/+$/, "") === b.pathname.replace(/\/+$/, "") && a.search === b.search;
+	} catch {
+		return false;
+	}
+}
+
 /** The stored token was given for its server: a new URL needs its token again, or the token removed. */
 export function validateTokenForServer(change: { savedUrl: string; url: string; tokenDefined: boolean; token: string; removeToken: boolean }): string | null {
-	const normalize = (url: string) => url.trim().replace(/\/+$/, "").toLowerCase();
-	const serverChanged = normalize(change.savedUrl) !== normalize(change.url);
+	const serverChanged = !isSameNtfyServer(change.savedUrl, change.url);
 	return serverChanged && change.tokenDefined && !change.token && !change.removeToken ? "The server changed: enter its token again, or remove the token." : null;
 }
 
