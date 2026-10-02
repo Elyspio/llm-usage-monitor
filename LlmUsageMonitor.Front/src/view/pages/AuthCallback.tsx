@@ -1,7 +1,6 @@
 import { Button, CircularProgress, Stack, Typography } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { routes } from "@/config/routes";
 import { useAuth } from "@/view/context/auth.context";
 
 export const AuthCallback = () => {
@@ -9,14 +8,14 @@ export const AuthCallback = () => {
 	const { completeSignIn, signIn } = useAuth();
 	const [failed, setFailed] = useState(false);
 	// StrictMode runs effects twice; the authorization code can only be exchanged once.
-	const completion = useRef<Promise<void> | null>(null);
+	const completion = useRef<Promise<string> | null>(null);
 
 	useEffect(() => {
 		let active = true;
 		const pending = (completion.current ??= completeSignIn());
 		void pending.then(
-			() => {
-				if (active) void navigate(routes.dashboard, { replace: true });
+			(returnTo) => {
+				if (active) void navigate(returnTo, { replace: true });
 			},
 			() => {
 				if (active) setFailed(true);
