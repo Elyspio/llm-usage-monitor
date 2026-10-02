@@ -82,6 +82,63 @@ Moniteur dans l'Uptime Kuma existant (une fois) :
 Pour ne surveiller que les pannes franches (sans les `Degraded`), un moniteur **HTTP(s)** simple sur la même URL suffit : seul le 503 le fait échouer.
 
 
+## Sauvegardes
+
+### Base MongoDB
+
+La base `llm-usage-monitor` de `rs-shard-a` contient tout l'état : réglages (token ntfy chiffré), état des providers, historique, déclenchements, usage en tokens, **clés Data Protection** (`dataProtectionKeys`, sans elles le token ntfy est illisible) et jobs Hangfire (`hangfire.*`). Le LXC ne garde rien d'autre que les identifiants CLI.
+
+Si la sauvegarde du shard ne couvre pas déjà cette base, un dump quotidien depuis un hôte qui a `mongodump` (mongodb-database-tools) et un compte `backup` (ou `read` sur la base) :
+
+```sh
+# /etc/cron.daily/llm-usage-monitor-dump : 14 dumps conservés
+set -e
+dir=/var/backups/llm-usage-monitor
+mkdir -p "$dir"
+mongodump --uri "$MONGO_BACKUP_URI" --db llm-usage-monitor --gzip --archive="$dir/$(date +%F).archive.gz"
+find "$dir" -name '*.archive.gz' -mtime +14 -delete
+```
+
+Les collections `hangfire.*` peuvent être exclues (`--excludeCollectionsWithPrefix=hangfire`) : les jobs récurrents sont recréés au démarrage, seuls les jobs planifiés en cours seraient perdus (le prochain poll les replanifie).
+
+**Vérification par restauration** (à faire une fois après la mise en place, puis à chaque changement de procédure), dans une base jetable du même cluster ou un Mongo local :
+
+```sh
+mongorestore --uri "$MONGO_RESTORE_URI" --gzip --archive=/var/backups/llm-usage-monitor/<date>.archive.gz \
+  --nsFrom 'llm-usage-monitor.*' --nsTo 'llm-usage-monitor-restore.*'
+mongosh "$MONGO_RESTORE_URI/llm-usage-monitor-restore" --eval '
+  ["settings","providerStates","dataProtectionKeys","triggerRuns","tokenUsage"].forEach(c => print(c, db[c].countDocuments()))'
+```
+
+Puis lancer l'API en local (`ConnectionStrings:MongoDB` sur la base restaurée, `Hangfire:Enabled=false`) : les réglages s'affichent, `tokenDefined` est vrai et une notification de test part (la clé Data Protection déchiffre le token). Supprimer ensuite la base `llm-usage-monitor-restore`.
+
+Hangfire.Mongo copie ses collections (`CollectionMongoBackupStrategy`, suffixe `migrationbackup`) avant toute migration de schéma, lors d'une mise à jour du paquet : à supprimer à la main une fois la nouvelle version validée.
+
+### Identifiants des CLIs
+
+Les logins vivent dans le home du compte de service et se rafraîchissent en place :
+
+- Claude : `/var/lib/llm-monitor/.claude/.credentials.json` (et `/var/lib/llm-monitor/.claude.json`) ;
+- Codex : `/var/lib/llm-monitor/.codex/auth.json`.
+
+Ce sont des secrets (refresh tokens) : pas de copie hors du LXC sans chiffrement. Les tokens tournent (le refresh token Claude est à usage unique) : une copie ancienne ne sert souvent plus, la reconnexion reste la procédure de référence. L'application prévient N jours avant l'expiration du login Claude (Réglages > Notifications) et dès qu'une lecture échoue en `AUTH_EXPIRED`.
+
+Reconnexion (LXC reconstruit, login expiré ou révoqué), depuis une session sur le LXC :
+
+```sh
+systemctl stop llm-usage-monitor
+sudo -u llm-monitor -H bash -lc 'claude auth login'          # ouvre une URL à valider dans le navigateur
+sudo -u llm-monitor -H bash -lc 'codex login --device-auth'  # code à saisir sur la page affichée
+sudo -u llm-monitor -H bash -lc 'claude auth status && codex login status'
+systemctl start llm-usage-monitor
+```
+
+Puis vérifier sur le dashboard une lecture réussie de chaque provider (ou `/health/ready` à `Healthy`).
+
+### Boucle de crash
+
+L'unité systemd redémarre le service 10 s après un échec, au plus 5 démarrages en 10 minutes (`StartLimitIntervalSec`/`StartLimitBurst`) : au-delà, l'unité passe en échec et y reste, `/health/ready` ne répond plus et Uptime Kuma alerte. Après correction : `systemctl reset-failed llm-usage-monitor && systemctl start llm-usage-monitor` (`deploy.ps1` le fait).
+
 ## Rétention des données
 
 Appliquée au démarrage par `MongoStorageInitializer` (index TTL, `collMod` sur l'existant) et par un job Hangfire quotidien :

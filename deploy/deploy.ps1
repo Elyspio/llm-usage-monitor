@@ -71,6 +71,8 @@ mkdir -p $InstallDirectory
 tar -xzf /tmp/llm-usage-monitor.tar.gz -C $InstallDirectory
 chmod 755 $InstallDirectory/LlmUsageMonitor.WebApi
 rm -f /tmp/llm-usage-monitor.tar.gz /tmp/llm-usage-monitor.service
+# A deployment is a deliberate start: it clears a start limit reached by a previous crash loop.
+systemctl reset-failed llm-usage-monitor || true
 systemctl start llm-usage-monitor
 # The process must answer its liveness probe; the readiness is printed only, a degraded provider does not fail the deployment.
 if ! curl -fsS --retry 15 --retry-delay 2 --retry-all-errors --max-time 5 -o /dev/null http://127.0.0.1:5000/health/live; then

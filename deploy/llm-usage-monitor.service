@@ -2,6 +2,9 @@
 Description=LLM Usage Monitor
 After=network-online.target
 Wants=network-online.target
+# A crash loop makes the unit fail (5 starts within 10 min) instead of restarting forever: /health then fails in Uptime Kuma.
+StartLimitIntervalSec=600
+StartLimitBurst=5
 
 [Service]
 Type=exec
