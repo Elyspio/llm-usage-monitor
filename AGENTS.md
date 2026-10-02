@@ -18,7 +18,6 @@ Spec : [PRD](https://github.com/Elyspio/llm-usage-monitor/issues/19) — fermé,
   - `openapi/llm-usage-monitor.json` : document OpenAPI écrit par le build de `WebApi`, commité.
   - `src/core/apis/generated/` : client `@hey-api/openapi-ts` généré depuis ce document, commité, exclu du lint et du formatage.
 - `LlmUsageMonitor.Collector/` : package npm public `@elyspio/llm-usage-collector` (pnpm, vite-plus). Cœur du collecteur importé par Elytools, et CLI `llm-usage` livré en exécutable Node SEA win-x64 / linux-x64 (`vp pack -F exe`). Device flow sur le client Keycloak public `i-llm-usage-collector`, dossier de données partagé avec Elytools. Détails : [`LlmUsageMonitor.Collector/README.md`](LlmUsageMonitor.Collector/README.md).
-- `LlmUsageMonitor.Scripts/` : lecteurs d'usage TypeScript d'origine (`src/`, `examples/`) et leur outillage (pnpm, Oxlint, Oxfmt, TypeScript 7). Projet indépendant du front, portés en C# dans les adapters ; les fixtures des tests d'adapters viennent de ces lecteurs.
 
 ## Lancer
 
@@ -56,18 +55,13 @@ Prérequis : Docker démarré (MongoDB via Testcontainers dans les tests backend
   pnpm build    # lib npm ; pnpm build:exe pour les exécutables (depuis PowerShell)
   ```
   Publication (npm + GitHub Release `collector-vX.Y.Z`) : `./release.ps1` en local, après avoir monté la version.
-- Scripts TypeScript (dans `LlmUsageMonitor.Scripts/`) :
-  ```sh
-  pnpm install
-  pnpm check    # Oxfmt, Oxlint, typecheck
-  ```
 - Contrat API : le build de `WebApi` réécrit `LlmUsageMonitor.Front/openapi/llm-usage-monitor.json`, puis `pnpm gen:api` régénère le client. Après un changement d'API, commiter les deux ; `git status` ne doit plus montrer de diff.
 
 La génération du document OpenAPI au build démarre l'application sans MongoDB : Hangfire et `AppInitializer` y sont exclus (`OpenApiGeneration.IsRunning`). Tout service qui se connecte à sa construction doit l'être aussi.
 
 Le paquet `typescript` du front reste en 6.x : `@hey-api/openapi-ts` utilise l'API JavaScript du compilateur, que TypeScript 7 n'expose pas encore. Le typecheck de `vp check` passe par tsgolint (TypeScript 7).
 
-Les adapters CLI sont testés sur des fixtures capturées et anonymisées (aucun token, id de compte ni email). La gestion du process CLI se valide à la main.
+Les adapters CLI sont testés sur des fixtures capturées et anonymisées (aucun token, id de compte ni email), issues des lecteurs TypeScript d'origine (`LlmUsageMonitor.Scripts/`, supprimé depuis, retrouvable dans l'historique git). La gestion du process CLI se valide à la main.
 
 ## Déploiement
 
