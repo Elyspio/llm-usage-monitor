@@ -17,6 +17,9 @@ const defaultHandlers: RequestHandler[] = [
 	http.get(`${apiUrl}/api/settings/polling`, () => HttpResponse.json({ claudeIntervalMinutes: 3, codexIntervalMinutes: 3 })),
 	http.get(`${apiUrl}/api/settings/triggers`, () => HttpResponse.json({ claude: { autoEnabled: true, model: "haiku" }, codex: { autoEnabled: false, model: "gpt-5.6-luna" } })),
 	http.get(`${apiUrl}/api/settings/notifications`, () => HttpResponse.json(notificationSettings)),
+	http.get(`${apiUrl}/api/settings/reset-credits`, () =>
+		HttpResponse.json({ claude: { autoEnabled: false, beforeExpiryMinutes: 60 }, codex: { autoEnabled: false, beforeExpiryMinutes: 60 } })
+	),
 	http.get(`${apiUrl}/api/token-usage`, () => HttpResponse.json({ from: iso(-7 * 24 * hour), to: iso(0), step: "day", timeZone: "Europe/Paris", machines: [], rows: [] })),
 ];
 

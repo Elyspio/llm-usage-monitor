@@ -15,7 +15,9 @@ internal sealed class CodexUsageReader(IOptions<CodexOptions> options, ILogger<C
 {
 	public Provider Provider => Provider.Codex;
 
-	public async Task<IReadOnlyList<UsageWindow>> Read(CancellationToken cancellationToken)
+	public async Task<IReadOnlyList<UsageWindow>> Read(CancellationToken cancellationToken) => (await ReadAccount(cancellationToken)).Windows;
+
+	public async Task<ProviderUsage> ReadAccount(CancellationToken cancellationToken)
 	{
 		var settings = options.Value;
 		using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -26,7 +28,7 @@ internal sealed class CodexUsageReader(IOptions<CodexOptions> options, ILogger<C
 			try
 			{
 				var result = await server.Request("account/rateLimits/read", new { }, timeout.Token);
-				return CodexUsageParser.Parse(result);
+				return new(CodexUsageParser.Parse(result), CodexUsageParser.ParseCredits(result));
 			}
 			catch (CodexRpcException exception)
 			{
@@ -73,6 +75,26 @@ internal sealed class CodexUsageReader(IOptions<CodexOptions> options, ILogger<C
 /// </summary>
 public static class CodexUsageParser
 {
+	/// <summary>Preserves the authoritative count and distinguishes unknown details from an empty list.</summary>
+	public static ResetCreditBalance? ParseCredits(JsonElement result)
+	{
+		if (!result.TryGetProperty("rateLimitResetCredits", out var balance) || balance.ValueKind != JsonValueKind.Object) return null;
+		int? count = balance.TryGetProperty("availableCount", out var available) && available.TryGetInt32(out var number) && number >= 0 ? number : null;
+		IReadOnlyList<ResetCredit>? credits = null;
+		if (balance.TryGetProperty("credits", out var rows) && rows.ValueKind == JsonValueKind.Array)
+		{
+			credits = rows.EnumerateArray().Where(row => row.ValueKind == JsonValueKind.Object && Text(row, "id") is { Length: > 0 })
+				.Select(row => new ResetCredit(Text(row, "id")!, Text(row, "status") == "available" ? 1 : 0,
+					Date(row, "expiresAt"), Date(row, "grantedAt"), Text(row, "title"),
+					Text(row, "status") == "available" && Text(row, "resetType") == "codexRateLimits", false, []))
+				.ToList();
+		}
+		return new(count, credits);
+	}
+
+	private static string? Text(JsonElement row, string name) => row.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+	private static DateTimeOffset? Date(JsonElement row, string name) => row.TryGetProperty(name, out var value) ? UsageWindowFactory.ParseReset(value, name) : null;
+
 	public static IReadOnlyList<UsageWindow> Parse(JsonElement result)
 	{
 		if (result.ValueKind != JsonValueKind.Object)
@@ -95,20 +117,20 @@ public static class CodexUsageParser
 
 		var windows = new List<UsageWindow>();
 		foreach (var (bucketId, snapshot) in buckets)
-		foreach (var slot in (string[])["primary", "secondary"])
-		{
-			if (!snapshot.TryGetProperty(slot, out var window) || window.ValueKind != JsonValueKind.Object)
+			foreach (var slot in (string[])["primary", "secondary"])
 			{
-				continue;
-			}
+				if (!snapshot.TryGetProperty(slot, out var window) || window.ValueKind != JsonValueKind.Object)
+				{
+					continue;
+				}
 
-			var id = $"{bucketId}/{slot}";
-			windows.Add(UsageWindowFactory.Create(
-				id,
-				window.TryGetProperty("usedPercent", out var used) ? UsageWindowFactory.ReadNumber(used) : null,
-				window.TryGetProperty("resetsAt", out var resetsAt) ? UsageWindowFactory.ParseReset(resetsAt, id) : null,
-				window.TryGetProperty("windowDurationMins", out var duration) ? UsageWindowFactory.ReadNumber(duration) : null));
-		}
+				var id = $"{bucketId}/{slot}";
+				windows.Add(UsageWindowFactory.Create(
+					id,
+					window.TryGetProperty("usedPercent", out var used) ? UsageWindowFactory.ReadNumber(used) : null,
+					window.TryGetProperty("resetsAt", out var resetsAt) ? UsageWindowFactory.ParseReset(resetsAt, id) : null,
+					window.TryGetProperty("windowDurationMins", out var duration) ? UsageWindowFactory.ReadNumber(duration) : null));
+			}
 
 		return windows;
 	}

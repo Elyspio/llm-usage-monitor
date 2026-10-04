@@ -10,6 +10,16 @@ public interface IUsageReader
 	Provider Provider { get; }
 
 	Task<IReadOnlyList<UsageWindow>> Read(CancellationToken cancellationToken);
+
+	/// <summary>Older adapters can expose windows alone; null credits never mean zero available credits.</summary>
+	async Task<ProviderUsage> ReadAccount(CancellationToken cancellationToken) => new(await Read(cancellationToken), null);
+}
+
+/// <summary>Redeems an earned reset, with a durable idempotency key; never sends a model prompt.</summary>
+public interface IResetCreditConsumer
+{
+	Provider Provider { get; }
+	Task<ResetCreditResult> Consume(string creditId, string idempotencyKey, CancellationToken cancellationToken);
 }
 
 /// <summary>

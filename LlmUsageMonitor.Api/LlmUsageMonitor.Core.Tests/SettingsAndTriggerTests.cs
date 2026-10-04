@@ -158,7 +158,7 @@ public sealed class SettingsServiceTests
 	{
 		var harness = new TestHarness();
 		var error = "TRIGGER_FAILED : request failed\n\tAuthorization: Bearer abc.def.ghi for user@example.com, refresh_token=rt_0123456789 "
-		            + "key sk-ant-oat01-ABCDEFGHIJKLMNOPQRSTUV " + string.Join(" ", Enumerable.Repeat("at stack frame", 40));
+					+ "key sk-ant-oat01-ABCDEFGHIJKLMNOPQRSTUV " + string.Join(" ", Enumerable.Repeat("at stack frame", 40));
 
 		await harness.Notifications.Notify(NotificationKind.TriggerFailed, Provider.Claude, error, Token);
 
@@ -263,7 +263,7 @@ public sealed class TriggerServiceTests
 	{
 		var harness = new TestHarness();
 		await harness.Triggers.RequestManual(Provider.Codex, Token);
-		var dashboard = new DashboardService(harness.States, harness.Runs, harness.Settings, harness.Time);
+		var dashboard = new DashboardService(harness.States, harness.Runs, harness.Settings, harness.Time, harness.CreditRuns);
 
 		var snapshot = await dashboard.GetDashboard(Token);
 

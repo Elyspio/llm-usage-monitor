@@ -53,6 +53,54 @@ public sealed class MongoFixture : IAsyncLifetime
 
 public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<MongoFixture>
 {
+	[Fact]
+	public async Task Reset_credit_journal_roundtrips_and_guards_each_automatic_redemption()
+	{
+		await using var services = await mongo.CreateServices();
+		var repository = services.GetRequiredService<IResetCreditRunRepository>();
+		var run = new ResetCreditRun(Guid.NewGuid().ToString(), Provider.Codex, "credit", false, "codex:credit:1", Now, Now.AddHours(1), ResetCreditRunStatus.Running,
+			Before: [new("codex/primary", 40, Now.AddDays(1), 10080)]);
+		await repository.Start(run, Token);
+		var duplicate = await repository.Start(run with { Id = Guid.NewGuid().ToString() }, Token);
+		duplicate.Id.ShouldBe(run.Id);
+		(await repository.GetAutomatic(run.AutomaticKey!, Token))!.Id.ShouldBe(run.Id);
+		(await repository.GetPending(Provider.Codex, Token)).ShouldHaveSingleItem().Before!.ShouldHaveSingleItem().UsedPercent.ShouldBe(40);
+		await repository.Save(run with { Status = ResetCreditRunStatus.Succeeded, EndedAt = Now, Outcome = "reset" }, Token);
+		(await repository.GetPending(Provider.Codex, Token)).ShouldBeEmpty();
+		(await repository.GetRecent(Provider.Codex, 10, Token)).ShouldHaveSingleItem().Status.ShouldBe(ResetCreditRunStatus.Succeeded);
+		(await ExpireAfter(services.GetRequiredService<IMongoDatabase>(), "resetCreditRuns", "endedAt")).ShouldBe((long)TimeSpan.FromDays(90).TotalSeconds);
+	}
+
+	[Fact]
+	public async Task Reset_credit_state_roundtrips_and_settings_saves_preserve_other_sections()
+	{
+		await using var services = await mongo.CreateServices();
+		var states = services.GetRequiredService<IProviderStateRepository>();
+		var state = new ProviderState(Provider.Claude)
+		{
+			ResetCredits = new(3, [new("grant", 3, Now.AddDays(1), Now, "Reset", true, false, ["seven_day"])]),
+			CreditResetSuppressesTrigger = true,
+			CreditResetRefreshPending = true,
+			CreditResetWindowResetsAt = Now,
+			PendingCreditCheck = new("job", Now.AddMinutes(10))
+		};
+		await states.Save(state, Token);
+		var fetched = await states.Get(Provider.Claude, Token);
+		fetched.ResetCredits!.Credits!.ShouldHaveSingleItem().ExpiresAt.ShouldBe(Now.AddDays(1));
+		fetched.CreditResetSuppressesTrigger.ShouldBeTrue();
+		fetched.PendingCreditCheck.ShouldBe(state.PendingCreditCheck);
+		var settings = services.GetRequiredService<ISettingsRepository>();
+		await settings.Initialize(AppSettings.CreateDefault(false), Token);
+		await settings.SaveResetCredits(new(new(true, 15), new(false, 60)), Token);
+		await settings.SavePolling(new(5, 10), Token);
+		var saved = (await settings.Find(Token))!;
+		saved.ResetCredits.Claude.ShouldBe(new ProviderResetCreditSettings(true, 15));
+		saved.Polling.ShouldBe(new PollingSettings(5, 10));
+		// An existing production document without the new section must remain opt-in.
+		await services.GetRequiredService<IMongoDatabase>().GetCollection<BsonDocument>("settings").UpdateOneAsync(
+			new BsonDocument("_id", "global"), new BsonDocument("$unset", new BsonDocument { ["claudeResetCredits"] = "", ["codexResetCredits"] = "" }), cancellationToken: Token);
+		(await settings.Find(Token))!.ResetCredits.ShouldBe(ResetCreditSettings.Default);
+	}
 	private static readonly DateTimeOffset Now = new(2026, 9, 14, 12, 0, 0, TimeSpan.Zero);
 
 	private static CancellationToken Token => TestContext.Current.CancellationToken;
@@ -119,8 +167,17 @@ public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<Mon
 		var id = ObjectId.GenerateNewId();
 		await database.GetCollection<BsonDocument>("triggerRuns").InsertOneAsync(new BsonDocument
 		{
-			["_id"] = id, ["provider"] = "Codex", ["manual"] = false, ["cycleKey"] = "reset:1", ["model"] = "luna", ["status"] = "Failed",
-			["startedAt"] = Now.UtcDateTime, ["endedAt"] = Now.UtcDateTime, ["errorCode"] = "TIMEOUT", ["error"] = "slow", ["nextRetryAt"] = Now.UtcDateTime
+			["_id"] = id,
+			["provider"] = "Codex",
+			["manual"] = false,
+			["cycleKey"] = "reset:1",
+			["model"] = "luna",
+			["status"] = "Failed",
+			["startedAt"] = Now.UtcDateTime,
+			["endedAt"] = Now.UtcDateTime,
+			["errorCode"] = "TIMEOUT",
+			["error"] = "slow",
+			["nextRetryAt"] = Now.UtcDateTime
 		}, cancellationToken: Token);
 		var runs = services.GetRequiredService<ITriggerRunRepository>();
 
@@ -337,6 +394,8 @@ public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<Mon
 		loaded.ShouldNotBeNull();
 		loaded.Notifications.Events.Claude.ShouldBe(loaded.Notifications.Events.Codex);
 		loaded.Notifications.Events.Claude.TriggerFailed.ShouldBeFalse();
+		loaded.Notifications.Events.Claude.ResetCreditSucceeded.ShouldBeTrue();
+		loaded.Notifications.Events.Claude.ResetCreditFailed.ShouldBeTrue();
 
 		await services.GetRequiredService<ISettingsRepository>().SaveNotifications(loaded.Notifications, Token);
 		var raw = await settings.Find(new BsonDocument("_id", "global")).SingleAsync(Token);

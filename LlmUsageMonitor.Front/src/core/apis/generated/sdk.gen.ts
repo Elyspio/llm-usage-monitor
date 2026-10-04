@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetDashboardData, GetDashboardResponses, GetHistoryData, GetHistoryResponses, GetNotificationSettingsData, GetNotificationSettingsResponses, GetPollingSettingsData, GetPollingSettingsResponses, GetTokenUsageData, GetTokenUsageErrors, GetTokenUsageResponses, GetTriggerRunData, GetTriggerRunErrors, GetTriggerRunResponses, GetTriggerSettingsData, GetTriggerSettingsResponses, SendTestNotificationData, SendTestNotificationErrors, SendTestNotificationResponses, TriggerProviderData, TriggerProviderErrors, TriggerProviderResponses, UpdateNotificationSettingsData, UpdateNotificationSettingsErrors, UpdateNotificationSettingsResponses, UpdatePollingSettingsData, UpdatePollingSettingsErrors, UpdatePollingSettingsResponses, UpdateTriggerSettingsData, UpdateTriggerSettingsErrors, UpdateTriggerSettingsResponses, UploadTokenUsageData, UploadTokenUsageErrors, UploadTokenUsageResponses } from './types.gen';
+import type { ConsumeResetCreditData, ConsumeResetCreditErrors, ConsumeResetCreditResponses, GetDashboardData, GetDashboardResponses, GetHistoryData, GetHistoryResponses, GetNotificationSettingsData, GetNotificationSettingsResponses, GetPollingSettingsData, GetPollingSettingsResponses, GetResetCreditSettingsData, GetResetCreditSettingsResponses, GetTokenUsageData, GetTokenUsageErrors, GetTokenUsageResponses, GetTriggerRunData, GetTriggerRunErrors, GetTriggerRunResponses, GetTriggerSettingsData, GetTriggerSettingsResponses, SendTestNotificationData, SendTestNotificationErrors, SendTestNotificationResponses, TriggerProviderData, TriggerProviderErrors, TriggerProviderResponses, UpdateNotificationSettingsData, UpdateNotificationSettingsErrors, UpdateNotificationSettingsResponses, UpdatePollingSettingsData, UpdatePollingSettingsErrors, UpdatePollingSettingsResponses, UpdateResetCreditSettingsData, UpdateResetCreditSettingsErrors, UpdateResetCreditSettingsResponses, UpdateTriggerSettingsData, UpdateTriggerSettingsErrors, UpdateTriggerSettingsResponses, UploadTokenUsageData, UploadTokenUsageErrors, UploadTokenUsageResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -94,6 +94,32 @@ export const getDashboard = <ThrowOnError extends boolean = false>(options?: Opt
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/dashboard',
     ...options
+});
+
+export const consumeResetCredit = <ThrowOnError extends boolean = false>(options: Options<ConsumeResetCreditData, ThrowOnError>): RequestResult<ConsumeResetCreditResponses, ConsumeResetCreditErrors, ThrowOnError> => (options.client ?? client).post<ConsumeResetCreditResponses, ConsumeResetCreditErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/providers/{provider}/reset-credits/consume',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const getResetCreditSettings = <ThrowOnError extends boolean = false>(options?: Options<GetResetCreditSettingsData, ThrowOnError>): RequestResult<GetResetCreditSettingsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetResetCreditSettingsResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/settings/reset-credits',
+    ...options
+});
+
+export const updateResetCreditSettings = <ThrowOnError extends boolean = false>(options: Options<UpdateResetCreditSettingsData, ThrowOnError>): RequestResult<UpdateResetCreditSettingsResponses, UpdateResetCreditSettingsErrors, ThrowOnError> => (options.client ?? client).put<UpdateResetCreditSettingsResponses, UpdateResetCreditSettingsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/settings/reset-credits',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 export const getTokenUsage = <ThrowOnError extends boolean = false>(options?: Options<GetTokenUsageData, ThrowOnError>): RequestResult<GetTokenUsageResponses, GetTokenUsageErrors, ThrowOnError> => (options?.client ?? client).get<GetTokenUsageResponses, GetTokenUsageErrors, ThrowOnError>({

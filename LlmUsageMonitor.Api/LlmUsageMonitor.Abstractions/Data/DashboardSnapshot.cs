@@ -35,4 +35,7 @@ public sealed record ProviderDashboard(
 	int PollIntervalMinutes,
 	DateTimeOffset? NextAutoTriggerAt,
 	TriggerRun? RunningTrigger,
-	ProviderHealth Health);
+	ProviderHealth Health)
+{
+	public ResetCreditDashboard? ResetCredits { get; init; }
+}

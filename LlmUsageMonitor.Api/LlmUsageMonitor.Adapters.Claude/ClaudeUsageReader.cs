@@ -17,7 +17,9 @@ internal sealed class ClaudeUsageReader(IHttpClientFactory httpClients, IOptions
 {
 	public Provider Provider => Provider.Claude;
 
-	public async Task<IReadOnlyList<UsageWindow>> Read(CancellationToken cancellationToken)
+	public async Task<IReadOnlyList<UsageWindow>> Read(CancellationToken cancellationToken) => (await ReadAccount(cancellationToken)).Windows;
+
+	public async Task<ProviderUsage> ReadAccount(CancellationToken cancellationToken)
 	{
 		var credentials = await ClaudeCredentialsFile.Read(options.Value.ResolveCredentialsPath(), cancellationToken);
 		if (credentials.ExpiresAt is { } expiresAt && expiresAt <= time.GetUtcNow())
@@ -25,7 +27,8 @@ internal sealed class ClaudeUsageReader(IHttpClientFactory httpClients, IOptions
 			throw new ProviderException(ProviderErrorCodes.AuthExpired, "The Claude CLI login has expired. Refresh it through the Claude CLI.");
 		}
 
-		using var request = new HttpRequestMessage(HttpMethod.Get, "api/oauth/usage");
+		// Claude Code 2.1.289 requests this block explicitly; a missing block remains unknown, not zero.
+		using var request = new HttpRequestMessage(HttpMethod.Get, "api/oauth/usage?cedar_ember=1&skip_spend=1");
 		request.Headers.Authorization = new("Bearer", credentials.AccessToken);
 		request.Headers.Add("anthropic-beta", "oauth-2025-04-20");
 		request.Headers.Accept.Add(new("application/json"));
@@ -49,7 +52,7 @@ internal sealed class ClaudeUsageReader(IHttpClientFactory httpClients, IOptions
 
 			await using var body = await response.Content.ReadAsStreamAsync(timeout.Token);
 			using var document = await JsonDocument.ParseAsync(body, cancellationToken: timeout.Token);
-			return ClaudeUsageParser.Parse(document.RootElement);
+			return new(ClaudeUsageParser.Parse(document.RootElement), ClaudeResetCreditParser.Parse(document.RootElement));
 		}
 		catch (Exception exception) when (exception is TimeoutRejectedException || (exception is OperationCanceledException && !cancellationToken.IsCancellationRequested))
 		{

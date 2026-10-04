@@ -87,6 +87,8 @@ public sealed class NotificationService(
 		var (title, priority, tag) = kind switch
 		{
 			NotificationKind.TriggerFailed => ($"{name} : déclenchement échoué", NotificationPriority.High, "x"),
+			NotificationKind.ResetCreditSucceeded => ($"{name} : crédit de reset utilisé", NotificationPriority.Default, "arrows_counterclockwise"),
+			NotificationKind.ResetCreditFailed => ($"{name} : crédit de reset non utilisé", NotificationPriority.High, "warning"),
 			NotificationKind.AuthExpired => ($"{name} : connexion expirée", NotificationPriority.High, "key"),
 			NotificationKind.ReadFailed => ($"{name} : lectures en échec", NotificationPriority.High, "warning"),
 			NotificationKind.Reset => ($"{name} : reset détecté", NotificationPriority.Default, "arrows_counterclockwise"),

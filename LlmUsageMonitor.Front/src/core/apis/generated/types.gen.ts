@@ -4,6 +4,11 @@ export type ClientOptions = {
     baseUrl: `${string}://${string}` | (string & {});
 };
 
+export type ConsumeResetCreditRequest = {
+    creditId: string;
+    idempotencyKey: string;
+};
+
 export type DashboardSnapshot = {
     providers: Array<ProviderDashboard>;
     recentTriggerRuns: Array<TriggerRun>;
@@ -16,6 +21,8 @@ export type NotificationEvents = {
     reset: boolean;
     triggerSucceeded: boolean;
     recovered: boolean;
+    resetCreditSucceeded?: boolean;
+    resetCreditFailed?: boolean;
 };
 
 export type NotificationEventsByProvider = {
@@ -23,7 +30,7 @@ export type NotificationEventsByProvider = {
     codex: NotificationEvents;
 };
 
-export type NotificationKind = 'triggerFailed' | 'authExpired' | 'readFailed' | 'reset' | 'triggerSucceeded' | 'recovered' | 'authExpiring';
+export type NotificationKind = 'triggerFailed' | 'authExpired' | 'readFailed' | 'reset' | 'triggerSucceeded' | 'recovered' | 'authExpiring' | 'resetCreditSucceeded' | 'resetCreditFailed';
 
 export type NotificationSendFailure = {
     at: string;
@@ -73,6 +80,7 @@ export type ProviderDashboard = {
     nextAutoTriggerAt: null | string;
     runningTrigger: null | TriggerRun;
     health: ProviderHealth;
+    resetCredits?: null | ResetCreditDashboard;
 };
 
 export type ProviderFailure = {
@@ -91,9 +99,64 @@ export type ProviderHealth = {
     refreshTokenExpiresAt: null | string;
 };
 
+export type ProviderResetCreditSettings = {
+    autoEnabled: boolean;
+    beforeExpiryMinutes: number;
+};
+
 export type ProviderTriggerSettings = {
     autoEnabled: boolean;
     model: string;
+};
+
+export type ResetCredit = {
+    id: string;
+    remainingUses: number;
+    expiresAt: null | string;
+    grantedAt: null | string;
+    title: null | string;
+    isUsable: boolean;
+    requiresLimit: boolean;
+    windowIds: Array<string>;
+    startsAt?: null | string;
+};
+
+export type ResetCreditBalance = {
+    availableCount: null | number;
+    credits: null | Array<ResetCredit>;
+    unavailableReason?: null | string;
+};
+
+export type ResetCreditDashboard = {
+    balance: null | ResetCreditBalance;
+    settings: ProviderResetCreditSettings;
+    nextCreditId: null | string;
+    nextAttemptAt: null | string;
+    recentRuns: Array<ResetCreditRun>;
+};
+
+export type ResetCreditRun = {
+    id: string;
+    provider: Provider;
+    creditId: string;
+    manual: boolean;
+    automaticKey: null | string;
+    startedAt: string;
+    expiresAt: null | string;
+    status: ResetCreditRunStatus;
+    attempts?: number;
+    endedAt?: null | string;
+    nextRetryAt?: null | string;
+    outcome?: null | string;
+    before?: null | Array<UsageWindow>;
+    after?: null | Array<UsageWindow>;
+};
+
+export type ResetCreditRunStatus = 'running' | 'succeeded' | 'refused' | 'failed';
+
+export type ResetCreditSettings = {
+    claude: ProviderResetCreditSettings;
+    codex: ProviderResetCreditSettings;
 };
 
 export type TokenCounts = {
@@ -452,6 +515,78 @@ export type GetDashboardResponses = {
 };
 
 export type GetDashboardResponse = GetDashboardResponses[keyof GetDashboardResponses];
+
+export type ConsumeResetCreditData = {
+    body: ConsumeResetCreditRequest;
+    path: {
+        provider: Provider;
+    };
+    query?: never;
+    url: '/api/providers/{provider}/reset-credits/consume';
+};
+
+export type ConsumeResetCreditErrors = {
+    /**
+     * Bad Request
+     */
+    400: ValidationProblemDetails;
+    /**
+     * Conflict
+     */
+    409: ProblemDetails;
+};
+
+export type ConsumeResetCreditError = ConsumeResetCreditErrors[keyof ConsumeResetCreditErrors];
+
+export type ConsumeResetCreditResponses = {
+    /**
+     * OK
+     */
+    200: ResetCreditRun;
+};
+
+export type ConsumeResetCreditResponse = ConsumeResetCreditResponses[keyof ConsumeResetCreditResponses];
+
+export type GetResetCreditSettingsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/settings/reset-credits';
+};
+
+export type GetResetCreditSettingsResponses = {
+    /**
+     * OK
+     */
+    200: ResetCreditSettings;
+};
+
+export type GetResetCreditSettingsResponse = GetResetCreditSettingsResponses[keyof GetResetCreditSettingsResponses];
+
+export type UpdateResetCreditSettingsData = {
+    body: ResetCreditSettings;
+    path?: never;
+    query?: never;
+    url: '/api/settings/reset-credits';
+};
+
+export type UpdateResetCreditSettingsErrors = {
+    /**
+     * Bad Request
+     */
+    400: ValidationProblemDetails;
+};
+
+export type UpdateResetCreditSettingsError = UpdateResetCreditSettingsErrors[keyof UpdateResetCreditSettingsErrors];
+
+export type UpdateResetCreditSettingsResponses = {
+    /**
+     * OK
+     */
+    200: ResetCreditSettings;
+};
+
+export type UpdateResetCreditSettingsResponse = UpdateResetCreditSettingsResponses[keyof UpdateResetCreditSettingsResponses];
 
 export type GetTokenUsageData = {
     body?: never;

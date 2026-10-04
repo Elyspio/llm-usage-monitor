@@ -34,6 +34,7 @@ public sealed class MongoAdapterModule : IModule
 		services.AddSingleton<IUsageSnapshotRepository, UsageSnapshotRepository>();
 		services.AddSingleton<IResetRepository, ResetRepository>();
 		services.AddSingleton<ITriggerRunRepository, TriggerRunRepository>();
+		services.AddSingleton<IResetCreditRunRepository, ResetCreditRunRepository>();
 		services.AddSingleton<IProviderStateRepository, ProviderStateRepository>();
 		services.AddSingleton<ISettingsRepository, SettingsRepository>();
 		services.AddSingleton<ITokenUsageRepository, TokenUsageRepository>();
