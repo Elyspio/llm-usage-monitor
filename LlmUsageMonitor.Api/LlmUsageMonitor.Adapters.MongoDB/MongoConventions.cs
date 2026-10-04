@@ -1,4 +1,6 @@
+using LlmUsageMonitor.Abstractions.Data;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
 
 namespace LlmUsageMonitor.Adapters.MongoDB;
@@ -8,6 +10,7 @@ internal static class Collections
 	public const string UsageSnapshots = "usageSnapshots";
 	public const string Resets = "resets";
 	public const string TriggerRuns = "triggerRuns";
+	public const string ResetCreditRuns = "resetCreditRuns";
 	public const string ProviderStates = "providerStates";
 	public const string Settings = "settings";
 	public const string DataProtectionKeys = "dataProtectionKeys";
@@ -37,6 +40,13 @@ internal static class MongoConventions
 			new IgnoreExtraElementsConvention(true)
 		};
 		ConventionRegistry.Register("llm-usage-monitor", pack, type => type.Namespace?.StartsWith("LlmUsageMonitor", StringComparison.Ordinal) == true);
+		BsonClassMap.RegisterClassMap<NotificationEvents>(map =>
+		{
+			map.AutoMap();
+			// The driver does not apply optional constructor defaults to missing BSON members.
+			map.GetMemberMap(nameof(NotificationEvents.ResetCreditSucceeded)).SetDefaultValue(true);
+			map.GetMemberMap(nameof(NotificationEvents.ResetCreditFailed)).SetDefaultValue(true);
+		});
 	}
 
 	public static DateTimeOffset ToOffset(this DateTime value)

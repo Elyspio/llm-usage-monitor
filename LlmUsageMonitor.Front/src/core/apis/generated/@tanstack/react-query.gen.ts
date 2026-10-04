@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { getDashboard, getHistory, getNotificationSettings, getPollingSettings, getTokenUsage, getTriggerRun, getTriggerSettings, type Options, sendTestNotification, triggerProvider, updateNotificationSettings, updatePollingSettings, updateTriggerSettings, uploadTokenUsage } from '../sdk.gen';
-import type { GetDashboardData, GetDashboardResponse, GetHistoryData, GetHistoryResponse, GetNotificationSettingsData, GetNotificationSettingsResponse, GetPollingSettingsData, GetPollingSettingsResponse, GetTokenUsageData, GetTokenUsageError, GetTokenUsageResponse, GetTriggerRunData, GetTriggerRunError, GetTriggerRunResponse, GetTriggerSettingsData, GetTriggerSettingsResponse, SendTestNotificationData, SendTestNotificationError, SendTestNotificationResponse, TriggerProviderData, TriggerProviderError, TriggerProviderResponse, UpdateNotificationSettingsData, UpdateNotificationSettingsError, UpdateNotificationSettingsResponse, UpdatePollingSettingsData, UpdatePollingSettingsError, UpdatePollingSettingsResponse, UpdateTriggerSettingsData, UpdateTriggerSettingsError, UpdateTriggerSettingsResponse, UploadTokenUsageData, UploadTokenUsageError, UploadTokenUsageResponse } from '../types.gen';
+import { consumeResetCredit, getDashboard, getHistory, getNotificationSettings, getPollingSettings, getResetCreditSettings, getTokenUsage, getTriggerRun, getTriggerSettings, type Options, sendTestNotification, triggerProvider, updateNotificationSettings, updatePollingSettings, updateResetCreditSettings, updateTriggerSettings, uploadTokenUsage } from '../sdk.gen';
+import type { ConsumeResetCreditData, ConsumeResetCreditError, ConsumeResetCreditResponse, GetDashboardData, GetDashboardResponse, GetHistoryData, GetHistoryResponse, GetNotificationSettingsData, GetNotificationSettingsResponse, GetPollingSettingsData, GetPollingSettingsResponse, GetResetCreditSettingsData, GetResetCreditSettingsResponse, GetTokenUsageData, GetTokenUsageError, GetTokenUsageResponse, GetTriggerRunData, GetTriggerRunError, GetTriggerRunResponse, GetTriggerSettingsData, GetTriggerSettingsResponse, SendTestNotificationData, SendTestNotificationError, SendTestNotificationResponse, TriggerProviderData, TriggerProviderError, TriggerProviderResponse, UpdateNotificationSettingsData, UpdateNotificationSettingsError, UpdateNotificationSettingsResponse, UpdatePollingSettingsData, UpdatePollingSettingsError, UpdatePollingSettingsResponse, UpdateResetCreditSettingsData, UpdateResetCreditSettingsError, UpdateResetCreditSettingsResponse, UpdateTriggerSettingsData, UpdateTriggerSettingsError, UpdateTriggerSettingsResponse, UploadTokenUsageData, UploadTokenUsageError, UploadTokenUsageResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -198,6 +198,49 @@ export const getDashboardOptions = (options?: Options<GetDashboardData>) => quer
     },
     queryKey: getDashboardQueryKey(options)
 });
+
+export const consumeResetCreditMutation = (options?: Partial<Options<ConsumeResetCreditData>>): UseMutationOptions<ConsumeResetCreditResponse, ConsumeResetCreditError, Options<ConsumeResetCreditData>> => {
+    const mutationOptions: UseMutationOptions<ConsumeResetCreditResponse, ConsumeResetCreditError, Options<ConsumeResetCreditData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await consumeResetCredit({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getResetCreditSettingsQueryKey = (options?: Options<GetResetCreditSettingsData>) => createQueryKey('getResetCreditSettings', options);
+
+export const getResetCreditSettingsOptions = (options?: Options<GetResetCreditSettingsData>) => queryOptions<GetResetCreditSettingsResponse, DefaultError, GetResetCreditSettingsResponse, ReturnType<typeof getResetCreditSettingsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getResetCreditSettings({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getResetCreditSettingsQueryKey(options)
+});
+
+export const updateResetCreditSettingsMutation = (options?: Partial<Options<UpdateResetCreditSettingsData>>): UseMutationOptions<UpdateResetCreditSettingsResponse, UpdateResetCreditSettingsError, Options<UpdateResetCreditSettingsData>> => {
+    const mutationOptions: UseMutationOptions<UpdateResetCreditSettingsResponse, UpdateResetCreditSettingsError, Options<UpdateResetCreditSettingsData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await updateResetCreditSettings({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 export const getTokenUsageQueryKey = (options?: Options<GetTokenUsageData>) => createQueryKey('getTokenUsage', options);
 

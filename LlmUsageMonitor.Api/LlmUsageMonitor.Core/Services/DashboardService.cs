@@ -1,6 +1,7 @@
 using LlmUsageMonitor.Abstractions.Data;
 using LlmUsageMonitor.Abstractions.Interfaces.Repositories;
 using LlmUsageMonitor.Abstractions.Interfaces.Services;
+using LlmUsageMonitor.Core.Rules;
 
 namespace LlmUsageMonitor.Core.Services;
 
@@ -8,7 +9,7 @@ public sealed class DashboardService(
 	IProviderStateRepository states,
 	ITriggerRunRepository runs,
 	ISettingsService settingsService,
-	TimeProvider time) : IDashboardService
+	TimeProvider time, IResetCreditRunRepository creditRuns) : IDashboardService
 {
 	public const int RecentTriggerCount = 10;
 
@@ -39,10 +40,31 @@ public sealed class DashboardService(
 					state.BackoffUntil is { } until && until > now ? until : null,
 					state.ActiveAlerts,
 					state.TokenExpiresAt,
-					state.RefreshTokenExpiresAt)));
+					state.RefreshTokenExpiresAt))
+			{
+				ResetCredits = await CreditDashboard(state, settings.ResetCredits.For(provider), now, cancellationToken)
+			});
 		}
 
 		return new(providers, await runs.GetRecent(RecentTriggerCount, cancellationToken));
+	}
+
+	private async Task<ResetCreditDashboard> CreditDashboard(ProviderState state, ProviderResetCreditSettings settings, DateTimeOffset now, CancellationToken cancellationToken)
+	{
+		var recent = await creditRuns.GetRecent(state.Provider, 10, cancellationToken);
+		var pending = (await creditRuns.GetPending(state.Provider, cancellationToken)).Where(run => run.Manual || settings.AutoEnabled)
+			.OrderBy(run => run.NextRetryAt ?? now).FirstOrDefault();
+		ResetCredit? next = null;
+		var candidates = ResetCreditRules.Ordered((state.ResetCredits?.Credits ?? []).Where(credit => ResetCreditRules.Available(credit, now)));
+		foreach (var credit in candidates)
+		{
+			if (settings.AutoEnabled && await creditRuns.GetAutomatic(ResetCreditRules.AutomaticKey(state.Provider, credit), cancellationToken) is { }) continue;
+			next = credit;
+			break;
+		}
+		DateTimeOffset? at = pending is { } ? pending.NextRetryAt ?? now : settings.AutoEnabled && next?.ExpiresAt is { } expiry
+			? (expiry.AddMinutes(-settings.BeforeExpiryMinutes) > now ? expiry.AddMinutes(-settings.BeforeExpiryMinutes) : now) : null;
+		return new(state.ResetCredits, settings, pending?.CreditId ?? next?.Id, at, recent);
 	}
 }
 

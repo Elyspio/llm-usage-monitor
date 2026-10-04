@@ -123,7 +123,7 @@ public sealed class ClaudeAdapterTests
 
 		windows.ShouldBe(ClaudeUsageParser.Parse(Fixtures.Load("claude-usage.json")));
 		var request = handler.Requests.ShouldHaveSingleItem();
-		request.RequestUri!.ToString().ShouldBe("https://api.anthropic.com/api/oauth/usage");
+		request.RequestUri!.ToString().ShouldBe("https://api.anthropic.com/api/oauth/usage?cedar_ember=1&skip_spend=1");
 		request.Headers.Authorization!.ToString().ShouldBe("Bearer access-token");
 		request.Headers.GetValues("anthropic-beta").ShouldBe(["oauth-2025-04-20"]);
 	}

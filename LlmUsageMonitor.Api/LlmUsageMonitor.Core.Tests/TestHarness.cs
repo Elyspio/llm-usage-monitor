@@ -36,7 +36,8 @@ internal sealed class TestHarness
 		Health = new(Notifications);
 		Triggers = new([ClaudeRunner, CodexRunner], Runs, Locks, Settings, Notifications, Scheduler, Time, NullLogger<TriggerService>.Instance);
 		KeepAlive = new(Session, Locks, States, Settings, Health, Scheduler, Time, NullLogger<ClaudeKeepAlive>.Instance);
-		Monitor = new([ClaudeReader, CodexReader], Locks, States, Snapshots, Resets, Settings, Health, KeepAlive, Triggers, Notifications, Scheduler, Time, NullLogger<UsageMonitor>.Instance);
+		Credits = new([ClaudeReader, CodexReader], [ClaudeConsumer, CodexConsumer], CreditRuns, States, Snapshots, Resets, Locks, Settings, KeepAlive, Notifications, Scheduler, Time, NullLogger<ResetCreditService>.Instance);
+		Monitor = new([ClaudeReader, CodexReader], Locks, States, Snapshots, Resets, Settings, Health, KeepAlive, Triggers, Notifications, Scheduler, Time, NullLogger<UsageMonitor>.Instance, Credits);
 		Session.ExpiresAt = Start.AddHours(8);
 	}
 
@@ -62,6 +63,10 @@ internal sealed class TestHarness
 	public TriggerService Triggers { get; }
 	public ClaudeKeepAlive KeepAlive { get; }
 	public UsageMonitor Monitor { get; }
+	public ResetCreditService Credits { get; }
+	public InMemoryCreditRuns CreditRuns { get; } = new();
+	public FakeCreditConsumer ClaudeConsumer { get; } = new(Provider.Claude);
+	public FakeCreditConsumer CodexConsumer { get; } = new(Provider.Codex);
 
 	public static UsageWindow Window(string id, double used, DateTimeOffset? resetsAt, int? duration = 300)
 	{
@@ -161,7 +166,14 @@ internal sealed class InMemoryRuns : ITriggerRunRepository
 
 		All[index] = existing with
 		{
-			Status = TriggerStatus.Running, Model = model, StartedAt = startedAt, EndedAt = null, ErrorCode = null, Error = null, NextRetryAt = null, Attempts = existing.Attempts + 1
+			Status = TriggerStatus.Running,
+			Model = model,
+			StartedAt = startedAt,
+			EndedAt = null,
+			ErrorCode = null,
+			Error = null,
+			NextRetryAt = null,
+			Attempts = existing.Attempts + 1
 		};
 		return Task.FromResult<TriggerRun?>(All[index]);
 	}
@@ -219,6 +231,11 @@ internal sealed class InMemoryRuns : ITriggerRunRepository
 
 internal sealed class InMemorySettings : ISettingsRepository
 {
+	public Task SaveResetCredits(ResetCreditSettings settings, CancellationToken cancellationToken)
+	{
+		Stored = Stored! with { ResetCredits = settings };
+		return Task.CompletedTask;
+	}
 	public AppSettings? Stored { get; set; }
 
 	/// <summary>Runs once after the next read, before its result is returned: a write racing with a read-modify-write.</summary>
@@ -343,6 +360,8 @@ internal sealed class FakeScheduler : IJobScheduler
 
 internal sealed class FakeReader(Provider provider) : IUsageReader
 {
+	public ResetCreditBalance? Credits { get; set; }
+	public async Task<ProviderUsage> ReadAccount(CancellationToken cancellationToken) => new(await Read(cancellationToken), Credits);
 	public Func<IReadOnlyList<UsageWindow>> Respond { get; set; } = () => [];
 
 	public int Calls { get; private set; }
@@ -353,6 +372,39 @@ internal sealed class FakeReader(Provider provider) : IUsageReader
 	{
 		Calls++;
 		return Task.FromResult(Respond());
+	}
+}
+
+internal sealed class InMemoryCreditRuns : IResetCreditRunRepository
+{
+	public List<ResetCreditRun> All { get; } = [];
+	public Task<ResetCreditRun> Start(ResetCreditRun run, CancellationToken cancellationToken)
+	{
+		var existing = All.FirstOrDefault(item => item.Id == run.Id || run.AutomaticKey is { } key && item.AutomaticKey == key);
+		if (existing is { }) return Task.FromResult(existing);
+		All.Add(run);
+		return Task.FromResult(run);
+	}
+	public Task Save(ResetCreditRun run, CancellationToken cancellationToken)
+	{
+		All[All.FindIndex(item => item.Id == run.Id)] = run;
+		return Task.CompletedTask;
+	}
+	public Task<ResetCreditRun?> Get(string id, CancellationToken cancellationToken) => Task.FromResult(All.FirstOrDefault(run => run.Id == id));
+	public Task<ResetCreditRun?> GetAutomatic(string automaticKey, CancellationToken cancellationToken) => Task.FromResult(All.FirstOrDefault(run => run.AutomaticKey == automaticKey));
+	public Task<IReadOnlyList<ResetCreditRun>> GetPending(Provider provider, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ResetCreditRun>>(All.Where(run => run.Provider == provider && run.Status == ResetCreditRunStatus.Running).ToList());
+	public Task<IReadOnlyList<ResetCreditRun>> GetRecent(Provider provider, int count, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ResetCreditRun>>(All.Where(run => run.Provider == provider).OrderByDescending(run => run.StartedAt).Take(count).ToList());
+}
+
+internal sealed class FakeCreditConsumer(Provider provider) : IResetCreditConsumer
+{
+	public Provider Provider => provider;
+	public List<(string CreditId, string Key)> Calls { get; } = [];
+	public Func<string, string, ResetCreditResult> Respond { get; set; } = (_, _) => new(true, "reset");
+	public Task<ResetCreditResult> Consume(string creditId, string idempotencyKey, CancellationToken cancellationToken)
+	{
+		Calls.Add((creditId, idempotencyKey));
+		return Task.FromResult(Respond(creditId, idempotencyKey));
 	}
 }
 

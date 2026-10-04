@@ -22,7 +22,8 @@ public sealed class UsageMonitor(
 	INotificationService notifications,
 	IJobScheduler scheduler,
 	TimeProvider time,
-	ILogger<UsageMonitor> logger) : IUsageMonitor
+	ILogger<UsageMonitor> logger,
+	IResetCreditService resetCredits) : IUsageMonitor
 {
 	private readonly Dictionary<Provider, IUsageReader> _readers = readers.ToDictionary(reader => reader.Provider);
 
@@ -52,7 +53,8 @@ public sealed class UsageMonitor(
 				state = await keepAlive.EnsureFresh(state, cancellationToken);
 			}
 
-			var windows = await _readers[provider].Read(cancellationToken);
+			var account = await _readers[provider].ReadAccount(cancellationToken);
+			var windows = account.Windows;
 			if (windows.Count == 0)
 			{
 				throw new ProviderException(ProviderErrorCodes.NoUsageData, "The provider returned no percentage-based usage windows.");
@@ -71,10 +73,16 @@ public sealed class UsageMonitor(
 			state = await health.RecordSuccess(state, readAt, cancellationToken) with
 			{
 				LastReading = reading,
+				ResetCredits = account.ResetCredits,
 				LastSuccessAt = readAt,
 				CurrentCycleKey = cycleKey
 			};
-			state = SchedulePostResetCheck(state, reading, settings.Triggers.For(provider).AutoEnabled, readAt);
+			if (state.CreditResetRefreshPending)
+				state = state with { CreditResetWindowResetsAt = triggerWindow?.ResetsAt, CreditResetRefreshPending = false };
+			else if (triggerWindow?.UsedPercent > 0 || (state.CreditResetWindowResetsAt is { } suppressed && triggerWindow?.ResetsAt is { } actual && Math.Abs((actual - suppressed).TotalSeconds) > 60))
+				state = state with { CreditResetSuppressesTrigger = false };
+			state = SchedulePostResetCheck(state, reading, settings.Triggers.For(provider).AutoEnabled && !state.CreditResetSuppressesTrigger, readAt);
+			state = ScheduleCreditCheck(state, settings.ResetCredits.For(provider), readAt);
 			state = await health.CheckCredentialExpiry(state, readAt, settings.Notifications.CredentialExpiryAlertDays, cancellationToken);
 			await states.Save(state, cancellationToken);
 		}
@@ -97,11 +105,29 @@ public sealed class UsageMonitor(
 			return;
 		}
 
-		if (cycleKey is { } && settings.Triggers.For(provider).AutoEnabled)
-			// Still under the provider lock: the prompt never overlaps a reading.
+		if (await resetCredits.ProcessAutomatic(provider, cancellationToken)) return;
+		state = await states.Get(provider, cancellationToken);
+		if (cycleKey is { } && settings.Triggers.For(provider).AutoEnabled && !state.CreditResetSuppressesTrigger)
+		// Still under the provider lock: the prompt never overlaps a reading.
 		{
 			await automaticTrigger.Run(provider, cycleKey, cancellationToken);
 		}
+	}
+
+	private ProviderState ScheduleCreditCheck(ProviderState state, ProviderResetCreditSettings settings, DateTimeOffset now)
+	{
+		if (state.PendingCreditCheck is { } due && due.RunAt <= now) state = state with { PendingCreditCheck = null };
+		var next = settings.AutoEnabled ? state.ResetCredits?.Credits?
+			.Where(credit => credit.RemainingUses > 0 && credit.ExpiresAt > now)
+			.Select(credit => credit.ExpiresAt!.Value.AddMinutes(-settings.BeforeExpiryMinutes))
+			.Where(date => date > now).Order().Cast<DateTimeOffset?>().FirstOrDefault() : null;
+		if (state.PendingCreditCheck is { } previous && previous.RunAt != next)
+		{
+			scheduler.Delete(previous.JobId);
+			state = state with { PendingCreditCheck = null };
+		}
+		return next is { } runAt && state.PendingCreditCheck is null
+			? state with { PendingCreditCheck = new(scheduler.ScheduleTriggerRetry(state.Provider, runAt), runAt) } : state;
 	}
 
 	/// <summary>

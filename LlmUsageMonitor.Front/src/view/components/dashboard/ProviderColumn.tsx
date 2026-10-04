@@ -5,6 +5,7 @@ import { errorInfo, isDegraded, providerColor, providerLabel } from "@/core/dash
 import { fmtAgo, fmtIn, fmtWhen } from "@/core/format";
 import { ProviderLogo } from "./ProviderLogo";
 import { TriggerButton } from "./TriggerButton";
+import { ResetCredits } from "./ResetCredits";
 
 export const ProviderColumn = ({ provider, now }: { provider: ProviderDashboard; now: number }) => {
 	const { health, lastReading } = provider;
@@ -54,6 +55,7 @@ export const ProviderColumn = ({ provider, now }: { provider: ProviderDashboard;
 				<BoltIcon fontSize="small" />
 				<Typography variant="body2">{autoLine(provider, now)}</Typography>
 			</Stack>
+			<ResetCredits provider={provider} now={now} />
 		</Paper>
 	);
 };

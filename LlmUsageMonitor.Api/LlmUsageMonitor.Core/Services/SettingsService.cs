@@ -74,6 +74,19 @@ public sealed partial class SettingsService(
 		return ToView((await Get(cancellationToken)).Notifications);
 	}
 
+	public async Task<ResetCreditSettings> UpdateResetCredits(ResetCreditSettings settings, CancellationToken cancellationToken)
+	{
+		var errors = new Dictionary<string, string[]>();
+		foreach (var provider in Enum.GetValues<Provider>())
+			if (settings.For(provider).BeforeExpiryMinutes is < 1 or > 10080)
+				errors[$"{provider.ToString().ToLowerInvariant()}.beforeExpiryMinutes"] = ["Between 1 and 10080 minutes."];
+		ThrowIfAny(errors);
+		await Get(cancellationToken);
+		await repository.SaveResetCredits(settings, cancellationToken);
+		foreach (var provider in Enum.GetValues<Provider>()) scheduler.EnqueuePoll(provider);
+		return settings;
+	}
+
 	public async Task<NotificationSettingsView> UpdateNotifications(NotificationSettingsUpdate update, CancellationToken cancellationToken)
 	{
 		var errors = new Dictionary<string, string[]>();
@@ -167,8 +180,8 @@ public sealed partial class SettingsService(
 		}
 
 		return Uri.Compare(currentUri, updatedUri, UriComponents.SchemeAndServer, UriFormat.UriEscaped, StringComparison.OrdinalIgnoreCase) == 0
-		       && currentUri.AbsolutePath.TrimEnd('/') == updatedUri.AbsolutePath.TrimEnd('/')
-		       && currentUri.Query == updatedUri.Query;
+			   && currentUri.AbsolutePath.TrimEnd('/') == updatedUri.AbsolutePath.TrimEnd('/')
+			   && currentUri.Query == updatedUri.Query;
 	}
 
 	private static void ValidateInterval(Dictionary<string, string[]> errors, string field, int minutes)

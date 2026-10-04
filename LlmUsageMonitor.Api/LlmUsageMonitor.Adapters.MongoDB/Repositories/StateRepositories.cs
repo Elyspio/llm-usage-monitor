@@ -75,6 +75,10 @@ internal sealed class SettingsRepository(IMongoDatabase database) : ISettingsRep
 			.Unset(settings => settings.Notifications.LegacyEvents), cancellationToken);
 	}
 
+	public Task SaveResetCredits(ResetCreditSettings settings, CancellationToken cancellationToken) => Update(Builders<SettingsDocument>.Update
+		.Set(document => document.ClaudeResetCredits, ProviderResetCreditSettingsDocument.FromDomain(settings.Claude))
+		.Set(document => document.CodexResetCredits, ProviderResetCreditSettingsDocument.FromDomain(settings.Codex)), cancellationToken);
+
 	public Task SaveSendFailure(NotificationSendFailure? failure, CancellationToken cancellationToken)
 	{
 		return Update(Builders<SettingsDocument>.Update.Set(settings => settings.Notifications.LastSendFailure, NotificationsDocument.FailureFromDomain(failure)), cancellationToken);

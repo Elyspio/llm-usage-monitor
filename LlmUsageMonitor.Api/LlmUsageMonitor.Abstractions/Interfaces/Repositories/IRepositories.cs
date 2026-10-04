@@ -70,11 +70,24 @@ public interface ISettingsRepository
 
 	Task SaveTriggers(TriggerSettings triggers, CancellationToken cancellationToken);
 
+	Task SaveResetCredits(ResetCreditSettings settings, CancellationToken cancellationToken);
+
 	/// <summary>Saves the notification settings edited by the user; the last delivery failure is left as stored.</summary>
 	Task SaveNotifications(NotificationSettings notifications, CancellationToken cancellationToken);
 
 	/// <summary>Records the last delivery failure, or clears it; nothing else is written.</summary>
 	Task SaveSendFailure(NotificationSendFailure? failure, CancellationToken cancellationToken);
+}
+
+/// <summary>The redemption journal and the unique automatic guard; no network request precedes its durable insert.</summary>
+public interface IResetCreditRunRepository
+{
+	Task<ResetCreditRun> Start(ResetCreditRun run, CancellationToken cancellationToken);
+	Task Save(ResetCreditRun run, CancellationToken cancellationToken);
+	Task<ResetCreditRun?> Get(string id, CancellationToken cancellationToken);
+	Task<ResetCreditRun?> GetAutomatic(string automaticKey, CancellationToken cancellationToken);
+	Task<IReadOnlyList<ResetCreditRun>> GetPending(Provider provider, CancellationToken cancellationToken);
+	Task<IReadOnlyList<ResetCreditRun>> GetRecent(Provider provider, int count, CancellationToken cancellationToken);
 }
 
 public interface ITokenUsageRepository

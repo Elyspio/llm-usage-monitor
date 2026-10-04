@@ -64,6 +64,19 @@ internal sealed class MongoStorageInitializer(IMongoDatabase database, ILogger<M
 		// The sort index of the journal also expires the runs (a cycle lasts a week at most: the guard stays meaningful).
 		await EnsureTtl(Collections.TriggerRuns, new BsonDocument("startedAt", -1), TriggerRunRetention, cancellationToken);
 
+		var creditRuns = database.GetCollection<ResetCreditRunDocument>(Collections.ResetCreditRuns);
+		await creditRuns.Indexes.CreateOneAsync(new CreateIndexModel<ResetCreditRunDocument>(
+			Builders<ResetCreditRunDocument>.IndexKeys.Ascending(run => run.AutomaticKey), new CreateIndexOptions<ResetCreditRunDocument>
+			{
+				Name = "automatic_credit_guard",
+				Unique = true,
+				PartialFilterExpression = Builders<ResetCreditRunDocument>.Filter.Exists(run => run.AutomaticKey)
+			}), cancellationToken: cancellationToken);
+		await creditRuns.Indexes.CreateOneAsync(new CreateIndexModel<ResetCreditRunDocument>(
+			Builders<ResetCreditRunDocument>.IndexKeys.Ascending(run => run.Provider).Descending(run => run.StartedAt)), cancellationToken: cancellationToken);
+		// Running requests retain their idempotency keys until resolved, even after a long outage.
+		await EnsureTtl(Collections.ResetCreditRuns, new BsonDocument("endedAt", 1), TriggerRunRetention, cancellationToken);
+
 		// Token usage is kept without expiry; the reports read it by period, for every workstation or one.
 		var tokenUsage = database.GetCollection<TokenUsageDocument>(Collections.TokenUsage);
 		await tokenUsage.Indexes.CreateOneAsync(new CreateIndexModel<TokenUsageDocument>(

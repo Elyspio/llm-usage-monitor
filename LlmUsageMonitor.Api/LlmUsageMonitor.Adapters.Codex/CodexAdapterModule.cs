@@ -14,6 +14,7 @@ public sealed class CodexAdapterModule : IModule
 	{
 		services.Configure<CodexOptions>(configuration.GetSection(CodexOptions.Section));
 		services.AddSingleton<IUsageReader, CodexUsageReader>();
+		services.AddSingleton<IResetCreditConsumer, CodexResetCreditConsumer>();
 		services.AddSingleton<IPromptRunner, CodexPromptRunner>();
 	}
 }

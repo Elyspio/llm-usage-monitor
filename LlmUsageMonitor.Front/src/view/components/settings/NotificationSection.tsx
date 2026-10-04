@@ -29,6 +29,8 @@ const eventLabels: Record<keyof NotificationEvents, string> = {
 	reset: "Reset detected",
 	triggerSucceeded: "Automatic trigger succeeded",
 	recovered: "Back to normal",
+	resetCreditSucceeded: "Earned reset consumed",
+	resetCreditFailed: "Earned reset failed or refused",
 };
 
 export function NotificationSection({ settings }: { settings: NotificationSettingsView }) {

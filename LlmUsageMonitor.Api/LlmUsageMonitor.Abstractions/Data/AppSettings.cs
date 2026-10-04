@@ -5,6 +5,7 @@ namespace LlmUsageMonitor.Abstractions.Data;
 /// </summary>
 public sealed record AppSettings(PollingSettings Polling, TriggerSettings Triggers, NotificationSettings Notifications)
 {
+	public ResetCreditSettings ResetCredits { get; init; } = ResetCreditSettings.Default;
 	public static AppSettings CreateDefault(bool autoTriggerEnabled)
 	{
 		return new(
@@ -77,7 +78,8 @@ public sealed record NotificationSettings(
 	public const int MaxCredentialExpiryAlertDays = 60;
 }
 
-public sealed record NotificationEvents(bool TriggerFailed, bool AuthExpired, bool ReadFailed, bool Reset, bool TriggerSucceeded, bool Recovered)
+public sealed record NotificationEvents(bool TriggerFailed, bool AuthExpired, bool ReadFailed, bool Reset, bool TriggerSucceeded, bool Recovered,
+	bool ResetCreditSucceeded = true, bool ResetCreditFailed = true)
 {
 	public static NotificationEvents Default => new(true, true, true, false, true, true);
 
@@ -92,6 +94,8 @@ public sealed record NotificationEvents(bool TriggerFailed, bool AuthExpired, bo
 			NotificationKind.Reset => Reset,
 			NotificationKind.TriggerSucceeded => TriggerSucceeded,
 			NotificationKind.Recovered => Recovered,
+			NotificationKind.ResetCreditSucceeded => ResetCreditSucceeded,
+			NotificationKind.ResetCreditFailed => ResetCreditFailed,
 			_ => false
 		};
 	}
@@ -128,7 +132,9 @@ public enum NotificationKind
 	Reset,
 	TriggerSucceeded,
 	Recovered,
-	AuthExpiring
+	AuthExpiring,
+	ResetCreditSucceeded,
+	ResetCreditFailed
 }
 
 /// <summary>

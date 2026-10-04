@@ -67,9 +67,19 @@ public interface ISettingsService
 
 	Task<TriggerSettings> UpdateTriggers(TriggerSettings triggers, CancellationToken cancellationToken);
 
+	Task<ResetCreditSettings> UpdateResetCredits(ResetCreditSettings settings, CancellationToken cancellationToken);
+
 	Task<NotificationSettingsView> GetNotifications(CancellationToken cancellationToken);
 
 	Task<NotificationSettingsView> UpdateNotifications(NotificationSettingsUpdate update, CancellationToken cancellationToken);
+}
+
+/// <summary>Serializes redemption with provider reads, persists attempts before I/O, and refreshes the quotas.</summary>
+public interface IResetCreditService
+{
+	Task<ResetCreditRun> ConsumeManual(Provider provider, ConsumeResetCreditRequest request, CancellationToken cancellationToken);
+	/// <summary>Called by polling while already holding the provider lock. Returns true when prompting must be skipped.</summary>
+	Task<bool> ProcessAutomatic(Provider provider, CancellationToken cancellationToken);
 }
 
 /// <summary>

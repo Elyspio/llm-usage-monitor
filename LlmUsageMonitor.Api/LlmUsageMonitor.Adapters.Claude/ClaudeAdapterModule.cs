@@ -31,6 +31,7 @@ public sealed class ClaudeAdapterModule : IModule
 
 		services.AddSingleton<IClaudeSession, ClaudeSession>();
 		services.AddSingleton<IUsageReader, ClaudeUsageReader>();
+		services.AddSingleton<IResetCreditConsumer, ClaudeResetCreditConsumer>();
 		services.AddSingleton<IPromptRunner, ClaudePromptRunner>();
 	}
 }
@@ -44,6 +45,12 @@ public sealed class ClaudeOptions
 
 	/// <summary>The CLI credentials file; <c>CLAUDE_CONFIG_DIR/.credentials.json</c> or <c>~/.claude/.credentials.json</c> by default.</summary>
 	public string? CredentialsPath { get; init; }
+
+	/// <summary>The CLI .claude.json containing oauthAccount.organizationUuid, needed only to consume an earned reset.</summary>
+	public string? AccountConfigPath { get; init; }
+
+	internal string ResolveAccountConfigPath() => AccountConfigPath ?? Path.Combine(
+		Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR") ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude.json");
 
 	/// <summary>An empty directory used as working directory of the CLI; a temporary one by default.</summary>
 	public string? WorkingDirectory { get; init; }

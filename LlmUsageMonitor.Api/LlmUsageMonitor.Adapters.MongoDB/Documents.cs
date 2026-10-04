@@ -71,6 +71,11 @@ internal sealed class ProviderStateDocument
 	[BsonId] public Provider Provider { get; set; }
 
 	public ReadingDocument? LastReading { get; set; }
+	public ResetCreditBalanceDocument? ResetCredits { get; set; }
+	public JobDocument? PendingCreditCheck { get; set; }
+	public bool CreditResetSuppressesTrigger { get; set; }
+	public bool CreditResetRefreshPending { get; set; }
+	public DateTime? CreditResetWindowResetsAt { get; set; }
 	public DateTime? LastSuccessAt { get; set; }
 	public FailureDocument? LastFailure { get; set; }
 	public int ConsecutiveFailures { get; set; }
@@ -90,6 +95,11 @@ internal sealed class ProviderStateDocument
 		return new()
 		{
 			Provider = state.Provider,
+			ResetCredits = ResetCreditBalanceDocument.FromDomain(state.ResetCredits),
+			PendingCreditCheck = JobDocument.FromDomain(state.PendingCreditCheck),
+			CreditResetSuppressesTrigger = state.CreditResetSuppressesTrigger,
+			CreditResetRefreshPending = state.CreditResetRefreshPending,
+			CreditResetWindowResetsAt = state.CreditResetWindowResetsAt.ToUtc(),
 			LastReading = state.LastReading is { } reading ? ReadingDocument.FromDomain(reading) : null,
 			LastSuccessAt = state.LastSuccessAt.ToUtc(),
 			LastFailure = state.LastFailure is { } failure ? new FailureDocument { Code = failure.Code, Message = failure.Message, At = failure.At.ToUtc() } : null,
@@ -111,6 +121,11 @@ internal sealed class ProviderStateDocument
 	{
 		return new(Provider)
 		{
+			ResetCredits = ResetCredits?.ToDomain(),
+			PendingCreditCheck = PendingCreditCheck?.ToDomain(),
+			CreditResetSuppressesTrigger = CreditResetSuppressesTrigger,
+			CreditResetRefreshPending = CreditResetRefreshPending,
+			CreditResetWindowResetsAt = CreditResetWindowResetsAt.ToOffset(),
 			LastReading = LastReading?.ToDomain(),
 			LastSuccessAt = LastSuccessAt.ToOffset(),
 			LastFailure = LastFailure is { } failure ? new ProviderFailure(failure.Code, failure.Message, failure.At.ToOffset()) : null,
@@ -159,6 +174,8 @@ internal sealed class ReadingDocument
 
 internal sealed class WindowDocument
 {
+	public static WindowDocument FromDomain(UsageWindow window) => new() { WindowId = window.Id, UsedPercent = window.UsedPercent, ResetsAt = window.ResetsAt.ToUtc(), WindowDurationMinutes = window.WindowDurationMinutes };
+	public UsageWindow ToDomain() => new(WindowId, UsedPercent, ResetsAt.ToOffset(), WindowDurationMinutes);
 	// Not "Id": the driver maps such a member to _id.
 	public string WindowId { get; set; } = null!;
 	public double UsedPercent { get; set; }
@@ -199,6 +216,8 @@ internal sealed class SettingsDocument
 	public ProviderTriggerDocument ClaudeTrigger { get; set; } = null!;
 	public ProviderTriggerDocument CodexTrigger { get; set; } = null!;
 	public NotificationsDocument Notifications { get; set; } = null!;
+	public ProviderResetCreditSettingsDocument? ClaudeResetCredits { get; set; }
+	public ProviderResetCreditSettingsDocument? CodexResetCredits { get; set; }
 
 	public static SettingsDocument FromDomain(AppSettings settings)
 	{
@@ -208,7 +227,9 @@ internal sealed class SettingsDocument
 			CodexIntervalMinutes = settings.Polling.CodexIntervalMinutes,
 			ClaudeTrigger = ProviderTriggerDocument.FromDomain(settings.Triggers.Claude),
 			CodexTrigger = ProviderTriggerDocument.FromDomain(settings.Triggers.Codex),
-			Notifications = NotificationsDocument.FromDomain(settings.Notifications)
+			Notifications = NotificationsDocument.FromDomain(settings.Notifications),
+			ClaudeResetCredits = ProviderResetCreditSettingsDocument.FromDomain(settings.ResetCredits.Claude),
+			CodexResetCredits = ProviderResetCreditSettingsDocument.FromDomain(settings.ResetCredits.Codex)
 		};
 	}
 
@@ -217,7 +238,10 @@ internal sealed class SettingsDocument
 		return new(
 			new(ClaudeIntervalMinutes, CodexIntervalMinutes),
 			new(ClaudeTrigger.ToDomain(), CodexTrigger.ToDomain()),
-			Notifications.ToDomain());
+			Notifications.ToDomain())
+		{
+			ResetCredits = new(ClaudeResetCredits?.ToDomain() ?? ResetCreditSettings.Default.Claude, CodexResetCredits?.ToDomain() ?? ResetCreditSettings.Default.Codex)
+		};
 	}
 }
 

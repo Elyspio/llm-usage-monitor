@@ -375,6 +375,144 @@
         }
       }
     },
+    "/api/providers/{provider}/reset-credits/consume": {
+      "post": {
+        "tags": [
+          "ResetCredits"
+        ],
+        "operationId": "ConsumeResetCredit",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Provider"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsumeResetCreditRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsumeResetCreditRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsumeResetCreditRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetCreditRun"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settings/reset-credits": {
+      "get": {
+        "tags": [
+          "ResetCredits"
+        ],
+        "operationId": "GetResetCreditSettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetCreditSettings"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ResetCredits"
+        ],
+        "operationId": "UpdateResetCreditSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetCreditSettings"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetCreditSettings"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetCreditSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetCreditSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/token-usage": {
       "get": {
         "tags": [
@@ -479,6 +617,21 @@
   },
   "components": {
     "schemas": {
+      "ConsumeResetCreditRequest": {
+        "required": [
+          "creditId",
+          "idempotencyKey"
+        ],
+        "type": "object",
+        "properties": {
+          "creditId": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          }
+        }
+      },
       "DashboardSnapshot": {
         "required": [
           "providers",
@@ -528,6 +681,14 @@
           },
           "recovered": {
             "type": "boolean"
+          },
+          "resetCreditSucceeded": {
+            "type": "boolean",
+            "default": true
+          },
+          "resetCreditFailed": {
+            "type": "boolean",
+            "default": true
           }
         }
       },
@@ -554,7 +715,9 @@
           "reset",
           "triggerSucceeded",
           "recovered",
-          "authExpiring"
+          "authExpiring",
+          "resetCreditSucceeded",
+          "resetCreditFailed"
         ]
       },
       "NotificationSendFailure": {
@@ -776,6 +939,16 @@
           },
           "health": {
             "$ref": "#/components/schemas/ProviderHealth"
+          },
+          "resetCredits": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ResetCreditDashboard"
+              }
+            ]
           }
         }
       },
@@ -861,6 +1034,22 @@
           }
         }
       },
+      "ProviderResetCreditSettings": {
+        "required": [
+          "autoEnabled",
+          "beforeExpiryMinutes"
+        ],
+        "type": "object",
+        "properties": {
+          "autoEnabled": {
+            "type": "boolean"
+          },
+          "beforeExpiryMinutes": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "ProviderTriggerSettings": {
         "required": [
           "autoEnabled",
@@ -873,6 +1062,255 @@
           },
           "model": {
             "type": "string"
+          }
+        }
+      },
+      "ResetCredit": {
+        "required": [
+          "id",
+          "remainingUses",
+          "expiresAt",
+          "grantedAt",
+          "title",
+          "isUsable",
+          "requiresLimit",
+          "windowIds"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "remainingUses": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "grantedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isUsable": {
+            "type": "boolean"
+          },
+          "requiresLimit": {
+            "type": "boolean"
+          },
+          "windowIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "startsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ResetCreditBalance": {
+        "required": [
+          "availableCount",
+          "credits"
+        ],
+        "type": "object",
+        "properties": {
+          "availableCount": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "credits": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ResetCredit"
+            }
+          },
+          "unavailableReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ResetCreditDashboard": {
+        "required": [
+          "balance",
+          "settings",
+          "nextCreditId",
+          "nextAttemptAt",
+          "recentRuns"
+        ],
+        "type": "object",
+        "properties": {
+          "balance": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ResetCreditBalance"
+              }
+            ]
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ProviderResetCreditSettings"
+          },
+          "nextCreditId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nextAttemptAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "recentRuns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResetCreditRun"
+            }
+          }
+        }
+      },
+      "ResetCreditRun": {
+        "required": [
+          "id",
+          "provider",
+          "creditId",
+          "manual",
+          "automaticKey",
+          "startedAt",
+          "expiresAt",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/Provider"
+          },
+          "creditId": {
+            "type": "string"
+          },
+          "manual": {
+            "type": "boolean"
+          },
+          "automaticKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ResetCreditRunStatus"
+          },
+          "attempts": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          },
+          "endedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "nextRetryAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "outcome": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "before": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/UsageWindow"
+            }
+          },
+          "after": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/UsageWindow"
+            }
+          }
+        }
+      },
+      "ResetCreditRunStatus": {
+        "enum": [
+          "running",
+          "succeeded",
+          "refused",
+          "failed"
+        ]
+      },
+      "ResetCreditSettings": {
+        "required": [
+          "claude",
+          "codex"
+        ],
+        "type": "object",
+        "properties": {
+          "claude": {
+            "$ref": "#/components/schemas/ProviderResetCreditSettings"
+          },
+          "codex": {
+            "$ref": "#/components/schemas/ProviderResetCreditSettings"
           }
         }
       },
@@ -1399,6 +1837,9 @@
     },
     {
       "name": "Dashboard"
+    },
+    {
+      "name": "ResetCredits"
     },
     {
       "name": "TokenUsage"
