@@ -9,9 +9,8 @@ obj/
 *.user
 dist/
 deploy/out/
-deploy/*.tar.gz
 .claude
 .idea
 TestResults/
 .playwright-cli/
-deploy/appsettings.Production.json
+deploy/config/appsettings.Production.json

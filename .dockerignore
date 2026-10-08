@@ -6,4 +6,3 @@
 **/node_modules
 **/dist
 deploy/out
-deploy/*.tar.gz

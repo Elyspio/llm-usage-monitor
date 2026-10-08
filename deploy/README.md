@@ -6,10 +6,16 @@ Cible : `ely-llm-wake-up.elylan` (Debian 13, CT 106), service systemd, derrière
 
 ## Fichiers
 
-- `Dockerfile` : build de l'artefact sur le poste (SPA dans `wwwroot`, API self-contained `linux-x64` en fichier unique, sans ICU).
-- `deploy.ps1` : build Docker, scp, extraction dans `/opt/llm-usage-monitor/` (écrasement en place), redémarrage.
-- `llm-usage-monitor.service` : unité systemd durcie (voir « Durcissement »), compte `llm-monitor`.
-- `appsettings.Production.example.json` : modèle de `/etc/llm-usage-monitor/appsettings.Production.json` (jamais commité).
+- `deploy.ps1` : point d'entrée, enchaîne les étapes de `scripts/` (build, réglages si `-UploadSettings`, installation). `-Platform arm64 -Target root@<pi>` pour le Raspberry Pi.
+- `scripts/` : étapes utilisables seules.
+  - `Build-Artifact.ps1` : build Docker sur le poste via `docker-bake.hcl` à la racine, cible `artifact` (`linux-x64`) ou `artifact-arm64` (`linux-arm64`, publication croisée sans émulation), dans `out/<plateforme>`.
+  - `Install-Settings.ps1` : envoi du fichier de réglages sur l'hôte.
+  - `Install-Release.ps1` : scp de l'artefact et de l'unité, extraction dans `/opt/llm-usage-monitor/` (écrasement en place), redémarrage, sonde `/health/live`.
+  - `Remote.psm1` : `Invoke-Remote`, exécution d'un script bash sur l'hôte.
+- `docker/Dockerfile` : artefact (SPA dans `wwwroot`, API self-contained en fichier unique, sans ICU).
+- `systemd/llm-usage-monitor.service` : unité systemd durcie (voir « Durcissement »), compte `llm-monitor`.
+- `config/appsettings.Production.example.json` : modèle de `/etc/llm-usage-monitor/appsettings.Production.json` ; la copie remplie `config/appsettings.Production.json` n'est jamais commitée.
+- `out/` : artefacts et archives (ignoré).
 
 ## Mise en service (une fois)
 
@@ -27,7 +33,7 @@ Prérequis hors de ce repo, voir « Infra prod » (#21) : client Keycloak de pro
    ```
 2. Configuration : remplir une copie locale de `appsettings.Production.example.json` (mot de passe Mongo, IP de HAProxy dans `ForwardedHeaders:KnownProxies` — `10.0.0.20` = `proxy.elylan`, sans quoi les redirections OIDC partent en `http`), puis l'installer depuis le poste :
    ```powershell
-   ./deploy/deploy.ps1 -UploadSettings deploy/appsettings.Production.json
+   ./deploy/deploy.ps1 -UploadSettings deploy/config/appsettings.Production.json
    ```
    Le fichier local n'est pas commité (`.gitignore`) ; il transite par un dossier temporaire `700` (`umask 077`, `mktemp -d`) et arrive en `600 llm-monitor` dans `/etc/llm-usage-monitor/`. Sans `-UploadSettings`, `deploy.ps1` refuse de déployer si le fichier manque sur l'hôte. L'unité systemd, elle, est réinstallée à chaque déploiement.
 3. Bascule du cron, une fois l'application déployée et avant de la laisser déclencher :
@@ -57,6 +63,17 @@ mv /etc/cron.hourly/llm-wake-up.disabled /etc/cron.hourly/llm-wake-up
 ```
 
 Le cron tourne sous `root`, avec les logins CLI de `root` : ils doivent donc exister tant que ce retour arrière reste une option.
+
+## Raspberry Pi 4 (arm64)
+
+Même installation que le LXC, sur un Pi 4 en OS 64 bits (Raspberry Pi OS ou Debian arm64) : compte `llm-monitor`, CLIs, unité systemd et réglages comme dans « Mise en service » (les scripts d'installation de `claude` et `codex` choisissent leur binaire arm64). `deploy.ps1` se connecte en `root` par SSH (pas de `sudo`) et doit recevoir la cible :
+
+```powershell
+./deploy/deploy.ps1 -Platform arm64 -Target root@<pi> -UploadSettings deploy/config/appsettings.Production.json   # première fois
+./deploy/deploy.ps1 -Platform arm64 -Target root@<pi>
+```
+
+Dans les réglages du Pi, `Urls` porte son adresse et `ForwardedHeaders:KnownProxies` l'IP de HAProxy, comme pour le LXC.
 
 ## Exposition réseau
 
