@@ -5,6 +5,11 @@
         <!-- The OpenAPI document is written on build next to the front, which generates its client from it. -->
         <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/../../LlmUsageMonitor.Front/openapi</OpenApiDocumentsDirectory>
         <OpenApiGenerateDocumentsOptions>--file-name llm-usage-monitor</OpenApiGenerateDocumentsOptions>
+        <!-- Overridden by the release build (-p:Version from the tag); shown in the SPA through /conf.js. -->
+        <Version>0.0.0-dev</Version>
+        <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+        <!-- The default settings, and the SPA of a release build, ship inside the executable (ProductionHosting). -->
+        <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
     </PropertyGroup>
 
     <ItemGroup>
@@ -12,6 +17,7 @@
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer"/>
         <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect"/>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi"/>
+        <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded"/>
         <PackageReference Include="OpenTelemetry.Instrumentation.Hangfire"/>
         <PackageReference Include="Microsoft.Extensions.ApiDescription.Server">
             <PrivateAssets>all</PrivateAssets>
@@ -35,6 +41,12 @@
         <Content Update="appsettings.Development.json">
             <DependentUpon>appsettings.json</DependentUpon>
         </Content>
+        <EmbeddedResource Include="appsettings.json"/>
+    </ItemGroup>
+
+    <!-- Release build: the built SPA (-p:SpaRoot=<front dist>) is embedded under wwwroot/, without the development conf.js. -->
+    <ItemGroup Condition="'$(SpaRoot)' != ''">
+        <EmbeddedResource Include="$(SpaRoot)/**" Exclude="$(SpaRoot)/conf.js" Link="wwwroot$([System.IO.Path]::DirectorySeparatorChar)%(RecursiveDir)%(Filename)%(Extension)"/>
     </ItemGroup>
 
 </Project>

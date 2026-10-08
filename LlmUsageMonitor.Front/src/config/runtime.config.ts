@@ -1,4 +1,6 @@
 export type RuntimeConfig = {
+	/** Version of the running build, `0.0.0-dev` outside a release. */
+	version: string;
 	endpoints: {
 		/** Base URL of the API, without the `/api` prefix carried by every route. */
 		apiUrl: string;
@@ -14,7 +16,7 @@ export type RuntimeConfig = {
 };
 
 /** What `/conf.js` sets: in development the authority is left to Aspire. */
-export type PageConfig = { endpoints?: Partial<RuntimeConfig["endpoints"]>; oauth?: Partial<RuntimeConfig["oauth"]> };
+export type PageConfig = { version?: string; endpoints?: Partial<RuntimeConfig["endpoints"]>; oauth?: Partial<RuntimeConfig["oauth"]> };
 
 /** Development Keycloak injected by Aspire, preferred over `/conf.js`. */
 export type ConfigEnv = { VITE_OIDC_AUTHORITY?: string; VITE_OIDC_CLIENT_ID?: string };
@@ -25,6 +27,7 @@ export type ConfigEnv = { VITE_OIDC_AUTHORITY?: string; VITE_OIDC_CLIENT_ID?: st
  */
 export function resolveRuntimeConfig(page: PageConfig | undefined, env: ConfigEnv): { config: RuntimeConfig; missing: string[] } {
 	const config: RuntimeConfig = {
+		version: page?.version || "0.0.0-dev",
 		endpoints: { apiUrl: page?.endpoints?.apiUrl ?? "" },
 		oauth: {
 			authority: env.VITE_OIDC_AUTHORITY || page?.oauth?.authority || "",

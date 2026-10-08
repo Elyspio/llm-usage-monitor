@@ -94,6 +94,7 @@ if (telemetryEnabled)
 
 // "/" serves index.html; the other client routes go through the SPA fallback (ProductionHosting.MapSpa).
 // Static files are served before the authorization: the published SPA and its assets are public.
+app.UseEmbeddedSpa();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 

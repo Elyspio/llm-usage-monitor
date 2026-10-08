@@ -1,4 +1,5 @@
 using System.Net;
+using LlmUsageMonitor.Hosting;
 using Shouldly;
 using Xunit;
 
@@ -19,6 +20,7 @@ public sealed class HostingTests(ApiFactory factory) : IClassFixture<ApiFactory>
 		script.ShouldContain($"authority: \"{ApiFactory.Issuer}\"");
 		script.ShouldContain($"clientId: \"{ApiFactory.ClientId}\"");
 		script.ShouldContain("window.location.origin");
+		script.ShouldContain("version: \"0.0.0-dev\"");
 		response.Headers.CacheControl!.NoStore.ShouldBeTrue();
 	}
 
@@ -67,6 +69,24 @@ public sealed class HostingTests(ApiFactory factory) : IClassFixture<ApiFactory>
 		var response = await client.GetAsync("/api/unknown", TestContext.Current.CancellationToken);
 
 		response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+	}
+}
+
+public sealed class EmbeddedSpaTests
+{
+	[Fact]
+	public void A_release_build_serves_the_spa_embedded_in_the_executable()
+	{
+		var spa = ProductionHosting.EmbeddedSpa(typeof(EmbeddedSpaTests).Assembly).ShouldNotBeNull();
+
+		spa.GetFileInfo("index.html").Exists.ShouldBeTrue();
+		spa.GetFileInfo("assets/index-embedded.js").Exists.ShouldBeTrue();
+	}
+
+	[Fact]
+	public void Another_build_has_no_embedded_spa()
+	{
+		ProductionHosting.EmbeddedSpa(typeof(ProductionHosting).Assembly).ShouldBeNull();
 	}
 }
 

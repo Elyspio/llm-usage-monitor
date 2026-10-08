@@ -1,47 +1,49 @@
 <#
 .SYNOPSIS
-	Copies a built artifact and the systemd unit to the host, extracts it (in-place overwrite) and restarts the service.
+	Copies the executable and the systemd unit to the host, replaces the installed application and restarts the service.
+	The executable embeds the SPA and the default settings: the install directory keeps it alone (the wwwroot, appsettings
+	and .pdb files of the archives installed before are removed).
 .EXAMPLE
-	./deploy/scripts/Install-Release.ps1 -Target root@ely-llm-wake-up.elylan -Artifact deploy/out/x64
+	./deploy/scripts/Install-Release.ps1 -Target root@ely-llm-wake-up.elylan -Executable deploy/out/x64/LlmUsageMonitor.WebApi
 #>
 param(
 	[Parameter(Mandatory)]
 	[string]$Target,
 	[Parameter(Mandatory)]
-	[string]$Artifact,
+	[string]$Executable,
+	# The unit of the deployed version: the one of a GitHub release, or the one of this checkout by default.
+	[string]$Unit = (Join-Path (Split-Path -Parent $PSScriptRoot) "systemd/llm-usage-monitor.service"),
 	[string]$InstallDirectory = "/opt/llm-usage-monitor",
 	[string]$SettingsFile = "/etc/llm-usage-monitor/appsettings.Production.json"
 )
 
 $ErrorActionPreference = "Stop"
 Import-Module (Join-Path $PSScriptRoot "Remote.psm1") -Force
-$archive = "$Artifact.tar.gz"
-$unit = Join-Path (Split-Path -Parent $PSScriptRoot) "systemd/llm-usage-monitor.service"
 
-if (-not (Test-Path (Join-Path $Artifact "LlmUsageMonitor.WebApi"))) { throw "No artifact in ${Artifact}: build it first." }
+if (-not (Test-Path $Executable -PathType Leaf)) { throw "No executable at ${Executable}: build or download it first." }
+if (-not (Test-Path $Unit -PathType Leaf)) { throw "No systemd unit at $Unit." }
 
 # The settings file holds the Mongo password: it is uploaded on demand, and never committed.
 Invoke-Remote $Target "test -s $SettingsFile" "Missing or empty $SettingsFile on ${Target}: deploy once with -UploadSettings, see deploy/README.md."
 
-tar -czf $archive -C $Artifact .
-if ($LASTEXITCODE -ne 0) { throw "tar failed" }
-
-scp $archive "${Target}:/tmp/llm-usage-monitor.tar.gz"
+# -C: the executable compresses to about a third of its size.
+scp -C $Executable "${Target}:/tmp/llm-usage-monitor"
 if ($LASTEXITCODE -ne 0) { throw "scp failed" }
 
-scp $unit "${Target}:/tmp/llm-usage-monitor.service"
+scp $Unit "${Target}:/tmp/llm-usage-monitor.service"
 if ($LASTEXITCODE -ne 0) { throw "scp of the unit failed" }
 
 Invoke-Remote $Target @"
-set -e
+set -eu
 install -m 644 /tmp/llm-usage-monitor.service /etc/systemd/system/llm-usage-monitor.service
 systemctl daemon-reload
 systemctl enable llm-usage-monitor >/dev/null
 systemctl stop llm-usage-monitor || true
 mkdir -p $InstallDirectory
-tar -xzf /tmp/llm-usage-monitor.tar.gz -C $InstallDirectory
-chmod 755 $InstallDirectory/LlmUsageMonitor.WebApi
-rm -f /tmp/llm-usage-monitor.tar.gz /tmp/llm-usage-monitor.service
+# Left by the archives installed before: an appsettings.json on disk would override the defaults embedded in the executable.
+find $InstallDirectory -mindepth 1 -maxdepth 1 ! -name LlmUsageMonitor.WebApi -exec rm -rf {} +
+install -m 755 /tmp/llm-usage-monitor $InstallDirectory/LlmUsageMonitor.WebApi
+rm -f /tmp/llm-usage-monitor /tmp/llm-usage-monitor.service
 # A deployment is a deliberate start: it clears a start limit reached by a previous crash loop.
 systemctl reset-failed llm-usage-monitor || true
 systemctl start llm-usage-monitor

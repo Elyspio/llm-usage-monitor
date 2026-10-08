@@ -18,6 +18,11 @@ describe("runtime configuration", () => {
 		expect(config.oauth.clientId).toBe("i-llm-usage-monitor");
 	});
 
+	it("shows the version served by the API, a development build otherwise", () => {
+		expect(resolveRuntimeConfig({ ...page, version: "1.2.0" }, {}).config.version).toBe("1.2.0");
+		expect(resolveRuntimeConfig(page, {}).config.version).toBe("0.0.0-dev");
+	});
+
 	it("lists the missing entries instead of guessing them", () => {
 		expect(resolveRuntimeConfig(page, {}).missing).toEqual(["oauth.authority"]);
 		expect(resolveRuntimeConfig(undefined, {}).missing).toEqual(["endpoints.apiUrl", "oauth.authority", "oauth.clientId", "oauth.callbackUrl"]);

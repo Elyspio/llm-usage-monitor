@@ -3,8 +3,14 @@ import { defineConfig } from "vite-plus";
 
 const ignorePatterns = ["dist/**", "build/**"];
 
-/** The executables embed the Node.js that builds them: the SEA blob must match its version. */
-const exeTargets = (["win", "linux"] as const).map((platform) => ({ platform, arch: "x64" as const, nodeVersion: process.versions.node }));
+/** The executables embed the Node.js that builds them: the SEA blob must match its version. linux-arm64: the Raspberry Pi. */
+const exeTargets = (
+	[
+		["win", "x64"],
+		["linux", "x64"],
+		["linux", "arm64"],
+	] as const
+).map(([platform, arch]) => ({ platform, arch, nodeVersion: process.versions.node }));
 
 export default defineConfig({
 	fmt: {
