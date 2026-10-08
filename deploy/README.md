@@ -7,6 +7,7 @@ Cible : `ely-llm-wake-up.elylan` (Debian 13, CT 106), service systemd, derrière
 ## Fichiers
 
 - `deploy.ps1` : point d'entrée, enchaîne les étapes de `scripts/` (build, réglages si `-UploadSettings`, installation). `-Platform arm64 -Target root@<pi>` pour le Raspberry Pi.
+- `update-clis.ps1` : mise à jour simultanée de `claude` et `codex` vers leur dernière version sous le compte `llm-monitor`, puis redémarrage du service. `-Target root@<pi>` pour le Raspberry Pi.
 - `scripts/` : étapes utilisables seules.
   - `Build-Artifact.ps1` : build Docker sur le poste via `docker-bake.hcl` à la racine, cible `artifact` (`linux-x64`) ou `artifact-arm64` (`linux-arm64`, publication croisée sans émulation), dans `out/<plateforme>`.
   - `Install-Settings.ps1` : envoi du fichier de réglages sur l'hôte.
@@ -52,6 +53,14 @@ Le déclenchement automatique est actif par défaut en prod (`App:AutoTriggerEna
 ```
 
 Build et tests verts en local avant (voir `AGENTS.md`).
+
+CLIs, à mettre à jour quand un modèle récent est refusé (le backend Codex filtre les modèles selon la version du CLI) :
+
+```sh
+./deploy/update-clis.ps1
+```
+
+Les deux installeurs tournent en parallèle ; le script affiche les versions avant et après, puis redémarre le service pour qu'aucun `codex app-server` de l'ancienne version ne reste actif. Vérifier ensuite un déclenchement manuel de chaque provider.
 
 Retour arrière d'une version : redéployer la précédente (`git checkout <commit>` puis `./deploy/deploy.ps1`).
 
