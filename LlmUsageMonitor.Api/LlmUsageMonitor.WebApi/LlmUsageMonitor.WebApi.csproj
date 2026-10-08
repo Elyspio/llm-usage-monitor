@@ -13,17 +13,19 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Elyspio.Utils.Telemetry"/>
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer"/>
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect"/>
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi"/>
-        <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded"/>
-        <PackageReference Include="OpenTelemetry.Instrumentation.Hangfire"/>
-        <PackageReference Include="Microsoft.Extensions.ApiDescription.Server">
+        <PackageReference Include="Elyspio.Utils.Telemetry" Version="2.1.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.12"/>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12"/>
+        <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="10.0.12"/>
+        <!-- Prerelease, accepted: the Hangfire instrumentation has never shipped a stable version (contrib package). The 1.19
+             beta follows the OpenTelemetry 1.19 SDK that Elyspio.Utils.Telemetry brings. -->
+        <PackageReference Include="OpenTelemetry.Instrumentation.Hangfire" Version="1.19.0-beta.1"/>
+        <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.12">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI"/>
+        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.2.3"/>
     </ItemGroup>
 
     <ItemGroup>

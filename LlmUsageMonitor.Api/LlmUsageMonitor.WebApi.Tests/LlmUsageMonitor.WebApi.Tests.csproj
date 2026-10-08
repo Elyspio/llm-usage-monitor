@@ -8,12 +8,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Hangfire.InMemory"/>
-        <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing"/>
-        <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded"/>
-        <PackageReference Include="Shouldly"/>
-        <PackageReference Include="Testcontainers.MongoDb"/>
-        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="Hangfire.InMemory" Version="1.0.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12"/>
+        <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="10.0.12"/>
+        <PackageReference Include="Shouldly" Version="4.3.0"/>
+        <PackageReference Include="Testcontainers.MongoDb" Version="4.15.0"/>
+        <!-- Runs on Microsoft.Testing.Platform (global.json): neither Microsoft.NET.Test.Sdk nor xunit.runner.visualstudio. -->
+        <PackageReference Include="xunit.v3" Version="4.0.1"/>
     </ItemGroup>
 
     <ItemGroup>
