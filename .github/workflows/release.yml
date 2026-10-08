@@ -128,7 +128,7 @@ jobs:
           node-version: 26
           cache: pnpm
           cache-dependency-path: LlmUsageMonitor.Collector/pnpm-lock.yaml
-          registry-url: https://registry.npmjs.org
+          # No registry-url: its .npmrc and placeholder NODE_AUTH_TOKEN would stand in for the trusted publishing token.
 
       - name: Check the tag against package.json
         run: |
@@ -163,6 +163,12 @@ jobs:
           fi
           # Trusted publishing needs npm 11.5.1 or later.
           npm install --global npm@latest > /dev/null
+          # npm silently drops what it "auto-corrects" (a bin path starting with ./ lost the llm-usage command).
+          if npm publish --dry-run 2>&1 | grep -q "auto-corrected"; then
+            npm publish --dry-run 2>&1 | grep -A5 "auto-corrected"
+            echo "::error::npm would rewrite package.json: run npm pkg fix and commit"
+            exit 1
+          fi
           tag=latest
           [[ "$VERSION" == *-* ]] && tag=next
           npm publish --access public --tag "$tag"
