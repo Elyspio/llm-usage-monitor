@@ -19,8 +19,6 @@ public sealed class NotificationService(
 	TimeProvider time,
 	ILogger<NotificationService> logger) : INotificationService
 {
-	public const string DeliveryFailedCode = "NOTIFICATION_FAILED";
-
 	public async Task<NotificationOutcome> Notify(NotificationKind kind, Provider provider, string detail, CancellationToken cancellationToken)
 	{
 		var settings = (await settingsService.Get(cancellationToken)).Notifications;
@@ -61,7 +59,7 @@ public sealed class NotificationService(
 		catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
 		{
 			await SaveSendFailure(new(time.GetUtcNow(), exception.Message), cancellationToken);
-			throw new ProviderException(DeliveryFailedCode, exception.Message, exception);
+			throw new ProviderException(ProviderErrorCode.NotificationFailed, exception.Message, exception);
 		}
 	}
 

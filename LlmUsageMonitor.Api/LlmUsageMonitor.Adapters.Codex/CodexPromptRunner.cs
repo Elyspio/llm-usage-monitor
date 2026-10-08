@@ -67,17 +67,17 @@ internal sealed class CodexPromptRunner(IOptions<CodexOptions> options, ILogger<
 
 					throw turn.TryGetProperty("error", out var turnError) && turnError.ValueKind == JsonValueKind.Object
 						? MapTurnError(turnError)
-						: new(ProviderErrorCodes.TriggerFailed, $"Codex turn ended with status {turn.GetProperty("status").GetString()}.");
+						: new(ProviderErrorCode.TriggerFailed, $"Codex turn ended with status {turn.GetProperty("status").GetString()}.");
 				}
 			}
 
-			throw new ProviderException(ProviderErrorCodes.CliExited, "Codex exited before completing the turn.");
+			throw new ProviderException(ProviderErrorCode.CliExited, "Codex exited before completing the turn.");
 		}
 		catch (CodexRpcException exception)
 		{
-			var code = CodexErrors.FromRpcError(exception) ?? ProviderErrorCodes.TriggerFailed;
+			var code = CodexErrors.FromRpcError(exception) ?? ProviderErrorCode.TriggerFailed;
 			var message = exception.Message;
-			if (code == ProviderErrorCodes.CliUnsupportedOption)
+			if (code == ProviderErrorCode.CliUnsupportedOption)
 			{
 				var version = await CliProcess.ReadVersion(settings.Executable, settings.ResolveWorkingDirectory(), logger, cancellationToken);
 				message = $"{message} (codex {version}: update the requests of CodexPromptRunner)";
@@ -87,7 +87,7 @@ internal sealed class CodexPromptRunner(IOptions<CodexOptions> options, ILogger<
 		}
 		catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
 		{
-			throw new ProviderException(ProviderErrorCodes.Timeout, "Codex prompt timed out.");
+			throw new ProviderException(ProviderErrorCode.Timeout, "Codex prompt timed out.");
 		}
 	}
 
@@ -105,6 +105,6 @@ internal sealed class CodexPromptRunner(IOptions<CodexOptions> options, ILogger<
 	{
 		var message = error.TryGetProperty("message", out var text) ? text.GetString() ?? "Codex turn failed." : "Codex turn failed.";
 		var code = error.TryGetProperty("codexErrorInfo", out var info) ? CodexErrors.FromErrorInfo(info) : null;
-		return new(code ?? ProviderErrorCodes.TriggerFailed, message);
+		return new(code ?? ProviderErrorCode.TriggerFailed, message);
 	}
 }

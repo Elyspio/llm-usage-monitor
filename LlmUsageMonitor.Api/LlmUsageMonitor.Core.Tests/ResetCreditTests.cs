@@ -72,7 +72,7 @@ public sealed class ResetCreditTests
 	{
 		var h = Harness();
 		h.CodexReader.Credits = new(1, [Credit("retry")]);
-		h.CodexConsumer.Respond = (_, _) => throw new ProviderException(ProviderErrorCodes.Timeout, "lost reply");
+		h.CodexConsumer.Respond = (_, _) => throw new ProviderException(ProviderErrorCode.Timeout, "lost reply");
 		await h.Monitor.Poll(Provider.Codex, Token);
 		var pending = h.CreditRuns.All.ShouldHaveSingleItem();
 		pending.NextRetryAt.ShouldBe(TestHarness.Start.AddMinutes(2));

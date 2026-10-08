@@ -8,10 +8,10 @@
 		"build": "vp build",
 		"preview": "vp preview",
 		"check": "vp check",
-		"lint": "vp lint",
+		"lint": "vp lint --fix",
 		"fmt": "vp fmt",
 		"test": "vp test run",
-		"gen:api": "node scripts/generate-api.ts"
+		"gen:api": "node scripts/generate-api.ts && pnpm fmt"
 	},
 	"dependencies": {
 		"@emotion/react": "^11.14.0",

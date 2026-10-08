@@ -1,5 +1,5 @@
 import SpeedOutlinedIcon from "@mui/icons-material/SpeedOutlined";
-import { InputAdornment, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from "@mui/material";
+import { Autocomplete, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { getDashboardQueryKey, getPollingSettingsQueryKey, updatePollingSettingsMutation } from "@/core/apis/generated/@tanstack/react-query.gen";
@@ -7,6 +7,9 @@ import type { PollingSettings } from "@/core/apis/generated/types.gen";
 import { providerLabel, providers } from "@/core/dashboard";
 import { collect, type FieldErrors, serverFieldErrors, validateInterval } from "@/core/settings.validation";
 import { SaveBar, SettingsSection, useDraft } from "./SettingsSection";
+
+const intervals = [1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 60];
+const intervalLabel = (minutes: number) => `${minutes} min`;
 
 export function PollingSection({ settings }: { settings: PollingSettings }) {
 	const queryClient = useQueryClient();
@@ -58,17 +61,28 @@ export function PollingSection({ settings }: { settings: PollingSettings }) {
 									{providerLabel[provider]}
 								</TableCell>
 								<TableCell sx={{ pr: 0 }}>
-									<TextField
-										fullWidth
-										type="number"
+									<Autocomplete
+										sx={{ width: 120 }}
+										size="small"
+										disableClearable
+										openOnFocus
+										autoHighlight
+										options={intervals}
+										slotProps={{ listbox: { sx: { maxHeight: "min(480px, 50vh)" } } }}
+										getOptionLabel={intervalLabel}
 										value={values[field]}
-										onChange={(event) => setValues({ ...values, [field]: Number(event.target.value) })}
-										error={Boolean(errors[field])}
-										helperText={errors[field]}
-										slotProps={{
-											htmlInput: { min: 1, max: 60, "aria-label": `${providerLabel[provider]} interval (minutes)` },
-											input: { endAdornment: <InputAdornment position="end">min</InputAdornment> },
-										}}
+										onChange={(_, minutes) => setValues({ ...values, [field]: minutes })}
+										renderInput={(params) => (
+											<TextField
+												{...params}
+												error={Boolean(errors[field])}
+												helperText={errors[field]}
+												slotProps={{
+													...params.slotProps,
+													htmlInput: { ...params.slotProps.htmlInput, "aria-label": `${providerLabel[provider]} interval (minutes)` },
+												}}
+											/>
+										)}
 									/>
 								</TableCell>
 							</TableRow>
@@ -77,7 +91,7 @@ export function PollingSection({ settings }: { settings: PollingSettings }) {
 				</TableBody>
 			</Table>
 			<Typography variant="caption" sx={{ color: "text.secondary" }}>
-				A divisor of 60 (1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30 or 60 minutes). A short interval raises the risk of 429.
+				Short intervals increase the risk of 429 responses.
 			</Typography>
 		</SettingsSection>
 	);

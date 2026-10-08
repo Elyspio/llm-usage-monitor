@@ -22,7 +22,7 @@ public sealed class ResetCreditService(IEnumerable<IUsageReader> readers, IEnume
 		if (!Enum.IsDefined(provider) || string.IsNullOrWhiteSpace(request.CreditId) || request.CreditId.Length > 200 || !Guid.TryParse(request.IdempotencyKey, out var key))
 			throw new RequestValidationException(new Dictionary<string, string[]> { ["request"] = ["A known provider, a credit ID and a UUID idempotency key are required."] });
 		using var providerLock = await locks.TryAcquire(provider, ProviderLocks.PollWait, cancellationToken);
-		if (providerLock is null) throw new ProviderException(ProviderErrorCodes.CliBusy, "Another operation is running for this provider.");
+		if (providerLock is null) throw new ProviderException(ProviderErrorCode.CliBusy, "Another operation is running for this provider.");
 		var id = key.ToString();
 		if (await runs.Get(id, cancellationToken) is { } existing)
 		{
@@ -39,7 +39,7 @@ public sealed class ResetCreditService(IEnumerable<IUsageReader> readers, IEnume
 		}
 		// A lost HTTP reply must not authorize a second logical redemption of the same grant.
 		if ((await runs.GetPending(provider, cancellationToken)).Any(run => run.CreditId == request.CreditId))
-			throw new ProviderException(ProviderErrorCodes.CliBusy, "A reset request already exists for this credit. Refresh the dashboard to resume the same request.");
+			throw new ProviderException(ProviderErrorCode.CliBusy, "A reset request already exists for this credit. Refresh the dashboard to resume the same request.");
 		var state = await states.Get(provider, cancellationToken);
 		if (provider == Provider.Claude) state = await keepAlive.EnsureFresh(state, cancellationToken);
 		state = await Refresh(state, cancellationToken);
@@ -114,9 +114,9 @@ public sealed class ResetCreditService(IEnumerable<IUsageReader> readers, IEnume
 		catch (Exception exception)
 		{
 			logger.LogWarning(exception, "{Provider} reset credit attempt {Attempt} failed", run.Provider, run.Attempts);
-			var code = (exception as ProviderException)?.Code ?? ProviderErrorCodes.Unexpected;
-			var retryable = code is not (ProviderErrorCodes.AuthExpired or ProviderErrorCodes.AuthRequired or ProviderErrorCodes.CredentialsUnavailable or ProviderErrorCodes.CliUnsupportedOption or ProviderErrorCodes.AccessDenied);
-			result = new(false, code, retryable);
+			var code = (exception as ProviderException)?.Code ?? ProviderErrorCode.UnexpectedError;
+			var retryable = code is not (ProviderErrorCode.AuthExpired or ProviderErrorCode.AuthRequired or ProviderErrorCode.CredentialsUnavailable or ProviderErrorCode.CliUnsupportedOption or ProviderErrorCode.AccessDenied);
+			result = new(false, code.ToStoredCode(), retryable);
 		}
 		// Caller cancellation leaves the running record intact: startup polling resumes the same idempotency key.
 		try
@@ -169,7 +169,7 @@ public sealed class ResetCreditService(IEnumerable<IUsageReader> readers, IEnume
 	private async Task<ProviderState> Refresh(ProviderState state, CancellationToken cancellationToken)
 	{
 		var account = await _readers[state.Provider].ReadAccount(cancellationToken);
-		if (account.Windows.Count == 0) throw new ProviderException(ProviderErrorCodes.NoUsageData, "No usage windows returned after the reset.");
+		if (account.Windows.Count == 0) throw new ProviderException(ProviderErrorCode.NoUsageData, "No usage windows returned after the reset.");
 		var reading = new UsageReading(time.GetUtcNow(), account.Windows);
 		await snapshots.Add(state.Provider, reading, cancellationToken);
 		foreach (var (before, after) in UsageRules.DetectResets(state.LastReading, reading))

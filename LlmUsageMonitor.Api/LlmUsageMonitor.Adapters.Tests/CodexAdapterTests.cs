@@ -41,7 +41,7 @@ public sealed class CodexAdapterTests
 
 		var exception = await Should.ThrowAsync<ProviderException>(() => Reader(cli).Read(Token));
 
-		exception.Code.ShouldBe(ProviderErrorCodes.AuthExpired);
+		exception.Code.ShouldBe(ProviderErrorCode.AuthExpired);
 		Methods(cli).ShouldContain("account/read");
 	}
 
@@ -53,7 +53,7 @@ public sealed class CodexAdapterTests
 
 		var exception = await Should.ThrowAsync<ProviderException>(() => Reader(cli, readTimeoutSeconds: 1).Read(Token));
 
-		exception.Code.ShouldBe(ProviderErrorCodes.Timeout);
+		exception.Code.ShouldBe(ProviderErrorCode.Timeout);
 		watch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(10));
 	}
 
@@ -68,7 +68,7 @@ public sealed class CodexAdapterTests
 
 		var exception = await Should.ThrowAsync<ProviderException>(() => Reader(cli).Read(Token));
 
-		exception.Code.ShouldBe(ProviderErrorCodes.CliUnsupportedOption);
+		exception.Code.ShouldBe(ProviderErrorCode.CliUnsupportedOption);
 		exception.Message.ShouldContain("codex-cli 9.9.9");
 	}
 
@@ -80,7 +80,7 @@ public sealed class CodexAdapterTests
 
 		var exception = await Should.ThrowAsync<ProviderException>(() => new CodexUsageReader(Options.Create(options), NullLogger<CodexUsageReader>.Instance).Read(Token));
 
-		exception.Code.ShouldBe(ProviderErrorCodes.CliUnavailable);
+		exception.Code.ShouldBe(ProviderErrorCode.CliUnavailable);
 		exception.Message.ShouldContain("Codex:Executable");
 	}
 
@@ -110,7 +110,7 @@ public sealed class CodexAdapterTests
 
 		var exception = await Should.ThrowAsync<ProviderException>(() => Runner(cli).Run("gpt-test", Token));
 
-		exception.Code.ShouldBe(ProviderErrorCodes.UsageLimit);
+		exception.Code.ShouldBe(ProviderErrorCode.UsageLimit);
 		exception.Message.ShouldBe("You've hit your usage limit.");
 	}
 

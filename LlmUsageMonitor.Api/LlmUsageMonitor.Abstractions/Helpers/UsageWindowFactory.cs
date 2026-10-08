@@ -14,12 +14,12 @@ public static class UsageWindowFactory
 	{
 		if (usedPercent is not { } used || !double.IsFinite(used) || used < 0)
 		{
-			throw new ProviderException(ProviderErrorCodes.InvalidResponse, $"Invalid usage percentage for {id}.");
+			throw new ProviderException(ProviderErrorCode.InvalidResponse, $"Invalid usage percentage for {id}.");
 		}
 
 		if (durationMinutes is { } duration && (!double.IsFinite(duration) || duration <= 0))
 		{
-			throw new ProviderException(ProviderErrorCodes.InvalidResponse, $"Invalid window duration for {id}.");
+			throw new ProviderException(ProviderErrorCode.InvalidResponse, $"Invalid window duration for {id}.");
 		}
 
 		return new(id, used, resetsAt, durationMinutes is { } minutes ? (int)Math.Round(minutes) : null);
@@ -35,7 +35,7 @@ public static class UsageWindowFactory
 			JsonValueKind.Undefined or JsonValueKind.Null => null,
 			JsonValueKind.Number when value.TryGetDouble(out var seconds) && double.IsFinite(seconds) => DateTimeOffset.FromUnixTimeMilliseconds((long)Math.Round(seconds * 1000)),
 			JsonValueKind.String when DateTimeOffset.TryParse(value.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var date) => date.ToUniversalTime(),
-			_ => throw new ProviderException(ProviderErrorCodes.InvalidResponse, $"Invalid reset time for {id}.")
+			_ => throw new ProviderException(ProviderErrorCode.InvalidResponse, $"Invalid reset time for {id}.")
 		};
 	}
 

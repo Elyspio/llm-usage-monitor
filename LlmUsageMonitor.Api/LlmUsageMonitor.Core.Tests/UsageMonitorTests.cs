@@ -81,7 +81,7 @@ public sealed class UsageMonitorTests
 	public async Task A_failed_automatic_trigger_is_notified_and_never_retried()
 	{
 		var harness = new TestHarness();
-		harness.CodexRunner.Failure = new ProviderException(ProviderErrorCodes.UsageLimit, "You've hit your limit");
+		harness.CodexRunner.Failure = new ProviderException(ProviderErrorCode.UsageLimit, "You've hit your limit");
 		harness.CodexReader.Respond = () => [Window("codex/primary", 40, Start.AddMinutes(10))];
 		await harness.Monitor.Poll(Provider.Codex, Token);
 		harness.Time.SetUtcNow(Start.AddMinutes(11));
@@ -92,7 +92,7 @@ public sealed class UsageMonitorTests
 
 		var run = harness.Runs.All.ShouldHaveSingleItem();
 		run.Status.ShouldBe(TriggerStatus.Failed);
-		run.ErrorCode.ShouldBe(ProviderErrorCodes.UsageLimit);
+		run.ErrorCode.ShouldBe(ProviderErrorCode.UsageLimit.ToStoredCode());
 		harness.CodexRunner.Models.Count.ShouldBe(1);
 		harness.Sender.Sent.Count(message => message.Title == "Codex : déclenchement échoué").ShouldBe(1);
 	}
@@ -142,7 +142,7 @@ public sealed class UsageMonitorTests
 	public async Task Rate_limited_readings_back_off_15_30_then_60_minutes()
 	{
 		var harness = new TestHarness();
-		harness.CodexReader.Respond = () => throw new ProviderException(ProviderErrorCodes.RateLimited, "HTTP 429");
+		harness.CodexReader.Respond = () => throw new ProviderException(ProviderErrorCode.RateLimited, "HTTP 429");
 
 		var backoffs = new List<TimeSpan>();
 		for (var i = 0; i < 4; i++)
@@ -164,7 +164,7 @@ public sealed class UsageMonitorTests
 	public async Task Read_failures_alert_once_after_the_threshold_then_notify_the_recovery()
 	{
 		var harness = new TestHarness();
-		harness.CodexReader.Respond = () => throw new ProviderException(ProviderErrorCodes.FetchFailed, "offline");
+		harness.CodexReader.Respond = () => throw new ProviderException(ProviderErrorCode.FetchFailed, "offline");
 		for (var i = 0; i < 5; i++) await harness.Monitor.Poll(Provider.Codex, Token);
 
 		harness.CodexReader.Respond = () => [Window("codex/primary", 10, Start.AddHours(1))];
@@ -174,7 +174,7 @@ public sealed class UsageMonitorTests
 		var state = harness.States.Stored[Provider.Codex];
 		state.ConsecutiveFailures.ShouldBe(0);
 		state.ActiveAlerts.ShouldBeEmpty();
-		state.LastFailure!.Code.ShouldBe(ProviderErrorCodes.FetchFailed);
+		state.LastFailure!.Code.ShouldBe(ProviderErrorCode.FetchFailed);
 	}
 
 	[Fact]
@@ -184,7 +184,7 @@ public sealed class UsageMonitorTests
 
 		await harness.Monitor.Poll(Provider.Codex, Token);
 
-		harness.States.Stored[Provider.Codex].LastFailure!.Code.ShouldBe(ProviderErrorCodes.NoUsageData);
+		harness.States.Stored[Provider.Codex].LastFailure!.Code.ShouldBe(ProviderErrorCode.NoUsageData);
 	}
 
 	[Fact]
@@ -214,7 +214,7 @@ public sealed class UsageMonitorTests
 
 		harness.ClaudeReader.Calls.ShouldBe(0);
 		harness.Session.Refreshes.ShouldBe(4);
-		harness.States.Stored[Provider.Claude].LastFailure!.Code.ShouldBe(ProviderErrorCodes.AuthExpired);
+		harness.States.Stored[Provider.Claude].LastFailure!.Code.ShouldBe(ProviderErrorCode.AuthExpired);
 		harness.Sender.Sent.ShouldHaveSingleItem().Title.ShouldBe("Claude : connexion expirée");
 	}
 }

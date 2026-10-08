@@ -34,7 +34,7 @@ describe("dashboard logic", () => {
 
 	it("is degraded when the last failure is newer than the last success", () => {
 		const base = { consecutiveFailures: 1, backoffUntil: null, activeAlerts: [], tokenExpiresAt: null, refreshTokenExpiresAt: null };
-		const failure = { code: "TIMEOUT", message: "slow", at: "2026-09-14T12:00:00Z" };
+		const failure = { code: "timeout" as const, message: "slow", at: "2026-09-14T12:00:00Z" };
 
 		expect(isDegraded({ ...base, lastSuccessAt: "2026-09-14T11:00:00Z", lastFailure: failure })).toBe(true);
 		expect(isDegraded({ ...base, lastSuccessAt: "2026-09-14T12:03:00Z", lastFailure: failure })).toBe(false);
@@ -44,8 +44,8 @@ describe("dashboard logic", () => {
 	it("labels the windows and the errors", () => {
 		expect(windowLabel(window("five_hour", 300))).toBe("5 h session");
 		expect(windowLabel(window("codex/primary", 10_080))).toBe("Weekly");
-		expect(errorInfo("RATE_LIMITED", "claude").severity).toBe("warning");
-		expect(errorInfo("AUTH_EXPIRED", "codex").action).toContain("codex login --device-auth");
+		expect(errorInfo("rateLimited", "claude").severity).toBe("warning");
+		expect(errorInfo("authExpired", "codex").action).toContain("codex login --device-auth");
 	});
 });
 

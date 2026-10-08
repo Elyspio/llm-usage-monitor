@@ -147,7 +147,7 @@ public sealed class CredentialAlertTests
 	public async Task Persistent_rate_limiting_alerts_once_after_the_threshold_then_recovers()
 	{
 		var harness = new TestHarness();
-		harness.CodexReader.Respond = () => throw new ProviderException(ProviderErrorCodes.RateLimited, "HTTP 429");
+		harness.CodexReader.Respond = () => throw new ProviderException(ProviderErrorCode.RateLimited, "HTTP 429");
 		for (var i = 0; i < 4; i++)
 		{
 			await harness.Monitor.Poll(Provider.Codex, Token);

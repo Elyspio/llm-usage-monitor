@@ -71,7 +71,7 @@ export function TriggerSection({ settings }: { settings: TriggerSettings }) {
 										freeSolo
 										autoSelect
 										size="small"
-										fullWidth
+										sx={{ width: 240, maxWidth: "100%" }}
 										options={modelSuggestions[provider]}
 										inputValue={values[provider].model}
 										onInputChange={(_, model) => setValues({ ...values, [provider]: { ...values[provider], model } })}

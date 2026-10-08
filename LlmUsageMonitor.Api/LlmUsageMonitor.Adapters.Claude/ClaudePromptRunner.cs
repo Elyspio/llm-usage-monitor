@@ -41,7 +41,7 @@ internal sealed class ClaudePromptRunner(IOptions<ClaudeOptions> options, ILogge
 			return;
 		}
 
-		if (failure.Code == ProviderErrorCodes.CliUnsupportedOption)
+		if (failure.Code == ProviderErrorCode.CliUnsupportedOption)
 		{
 			var version = await CliProcess.ReadVersion(settings.Executable, settings.ResolveWorkingDirectory(), logger, cancellationToken);
 			throw new ProviderException(failure.Code, $"{failure.Message} (claude {version}: update the options of ClaudePromptRunner)");
@@ -75,12 +75,12 @@ internal sealed class ClaudePromptRunner(IOptions<ClaudeOptions> options, ILogge
 		var code = true switch
 		{
 			// No JSON result: the argument parser stopped the CLI before the run.
-			_ when isError is null && CliProcess.IsUnsupportedOption(message) => ProviderErrorCodes.CliUnsupportedOption,
-			_ when status is 401 or 403 || Contains(message, "Login expired") || Contains(message, "Not logged in") || Contains(message, "OAuth token") => ProviderErrorCodes.AuthExpired,
-			_ when Contains(message, "hit your") && Contains(message, "limit") => ProviderErrorCodes.UsageLimit,
-			_ when status == 429 || Contains(message, "429") => ProviderErrorCodes.RateLimited,
-			_ when status == 529 || Contains(message, "529") || Contains(message, "Overloaded") => ProviderErrorCodes.Overloaded,
-			_ => ProviderErrorCodes.TriggerFailed
+			_ when isError is null && CliProcess.IsUnsupportedOption(message) => ProviderErrorCode.CliUnsupportedOption,
+			_ when status is 401 or 403 || Contains(message, "Login expired") || Contains(message, "Not logged in") || Contains(message, "OAuth token") => ProviderErrorCode.AuthExpired,
+			_ when Contains(message, "hit your") && Contains(message, "limit") => ProviderErrorCode.UsageLimit,
+			_ when status == 429 || Contains(message, "429") => ProviderErrorCode.RateLimited,
+			_ when status == 529 || Contains(message, "529") || Contains(message, "Overloaded") => ProviderErrorCode.Overloaded,
+			_ => ProviderErrorCode.TriggerFailed
 		};
 		return new(code, message);
 	}

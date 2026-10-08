@@ -13,7 +13,7 @@ public static class CodexErrors
 	///     Maps a <c>codexErrorInfo</c>: either a string or an object keyed by the error kind, whose value may carry the upstream
 	///     <c>httpStatusCode</c>. <c>null</c> when it says nothing known.
 	/// </summary>
-	public static string? FromErrorInfo(JsonElement info)
+	public static ProviderErrorCode? FromErrorInfo(JsonElement info)
 	{
 		string? kind = null;
 		JsonElement details = default;
@@ -32,10 +32,10 @@ public static class CodexErrors
 
 		return kind switch
 		{
-			"unauthorized" => ProviderErrorCodes.AuthExpired,
-			"usageLimitExceeded" => ProviderErrorCodes.UsageLimit,
-			"rateLimitExceeded" => ProviderErrorCodes.RateLimited,
-			"serverOverloaded" => ProviderErrorCodes.Overloaded,
+			"unauthorized" => ProviderErrorCode.AuthExpired,
+			"usageLimitExceeded" => ProviderErrorCode.UsageLimit,
+			"rateLimitExceeded" => ProviderErrorCode.RateLimited,
+			"serverOverloaded" => ProviderErrorCode.Overloaded,
 			_ => FromHttpStatus(details)
 		};
 	}
@@ -44,11 +44,11 @@ public static class CodexErrors
 	///     Maps a JSON-RPC error: an unknown method or parameters means the CLI changed its protocol; otherwise its <c>data</c>
 	///     may hold a <c>codexErrorInfo</c> or an <c>httpStatusCode</c>.
 	/// </summary>
-	public static string? FromRpcError(CodexRpcException exception)
+	public static ProviderErrorCode? FromRpcError(CodexRpcException exception)
 	{
 		if (exception.IsProtocolMismatch)
 		{
-			return ProviderErrorCodes.CliUnsupportedOption;
+			return ProviderErrorCode.CliUnsupportedOption;
 		}
 
 		var data = exception.ErrorData;
@@ -70,16 +70,16 @@ public static class CodexErrors
 		       && account.TryGetProperty("requiresOpenaiAuth", out var required) && required.ValueKind == JsonValueKind.True;
 	}
 
-	private static string? FromHttpStatus(JsonElement details)
+	private static ProviderErrorCode? FromHttpStatus(JsonElement details)
 	{
 		int? status = details.ValueKind == JsonValueKind.Object && details.TryGetProperty("httpStatusCode", out var code) && code.ValueKind == JsonValueKind.Number && code.TryGetInt32(out var value)
 			? value
 			: null;
 		return status switch
 		{
-			401 or 403 => ProviderErrorCodes.AuthExpired,
-			429 => ProviderErrorCodes.RateLimited,
-			503 or 529 => ProviderErrorCodes.Overloaded,
+			401 or 403 => ProviderErrorCode.AuthExpired,
+			429 => ProviderErrorCode.RateLimited,
+			503 or 529 => ProviderErrorCode.Overloaded,
 			_ => null
 		};
 	}

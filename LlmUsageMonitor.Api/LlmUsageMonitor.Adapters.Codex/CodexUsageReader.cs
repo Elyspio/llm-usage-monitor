@@ -33,21 +33,21 @@ internal sealed class CodexUsageReader(IOptions<CodexOptions> options, ILogger<C
 			catch (CodexRpcException exception)
 			{
 				// The error has no structure of its own when the login is gone: the account state tells.
-				var code = CodexErrors.FromRpcError(exception) ?? await ReadAccountFailure(server, timeout.Token) ?? ProviderErrorCodes.FetchFailed;
+				var code = CodexErrors.FromRpcError(exception) ?? await ReadAccountFailure(server, timeout.Token) ?? ProviderErrorCode.FetchFailed;
 				throw await Failure(code, exception, cancellationToken);
 			}
 		}
 		catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
 		{
-			throw new ProviderException(ProviderErrorCodes.Timeout, "Codex usage request timed out.");
+			throw new ProviderException(ProviderErrorCode.Timeout, "Codex usage request timed out.");
 		}
 	}
 
-	private static async Task<string?> ReadAccountFailure(CodexAppServer server, CancellationToken cancellationToken)
+	private static async Task<ProviderErrorCode?> ReadAccountFailure(CodexAppServer server, CancellationToken cancellationToken)
 	{
 		try
 		{
-			return CodexErrors.IsSignedOut(await server.Request("account/read", new { }, cancellationToken)) ? ProviderErrorCodes.AuthExpired : null;
+			return CodexErrors.IsSignedOut(await server.Request("account/read", new { }, cancellationToken)) ? ProviderErrorCode.AuthExpired : null;
 		}
 		catch (CodexRpcException)
 		{
@@ -55,14 +55,14 @@ internal sealed class CodexUsageReader(IOptions<CodexOptions> options, ILogger<C
 		}
 	}
 
-	private async Task<ProviderException> Failure(string code, CodexRpcException exception, CancellationToken cancellationToken)
+	private async Task<ProviderException> Failure(ProviderErrorCode code, CodexRpcException exception, CancellationToken cancellationToken)
 	{
 		var settings = options.Value;
 		var message = code switch
 		{
-			ProviderErrorCodes.AuthExpired => "The Codex CLI is no longer signed in. Run `codex login --device-auth` on the service host.",
-			ProviderErrorCodes.RateLimited => "Codex rate limits the account request.",
-			ProviderErrorCodes.CliUnsupportedOption =>
+			ProviderErrorCode.AuthExpired => "The Codex CLI is no longer signed in. Run `codex login --device-auth` on the service host.",
+			ProviderErrorCode.RateLimited => "Codex rate limits the account request.",
+			ProviderErrorCode.CliUnsupportedOption =>
 				$"{exception.Message} (codex {await CliProcess.ReadVersion(settings.Executable, settings.ResolveWorkingDirectory(), logger, cancellationToken)}: update the requests of CodexUsageReader)",
 			_ => $"Codex rejected the account request: {exception.Message}"
 		};
@@ -99,7 +99,7 @@ public static class CodexUsageParser
 	{
 		if (result.ValueKind != JsonValueKind.Object)
 		{
-			throw new ProviderException(ProviderErrorCodes.InvalidResponse, "Codex returned invalid protocol data.");
+			throw new ProviderException(ProviderErrorCode.InvalidResponse, "Codex returned invalid protocol data.");
 		}
 
 		var buckets = new List<(string Id, JsonElement Snapshot)>();

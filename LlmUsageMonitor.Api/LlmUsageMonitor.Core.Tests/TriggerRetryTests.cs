@@ -28,7 +28,7 @@ public sealed class TriggerRetryTests
 	public async Task A_transient_failure_is_retried_after_2_5_then_10_minutes_then_notified_once()
 	{
 		var harness = await WaitingCycle();
-		harness.CodexRunner.Failure = new ProviderException(ProviderErrorCodes.Overloaded, "529 Overloaded");
+		harness.CodexRunner.Failure = new ProviderException(ProviderErrorCode.Overloaded, "529 Overloaded");
 
 		await harness.Monitor.Poll(Provider.Codex, Token);
 		foreach (var delay in TriggerService.RetryDelays)
@@ -55,7 +55,7 @@ public sealed class TriggerRetryTests
 	public async Task A_retry_that_succeeds_opens_the_cycle()
 	{
 		var harness = await WaitingCycle();
-		harness.CodexRunner.Outcomes.Enqueue(new ProviderException(ProviderErrorCodes.Timeout, "Codex prompt timed out."));
+		harness.CodexRunner.Outcomes.Enqueue(new ProviderException(ProviderErrorCode.Timeout, "Codex prompt timed out."));
 
 		await harness.Monitor.Poll(Provider.Codex, Token);
 		harness.Time.Advance(TriggerService.RetryDelays[0]);
@@ -68,10 +68,10 @@ public sealed class TriggerRetryTests
 	}
 
 	[Theory]
-	[InlineData(ProviderErrorCodes.AuthExpired)]
-	[InlineData(ProviderErrorCodes.UsageLimit)]
-	[InlineData(ProviderErrorCodes.TriggerFailed)]
-	public async Task A_failure_that_is_not_transient_is_never_retried(string code)
+	[InlineData(ProviderErrorCode.AuthExpired)]
+	[InlineData(ProviderErrorCode.UsageLimit)]
+	[InlineData(ProviderErrorCode.TriggerFailed)]
+	public async Task A_failure_that_is_not_transient_is_never_retried(ProviderErrorCode code)
 	{
 		var harness = await WaitingCycle();
 		harness.CodexRunner.Failure = new ProviderException(code, "no");
@@ -89,7 +89,7 @@ public sealed class TriggerRetryTests
 	public async Task A_retry_is_bounded_to_its_cycle()
 	{
 		var harness = await WaitingCycle();
-		harness.CodexRunner.Failure = new ProviderException(ProviderErrorCodes.CliExited, "Codex exited before completing the turn.");
+		harness.CodexRunner.Failure = new ProviderException(ProviderErrorCode.CliExited, "Codex exited before completing the turn.");
 		await harness.Monitor.Poll(Provider.Codex, Token);
 
 		// The window started meanwhile (manual prompt, use from another device): the cycle no longer waits.
@@ -109,7 +109,7 @@ public sealed class TriggerRetryTests
 		await harness.States.Save(harness.States.Stored[Provider.Codex] with { CurrentCycleKey = cycleKey }, Token);
 
 		(await harness.Triggers.RecoverInterrupted(Token)).ShouldBe(1);
-		harness.Runs.All.ShouldHaveSingleItem().ErrorCode.ShouldBe(ProviderErrorCodes.Interrupted);
+		harness.Runs.All.ShouldHaveSingleItem().ErrorCode.ShouldBe(ProviderErrorCode.Interrupted.ToStoredCode());
 		await harness.Monitor.Poll(Provider.Codex, Token);
 
 		var run = harness.Runs.All.ShouldHaveSingleItem();
@@ -125,7 +125,7 @@ public sealed class TriggerRetryTests
 		await harness.Triggers.RecoverInterrupted(Token);
 
 		var failed = await harness.Triggers.Get(run.Id, Token);
-		(failed.Status, failed.ErrorCode, failed.NextRetryAt).ShouldBe((TriggerStatus.Failed, ProviderErrorCodes.Interrupted, null));
+		(failed.Status, failed.ErrorCode, failed.NextRetryAt).ShouldBe((TriggerStatus.Failed, ProviderErrorCode.Interrupted.ToStoredCode(), null));
 	}
 
 	[Fact]
@@ -138,7 +138,7 @@ public sealed class TriggerRetryTests
 		await Should.ThrowAsync<OperationCanceledException>(() => harness.Triggers.ExecuteManual(run.Id, Token));
 
 		var ended = await harness.Triggers.Get(run.Id, Token);
-		(ended.Status, ended.ErrorCode).ShouldBe((TriggerStatus.Failed, ProviderErrorCodes.Cancelled));
+		(ended.Status, ended.ErrorCode).ShouldBe((TriggerStatus.Failed, ProviderErrorCode.Cancelled.ToStoredCode()));
 		(await harness.Runs.GetRunning(Provider.Claude, Token)).ShouldBeNull();
 	}
 
@@ -155,7 +155,7 @@ public sealed class TriggerRetryTests
 		var outcomes = await Task.WhenAll(Capture(first), Capture(second));
 
 		outcomes.Count(outcome => outcome is null).ShouldBe(1);
-		outcomes.OfType<ProviderException>().ShouldHaveSingleItem().Code.ShouldBe(ProviderErrorCodes.CliBusy);
+		outcomes.OfType<ProviderException>().ShouldHaveSingleItem().Code.ShouldBe(ProviderErrorCode.CliBusy);
 		harness.Scheduler.EnqueuedTriggers.ShouldHaveSingleItem();
 		harness.Runs.All.ShouldHaveSingleItem();
 	}

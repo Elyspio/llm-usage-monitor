@@ -23,16 +23,16 @@ internal sealed class CodexResetCreditConsumer(IOptions<CodexOptions> options, I
 			{
 				"reset" or "alreadyRedeemed" => new(true, outcome),
 				"nothingToReset" or "noCredit" => new(false, outcome),
-				_ => throw new ProviderException(ProviderErrorCodes.InvalidResponse, "Codex returned an unknown reset outcome; retry with the same idempotency key.")
+				_ => throw new ProviderException(ProviderErrorCode.InvalidResponse, "Codex returned an unknown reset outcome; retry with the same idempotency key.")
 			};
 		}
 		catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
 		{
-			throw new ProviderException(ProviderErrorCodes.Timeout, "Codex reset request timed out.");
+			throw new ProviderException(ProviderErrorCode.Timeout, "Codex reset request timed out.");
 		}
 		catch (CodexRpcException exception)
 		{
-			throw new ProviderException(CodexErrors.FromRpcError(exception) ?? ProviderErrorCodes.FetchFailed, "Codex rejected the reset request.", exception);
+			throw new ProviderException(CodexErrors.FromRpcError(exception) ?? ProviderErrorCode.FetchFailed, "Codex rejected the reset request.", exception);
 		}
 	}
 }
