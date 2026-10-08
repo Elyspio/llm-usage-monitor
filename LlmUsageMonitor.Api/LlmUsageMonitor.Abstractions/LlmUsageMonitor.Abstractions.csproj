@@ -1,10 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <!-- Contracts only: no ASP.NET Core, the modules and helpers need the Microsoft.Extensions abstractions alone. -->
+    <!-- Contracts only: no ASP.NET Core, the modules and helpers need the Microsoft.Extensions abstractions alone. The packages
+         every module needs are referenced here and flow to them through the project reference. -->
     <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions"/>
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.12"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12"/>
+        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.12"/>
     </ItemGroup>
 
 </Project>

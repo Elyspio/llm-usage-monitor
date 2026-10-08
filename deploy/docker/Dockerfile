@@ -16,7 +16,7 @@ ARG TARGETARCH
 # The release tag (docker-bake.hcl VERSION), shown by the SPA.
 ARG VERSION=0.0.0-dev
 WORKDIR /src
-COPY global.json nuget.config Directory.Build.props Directory.Packages.props ./
+COPY global.json nuget.config Directory.Build.props ./
 COPY LlmUsageMonitor.Api/ LlmUsageMonitor.Api/
 # Embedded in the executable (SpaRoot), without the development conf.js: the API serves its own.
 COPY --from=front /src/LlmUsageMonitor.Front/dist /src/spa

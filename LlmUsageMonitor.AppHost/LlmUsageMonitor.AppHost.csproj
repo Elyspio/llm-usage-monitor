@@ -10,9 +10,11 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Aspire.Hosting.JavaScript"/>
-        <PackageReference Include="Aspire.Hosting.Keycloak"/>
-        <PackageReference Include="Aspire.Hosting.MongoDB"/>
+        <PackageReference Include="Aspire.Hosting.JavaScript" Version="13.5.4"/>
+        <!-- Prerelease, accepted: the Keycloak integration of Aspire only ships as preview, aligned on the Aspire version. It
+             runs the development identity provider of the AppHost and never reaches the deployed artifact. -->
+        <PackageReference Include="Aspire.Hosting.Keycloak" Version="13.5.4-preview.1.26464.4"/>
+        <PackageReference Include="Aspire.Hosting.MongoDB" Version="13.5.4"/>
     </ItemGroup>
 
 </Project>
