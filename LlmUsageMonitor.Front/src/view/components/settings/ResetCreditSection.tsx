@@ -67,14 +67,14 @@ export function ResetCreditSection({ settings }: { settings: ResetCreditSettings
 								</TableCell>
 								<TableCell>
 									<TextField
-										size="small"
+										sx={{ width: 180 }}
 										type="number"
-										label={`${providerLabel[provider]} before expiry (minutes)`}
+										label="Minutes before expiry"
 										value={values[provider].beforeExpiryMinutes}
 										onChange={(event) => change({ ...values, [provider]: { ...values[provider], beforeExpiryMinutes: Number(event.target.value) } })}
 										error={Boolean(errors[`${provider}.beforeExpiryMinutes`])}
 										helperText={errors[`${provider}.beforeExpiryMinutes`]}
-										slotProps={{ htmlInput: { min: 1, max: 10080, step: 1 } }}
+										slotProps={{ htmlInput: { min: 1, max: 10080, step: 1, "aria-label": `${providerLabel[provider]} before expiry (minutes)` } }}
 									/>
 								</TableCell>
 							</TableRow>

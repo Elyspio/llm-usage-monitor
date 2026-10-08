@@ -78,9 +78,22 @@ export const theme = createTheme({
 				head: { color: textSecondary, fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.08em" },
 			},
 		},
-		MuiTextField: { defaultProps: { size: "small" } },
+		MuiTextField: { defaultProps: { size: "small", variant: "standard" } },
+		MuiFormControl: { defaultProps: { variant: "standard" } },
+		MuiSelect: { defaultProps: { variant: "standard" } },
+		MuiAutocomplete: {
+			styleOverrides: {
+				// The default negative margin extends the clear button beyond standard inputs.
+				clearIndicator: { marginRight: 0 },
+				popupIndicator: { marginRight: 0 },
+			},
+		},
+		MuiInputLabel: {
+			styleOverrides: {
+				shrink: { fontSize: "0.875rem", transform: "translate(0, -1.5px) scale(1)", maxWidth: "100%" },
+			},
+		},
 		MuiSwitch: { defaultProps: { size: "small" } },
-		MuiOutlinedInput: { styleOverrides: { root: { borderRadius: 8 } } },
 		MuiToggleButton: { styleOverrides: { root: { borderRadius: 7, padding: "5px 14px" } } },
 	},
 });
