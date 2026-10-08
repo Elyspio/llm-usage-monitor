@@ -1,4 +1,4 @@
-import type { Provider, ProviderHealth, UsageWindow } from "@/core/apis/generated/types.gen";
+import type { Provider, ProviderErrorCode, ProviderHealth, UsageWindow } from "@/core/apis/generated/types.gen";
 
 export const providers: Provider[] = ["claude", "codex"];
 
@@ -41,35 +41,35 @@ export function isDegraded(health: ProviderHealth): boolean {
 
 export type ErrorInfo = { title: string; action: string; severity: "error" | "warning" };
 
-export function errorInfo(code: string, provider: Provider): ErrorInfo {
+export function errorInfo(code: ProviderErrorCode, provider: Provider): ErrorInfo {
 	const login = provider === "claude" ? "claude auth login" : "codex login --device-auth";
 	switch (code) {
-		case "AUTH_EXPIRED":
-		case "AUTH_REQUIRED":
+		case "authExpired":
+		case "authRequired":
 			return { title: "Login expired", action: `Run "${login}" again on the service host.`, severity: "error" };
-		case "CREDENTIALS_UNAVAILABLE":
+		case "credentialsUnavailable":
 			return { title: "Credentials not found", action: `Log in with "${login}" on the service host.`, severity: "error" };
-		case "RATE_LIMITED":
+		case "rateLimited":
 			return { title: "Rate limited by the provider (429)", action: "No immediate retry: waiting 15, 30 then 60 min.", severity: "warning" };
-		case "CLI_UNAVAILABLE":
+		case "cliUnavailable":
 			return { title: "CLI not found", action: "Install the CLI or fix its path in the service configuration.", severity: "error" };
-		case "TIMEOUT":
+		case "timeout":
 			return { title: "Timed out", action: "The provider did not answer in time; the next read will retry.", severity: "warning" };
-		case "FETCH_FAILED":
-		case "HTTP_ERROR":
+		case "fetchFailed":
+		case "httpError":
 			return { title: "Provider unreachable", action: "Check the network connection of the service host.", severity: "warning" };
-		case "ACCESS_DENIED":
+		case "accessDenied":
 			return { title: "Access denied", action: "The account has no access to its usage: check the subscription.", severity: "error" };
-		case "CLI_UNSUPPORTED_OPTION":
+		case "cliUnsupportedOption":
 			return {
 				title: "CLI updated: option rejected",
 				action: "The CLI updated itself and rejects an option of the service: see the message for its version.",
 				severity: "error",
 			};
-		case "OVERLOADED":
+		case "overloaded":
 			return { title: "Provider overloaded", action: "Transient: the trigger is retried after 2, 5 then 10 min.", severity: "warning" };
-		case "INVALID_RESPONSE":
-		case "NO_USAGE_DATA":
+		case "invalidResponse":
+		case "noUsageData":
 			return { title: "Unexpected response", action: "The provider format may have changed: see the service logs.", severity: "error" };
 		default:
 			return { title: code, action: "See the service logs.", severity: "error" };

@@ -83,8 +83,10 @@ export type ProviderDashboard = {
     resetCredits?: null | ResetCreditDashboard;
 };
 
+export type ProviderErrorCode = 'authExpired' | 'authRequired' | 'credentialsUnavailable' | 'accessDenied' | 'rateLimited' | 'usageLimit' | 'httpError' | 'timeout' | 'fetchFailed' | 'invalidResponse' | 'noUsageData' | 'cliUnavailable' | 'cliExited' | 'cliBusy' | 'triggerFailed' | 'interrupted' | 'overloaded' | 'cancelled' | 'unexpectedError' | 'cliUnsupportedOption' | 'notificationFailed';
+
 export type ProviderFailure = {
-    code: string;
+    code: ProviderErrorCode;
     message: string;
     at: string;
 };

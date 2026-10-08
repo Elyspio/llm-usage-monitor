@@ -51,7 +51,7 @@ export const emptyHistory: UsageHistory = { from: iso(-24 * hour), to: iso(0), s
 /** Claude whose last reading failed after the last success: the values are stale. */
 export const degradedClaude: ProviderDashboard = {
 	...claude,
-	health: { ...health, lastFailure: { code: "AUTH_EXPIRED", message: "The Claude CLI could not refresh its login.", at: iso(-30_000) }, consecutiveFailures: 1 },
+	health: { ...health, lastFailure: { code: "authExpired", message: "The Claude CLI could not refresh its login.", at: iso(-30_000) }, consecutiveFailures: 1 },
 };
 
 export const run = (overrides: Partial<TriggerRun> = {}): TriggerRun => ({
