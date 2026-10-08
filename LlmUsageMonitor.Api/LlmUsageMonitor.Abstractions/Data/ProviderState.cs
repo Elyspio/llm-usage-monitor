@@ -1,3 +1,5 @@
+using LlmUsageMonitor.Abstractions.Exceptions;
+
 namespace LlmUsageMonitor.Abstractions.Data;
 
 /// <summary>
@@ -50,7 +52,7 @@ public sealed record ProviderState(Provider Provider)
 	public DateTimeOffset? CredentialExpiryAlertedFor { get; init; }
 }
 
-public sealed record ProviderFailure(string Code, string Message, DateTimeOffset At);
+public sealed record ProviderFailure(ProviderErrorCode Code, string Message, DateTimeOffset At);
 
 public sealed record ScheduledJob(string JobId, DateTimeOffset RunAt);
 

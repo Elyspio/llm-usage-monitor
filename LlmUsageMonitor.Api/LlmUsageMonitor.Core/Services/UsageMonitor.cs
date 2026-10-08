@@ -57,7 +57,7 @@ public sealed class UsageMonitor(
 			var windows = account.Windows;
 			if (windows.Count == 0)
 			{
-				throw new ProviderException(ProviderErrorCodes.NoUsageData, "The provider returned no percentage-based usage windows.");
+				throw new ProviderException(ProviderErrorCode.NoUsageData, "The provider returned no percentage-based usage windows.");
 			}
 
 			// The refresh and the reading may take a while: the reading is dated when it is received.
@@ -93,7 +93,7 @@ public sealed class UsageMonitor(
 			if (failure is null)
 			{
 				logger.LogError(exception, "{Provider} reading failed unexpectedly", provider);
-				failure = new(ProviderErrorCodes.Unexpected, exception.Message, exception);
+				failure = new(ProviderErrorCode.UnexpectedError, exception.Message, exception);
 			}
 			else
 			{

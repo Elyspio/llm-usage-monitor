@@ -38,7 +38,7 @@ public sealed class HealthTracker(INotificationService notifications) : IHealthT
 	{
 		var failure = new ProviderFailure(exception.Code, exception.Message, now);
 
-		if (exception.Code == ProviderErrorCodes.RateLimited)
+		if (exception.Code == ProviderErrorCode.RateLimited)
 		{
 			// No immediate retry: 15, then 30, then 60 minutes. A 429 is not a failed reading, but a streak of them alerts.
 			var level = Math.Min(state.BackoffLevel + 1, UsageRules.BackoffSteps.Count);
@@ -55,7 +55,7 @@ public sealed class HealthTracker(INotificationService notifications) : IHealthT
 		}
 
 		var next = state with { LastFailure = failure, ConsecutiveFailures = state.ConsecutiveFailures + 1, ConsecutiveRateLimits = 0 };
-		NotificationKind? alert = exception.Code == ProviderErrorCodes.AuthExpired
+		NotificationKind? alert = exception.Code == ProviderErrorCode.AuthExpired
 			? NotificationKind.AuthExpired
 			: next.ConsecutiveFailures >= readFailureThreshold
 				? NotificationKind.ReadFailed

@@ -38,7 +38,7 @@ public sealed class CliProcessTests
 
 		var exception = await Should.ThrowAsync<ProviderException>(() => CliProcess.Run(executable, arguments, Path.GetTempPath(), TimeSpan.FromSeconds(1), NullLogger.Instance, Token));
 
-		exception.Code.ShouldBe(ProviderErrorCodes.Timeout);
+		exception.Code.ShouldBe(ProviderErrorCode.Timeout);
 		watch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(10));
 	}
 
@@ -50,7 +50,7 @@ public sealed class CliProcessTests
 
 		var exception = await Should.ThrowAsync<ProviderException>(() => CliProcess.Run(executable, arguments, Path.GetTempPath(), TimeSpan.FromSeconds(1), NullLogger.Instance, Token));
 
-		exception.Code.ShouldBe(ProviderErrorCodes.Timeout);
+		exception.Code.ShouldBe(ProviderErrorCode.Timeout);
 		watch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(10));
 	}
 

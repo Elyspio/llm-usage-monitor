@@ -43,8 +43,8 @@ public sealed class ClaudeAdapterTests
 		var empty = Path.Combine(cli.Directory, "empty.json");
 		await File.WriteAllTextAsync(empty, """{"claudeAiOauth":{}}""", Token);
 
-		(await Should.ThrowAsync<ProviderException>(() => Session(cli, missing).ReadToken(Token))).Code.ShouldBe(ProviderErrorCodes.CredentialsUnavailable);
-		(await Should.ThrowAsync<ProviderException>(() => Session(cli, empty).ReadToken(Token))).Code.ShouldBe(ProviderErrorCodes.AuthRequired);
+		(await Should.ThrowAsync<ProviderException>(() => Session(cli, missing).ReadToken(Token))).Code.ShouldBe(ProviderErrorCode.CredentialsUnavailable);
+		(await Should.ThrowAsync<ProviderException>(() => Session(cli, empty).ReadToken(Token))).Code.ShouldBe(ProviderErrorCode.AuthRequired);
 	}
 
 	[Fact]
@@ -76,7 +76,7 @@ public sealed class ClaudeAdapterTests
 
 		var exception = await Should.ThrowAsync<ProviderException>(() => Session(cli, WriteCredentials(cli, ExpiresAt)).RefreshThroughCli(Token));
 
-		exception.Code.ShouldBe(ProviderErrorCodes.CliUnsupportedOption);
+		exception.Code.ShouldBe(ProviderErrorCode.CliUnsupportedOption);
 		exception.Message.ShouldContain("9.9.9 (Claude Code)");
 	}
 
@@ -110,7 +110,7 @@ public sealed class ClaudeAdapterTests
 
 		var exception = await Should.ThrowAsync<ProviderException>(() => Runner(cli).Run("claude-test", Token));
 
-		exception.Code.ShouldBe(ProviderErrorCodes.UsageLimit);
+		exception.Code.ShouldBe(ProviderErrorCode.UsageLimit);
 	}
 
 	[Fact]
@@ -129,11 +129,11 @@ public sealed class ClaudeAdapterTests
 	}
 
 	[Theory]
-	[InlineData(HttpStatusCode.Unauthorized, ProviderErrorCodes.AuthExpired)]
-	[InlineData(HttpStatusCode.Forbidden, ProviderErrorCodes.AccessDenied)]
-	[InlineData(HttpStatusCode.TooManyRequests, ProviderErrorCodes.RateLimited)]
-	[InlineData(HttpStatusCode.NotFound, ProviderErrorCodes.HttpError)]
-	public async Task An_http_error_is_mapped_to_its_code_without_retrying(HttpStatusCode status, string code)
+	[InlineData(HttpStatusCode.Unauthorized, ProviderErrorCode.AuthExpired)]
+	[InlineData(HttpStatusCode.Forbidden, ProviderErrorCode.AccessDenied)]
+	[InlineData(HttpStatusCode.TooManyRequests, ProviderErrorCode.RateLimited)]
+	[InlineData(HttpStatusCode.NotFound, ProviderErrorCode.HttpError)]
+	public async Task An_http_error_is_mapped_to_its_code_without_retrying(HttpStatusCode status, ProviderErrorCode code)
 	{
 		using var cli = new FakeCli(Scenario());
 		var handler = new StubHandler(status, "{}");
@@ -152,7 +152,7 @@ public sealed class ClaudeAdapterTests
 
 		var exception = await Should.ThrowAsync<ProviderException>(() => Reader(WriteCredentials(cli, ExpiresAt), new StubHandler(HttpStatusCode.OK, "<html>")).Read(Token));
 
-		exception.Code.ShouldBe(ProviderErrorCodes.InvalidResponse);
+		exception.Code.ShouldBe(ProviderErrorCode.InvalidResponse);
 	}
 
 	[Fact]
@@ -163,7 +163,7 @@ public sealed class ClaudeAdapterTests
 
 		var exception = await Should.ThrowAsync<ProviderException>(() => Reader(WriteCredentials(cli, DateTimeOffset.UtcNow.AddMinutes(-1)), handler).Read(Token));
 
-		exception.Code.ShouldBe(ProviderErrorCodes.AuthExpired);
+		exception.Code.ShouldBe(ProviderErrorCode.AuthExpired);
 		handler.Requests.ShouldBeEmpty();
 	}
 

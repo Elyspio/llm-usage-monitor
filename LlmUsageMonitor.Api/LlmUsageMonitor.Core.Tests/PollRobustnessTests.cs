@@ -39,7 +39,7 @@ public sealed class PollRobustnessTests
 		for (var i = 0; i < 3; i++) await harness.Monitor.Poll(Provider.Codex, Token);
 
 		var state = harness.States.Stored[Provider.Codex];
-		state.LastFailure!.Code.ShouldBe(ProviderErrorCodes.Unexpected);
+		state.LastFailure!.Code.ShouldBe(ProviderErrorCode.UnexpectedError);
 		state.ConsecutiveFailures.ShouldBe(3);
 		harness.Sender.Sent.ShouldHaveSingleItem().Title.ShouldBe("Codex : lectures en échec");
 	}
@@ -53,7 +53,7 @@ public sealed class PollRobustnessTests
 
 		await harness.Monitor.Poll(Provider.Codex, Token);
 
-		harness.States.Stored[Provider.Codex].LastFailure!.Code.ShouldBe(ProviderErrorCodes.Unexpected);
+		harness.States.Stored[Provider.Codex].LastFailure!.Code.ShouldBe(ProviderErrorCode.UnexpectedError);
 	}
 
 	[Fact]

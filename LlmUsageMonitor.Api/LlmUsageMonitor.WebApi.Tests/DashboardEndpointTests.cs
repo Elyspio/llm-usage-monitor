@@ -1,6 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using LlmUsageMonitor.Abstractions.Data;
+using LlmUsageMonitor.Abstractions.Exceptions;
+using LlmUsageMonitor.Abstractions.Interfaces.Repositories;
+using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using Xunit;
 
@@ -39,6 +43,19 @@ public sealed class DashboardEndpointTests(ApiFactory factory) : IClassFixture<A
 
 		body.GetProperty("providers").EnumerateArray().Select(provider => provider.GetProperty("provider").GetString()).ShouldBe(["claude", "codex"]);
 		body.GetProperty("providers")[0].GetProperty("pollIntervalMinutes").GetInt32().ShouldBe(3);
+	}
+
+	[Fact]
+	public async Task A_failure_code_is_an_enum_sent_as_a_camel_case_string()
+	{
+		using var client = factory.CreateClientWithRoles(ApiFactory.AdminRole);
+		var states = factory.Services.GetRequiredService<IProviderStateRepository>();
+		await states.Save(new(Provider.Claude) { LastFailure = new(ProviderErrorCode.AuthExpired, "The Claude CLI could not refresh its login.", DateTimeOffset.UtcNow) }, Token);
+
+		var body = await GetJson(client, "/api/dashboard");
+
+		var claude = body.GetProperty("providers").EnumerateArray().Single(provider => provider.GetProperty("provider").GetString() == "claude");
+		claude.GetProperty("health").GetProperty("lastFailure").GetProperty("code").GetString().ShouldBe("authExpired");
 	}
 
 	[Fact]

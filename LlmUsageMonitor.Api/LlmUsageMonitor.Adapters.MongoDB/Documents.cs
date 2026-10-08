@@ -1,4 +1,5 @@
 using LlmUsageMonitor.Abstractions.Data;
+using LlmUsageMonitor.Abstractions.Exceptions;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -102,7 +103,7 @@ internal sealed class ProviderStateDocument
 			CreditResetWindowResetsAt = state.CreditResetWindowResetsAt.ToUtc(),
 			LastReading = state.LastReading is { } reading ? ReadingDocument.FromDomain(reading) : null,
 			LastSuccessAt = state.LastSuccessAt.ToUtc(),
-			LastFailure = state.LastFailure is { } failure ? new FailureDocument { Code = failure.Code, Message = failure.Message, At = failure.At.ToUtc() } : null,
+			LastFailure = state.LastFailure is { } failure ? new FailureDocument { Code = failure.Code.ToStoredCode(), Message = failure.Message, At = failure.At.ToUtc() } : null,
 			ConsecutiveFailures = state.ConsecutiveFailures,
 			ConsecutiveRateLimits = state.ConsecutiveRateLimits,
 			BackoffLevel = state.BackoffLevel,
@@ -128,7 +129,7 @@ internal sealed class ProviderStateDocument
 			CreditResetWindowResetsAt = CreditResetWindowResetsAt.ToOffset(),
 			LastReading = LastReading?.ToDomain(),
 			LastSuccessAt = LastSuccessAt.ToOffset(),
-			LastFailure = LastFailure is { } failure ? new ProviderFailure(failure.Code, failure.Message, failure.At.ToOffset()) : null,
+			LastFailure = LastFailure is { } failure ? new ProviderFailure(ProviderErrorCodeStorage.ParseStoredCode(failure.Code), failure.Message, failure.At.ToOffset()) : null,
 			ConsecutiveFailures = ConsecutiveFailures,
 			ConsecutiveRateLimits = ConsecutiveRateLimits,
 			BackoffLevel = BackoffLevel,

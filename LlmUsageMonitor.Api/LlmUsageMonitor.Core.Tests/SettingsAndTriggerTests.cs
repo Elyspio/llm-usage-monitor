@@ -255,7 +255,7 @@ public sealed class TriggerServiceTests
 
 		var exception = await Should.ThrowAsync<ProviderException>(() => harness.Triggers.RequestManual(Provider.Claude, Token));
 
-		exception.Code.ShouldBe(ProviderErrorCodes.CliBusy);
+		exception.Code.ShouldBe(ProviderErrorCode.CliBusy);
 	}
 
 	[Fact]

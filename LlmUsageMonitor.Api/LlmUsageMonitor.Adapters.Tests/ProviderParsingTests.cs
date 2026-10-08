@@ -39,23 +39,23 @@ public sealed class ClaudeUsageParserTests
 	[InlineData("""[]""")]
 	public void Invalid_values_are_rejected(string json)
 	{
-		Should.Throw<ProviderException>(() => ClaudeUsageParser.Parse(Json(json))).Code.ShouldBe(ProviderErrorCodes.InvalidResponse);
+		Should.Throw<ProviderException>(() => ClaudeUsageParser.Parse(Json(json))).Code.ShouldBe(ProviderErrorCode.InvalidResponse);
 	}
 
 	[Theory]
 	[InlineData(0, """{"is_error":false,"result":"2"}""", null)]
-	[InlineData(1, """{"is_error":true,"api_error_status":401,"result":"Invalid token"}""", ProviderErrorCodes.AuthExpired)]
-	[InlineData(1, """{"is_error":true,"result":"Login expired · Please run /login"}""", ProviderErrorCodes.AuthExpired)]
-	[InlineData(1, """{"is_error":true,"result":"You've hit your session limit"}""", ProviderErrorCodes.UsageLimit)]
-	[InlineData(1, """{"is_error":true,"api_error_status":429,"result":"Request rejected (429)"}""", ProviderErrorCodes.RateLimited)]
-	[InlineData(0, """{"subtype":"success","is_error":true,"result":"API Error: 529 Overloaded"}""", ProviderErrorCodes.Overloaded)]
-	[InlineData(1, """{"is_error":true,"api_error_status":529,"result":"Repeated server errors"}""", ProviderErrorCodes.Overloaded)]
-	[InlineData(1, """{"is_error":true,"api_error_status":500,"result":"Internal server error"}""", ProviderErrorCodes.TriggerFailed)]
-	[InlineData(1, "error: unknown option '--safe-mode'", ProviderErrorCodes.CliUnsupportedOption)]
-	[InlineData(1, """{"is_error":true,"result":"The model asked about an unknown option"}""", ProviderErrorCodes.TriggerFailed)]
-	public void Prompt_results_are_classified_from_is_error_the_status_and_the_text(int exitCode, string output, string? expected)
+	[InlineData(1, """{"is_error":true,"api_error_status":401,"result":"Invalid token"}""", ProviderErrorCode.AuthExpired)]
+	[InlineData(1, """{"is_error":true,"result":"Login expired · Please run /login"}""", ProviderErrorCode.AuthExpired)]
+	[InlineData(1, """{"is_error":true,"result":"You've hit your session limit"}""", ProviderErrorCode.UsageLimit)]
+	[InlineData(1, """{"is_error":true,"api_error_status":429,"result":"Request rejected (429)"}""", ProviderErrorCode.RateLimited)]
+	[InlineData(0, """{"subtype":"success","is_error":true,"result":"API Error: 529 Overloaded"}""", ProviderErrorCode.Overloaded)]
+	[InlineData(1, """{"is_error":true,"api_error_status":529,"result":"Repeated server errors"}""", ProviderErrorCode.Overloaded)]
+	[InlineData(1, """{"is_error":true,"api_error_status":500,"result":"Internal server error"}""", ProviderErrorCode.TriggerFailed)]
+	[InlineData(1, "error: unknown option '--safe-mode'", ProviderErrorCode.CliUnsupportedOption)]
+	[InlineData(1, """{"is_error":true,"result":"The model asked about an unknown option"}""", ProviderErrorCode.TriggerFailed)]
+	public void Prompt_results_are_classified_from_is_error_the_status_and_the_text(int exitCode, string output, ProviderErrorCode? expected)
 	{
-		ClaudePromptRunner.Classify(new(exitCode, output, ""))?.Code.ShouldBe(expected);
+		(ClaudePromptRunner.Classify(new(exitCode, output, ""))?.Code).ShouldBe(expected);
 	}
 
 	private static JsonElement Json(string json)
@@ -100,17 +100,17 @@ public sealed class CodexUsageParserTests
 	{
 		var json = """{ "rateLimitsByLimitId": { "codex": { "primary": { "usedPercent": 1, "windowDurationMins": 0, "resetsAt": null } } } }""";
 
-		Should.Throw<ProviderException>(() => CodexUsageParser.Parse(Json(json))).Code.ShouldBe(ProviderErrorCodes.InvalidResponse);
+		Should.Throw<ProviderException>(() => CodexUsageParser.Parse(Json(json))).Code.ShouldBe(ProviderErrorCode.InvalidResponse);
 	}
 
 	[Theory]
-	[InlineData("""{ "message": "denied", "codexErrorInfo": "unauthorized" }""", ProviderErrorCodes.AuthExpired)]
-	[InlineData("""{ "message": "limit", "codexErrorInfo": "usageLimitExceeded" }""", ProviderErrorCodes.UsageLimit)]
-	[InlineData("""{ "message": "slow down", "codexErrorInfo": "rateLimitExceeded" }""", ProviderErrorCodes.RateLimited)]
-	[InlineData("""{ "message": "busy", "codexErrorInfo": "serverOverloaded" }""", ProviderErrorCodes.Overloaded)]
-	[InlineData("""{ "message": "stream", "codexErrorInfo": { "responseStreamDisconnected": { "httpStatusCode": 502 } } }""", ProviderErrorCodes.TriggerFailed)]
-	[InlineData("""{ "message": "unknown", "codexErrorInfo": null }""", ProviderErrorCodes.TriggerFailed)]
-	public void Turn_errors_are_mapped_from_codexErrorInfo(string error, string expected)
+	[InlineData("""{ "message": "denied", "codexErrorInfo": "unauthorized" }""", ProviderErrorCode.AuthExpired)]
+	[InlineData("""{ "message": "limit", "codexErrorInfo": "usageLimitExceeded" }""", ProviderErrorCode.UsageLimit)]
+	[InlineData("""{ "message": "slow down", "codexErrorInfo": "rateLimitExceeded" }""", ProviderErrorCode.RateLimited)]
+	[InlineData("""{ "message": "busy", "codexErrorInfo": "serverOverloaded" }""", ProviderErrorCode.Overloaded)]
+	[InlineData("""{ "message": "stream", "codexErrorInfo": { "responseStreamDisconnected": { "httpStatusCode": 502 } } }""", ProviderErrorCode.TriggerFailed)]
+	[InlineData("""{ "message": "unknown", "codexErrorInfo": null }""", ProviderErrorCode.TriggerFailed)]
+	public void Turn_errors_are_mapped_from_codexErrorInfo(string error, ProviderErrorCode expected)
 	{
 		CodexPromptRunner.MapTurnError(Json(error)).Code.ShouldBe(expected);
 	}
@@ -126,14 +126,14 @@ public sealed class CodexUsageParserTests
 	}
 
 	[Theory]
-	[InlineData("""{ "code": -32603, "message": "denied", "data": { "codexErrorInfo": "unauthorized" } }""", ProviderErrorCodes.AuthExpired)]
-	[InlineData("""{ "code": -32603, "message": "slow down", "data": { "codexErrorInfo": "rateLimitExceeded" } }""", ProviderErrorCodes.RateLimited)]
-	[InlineData("""{ "code": -32603, "message": "http", "data": { "codexErrorInfo": { "httpConnectionFailed": { "httpStatusCode": 429 } } } }""", ProviderErrorCodes.RateLimited)]
-	[InlineData("""{ "code": -32603, "message": "http", "data": { "httpStatusCode": 401 } }""", ProviderErrorCodes.AuthExpired)]
-	[InlineData("""{ "code": -32601, "message": "method not found" }""", ProviderErrorCodes.CliUnsupportedOption)]
-	[InlineData("""{ "code": -32602, "message": "invalid params: unknown field `approvalPolicy`" }""", ProviderErrorCodes.CliUnsupportedOption)]
+	[InlineData("""{ "code": -32603, "message": "denied", "data": { "codexErrorInfo": "unauthorized" } }""", ProviderErrorCode.AuthExpired)]
+	[InlineData("""{ "code": -32603, "message": "slow down", "data": { "codexErrorInfo": "rateLimitExceeded" } }""", ProviderErrorCode.RateLimited)]
+	[InlineData("""{ "code": -32603, "message": "http", "data": { "codexErrorInfo": { "httpConnectionFailed": { "httpStatusCode": 429 } } } }""", ProviderErrorCode.RateLimited)]
+	[InlineData("""{ "code": -32603, "message": "http", "data": { "httpStatusCode": 401 } }""", ProviderErrorCode.AuthExpired)]
+	[InlineData("""{ "code": -32601, "message": "method not found" }""", ProviderErrorCode.CliUnsupportedOption)]
+	[InlineData("""{ "code": -32602, "message": "invalid params: unknown field `approvalPolicy`" }""", ProviderErrorCode.CliUnsupportedOption)]
 	[InlineData("""{ "code": -32600, "message": "authentication required, please login" }""", null)]
-	public void Rpc_errors_are_classified_on_their_code_and_data(string error, string? expected)
+	public void Rpc_errors_are_classified_on_their_code_and_data(string error, ProviderErrorCode? expected)
 	{
 		CodexErrors.FromRpcError(new CodexRpcException(Json(error))).ShouldBe(expected);
 	}

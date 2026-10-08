@@ -54,7 +54,7 @@ public sealed class ProviderLockTests
 
 		var failed = await harness.Triggers.Get(run.Id, Token);
 		failed.Status.ShouldBe(TriggerStatus.Failed);
-		failed.ErrorCode.ShouldBe(ProviderErrorCodes.CliBusy);
+		failed.ErrorCode.ShouldBe(ProviderErrorCode.CliBusy.ToStoredCode());
 		harness.ClaudeRunner.Models.ShouldBeEmpty();
 	}
 }

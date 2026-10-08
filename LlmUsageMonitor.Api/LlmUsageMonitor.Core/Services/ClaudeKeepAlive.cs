@@ -29,7 +29,7 @@ public sealed class ClaudeKeepAlive(
 		return ScheduleNext(state, await Refresh(cancellationToken));
 	}
 
-	/// <summary>Refreshes the token if needed and returns its up-to-date expiry. Throws <c>AUTH_EXPIRED</c> when it cannot.</summary>
+	/// <summary>Refreshes the token if needed and returns its up-to-date expiry. Throws a <c>ProviderException</c> coded <c>AuthExpired</c> when it cannot.</summary>
 	private async Task<ClaudeTokenInfo> Refresh(CancellationToken cancellationToken)
 	{
 		var token = await session.ReadToken(cancellationToken);
@@ -48,7 +48,7 @@ public sealed class ClaudeKeepAlive(
 
 		if (token.ExpiresAt is not { } refreshed || refreshed - time.GetUtcNow() < RefreshWindow)
 		{
-			throw new ProviderException(ProviderErrorCodes.AuthExpired, "The Claude CLI could not refresh its login. Run `claude auth login` on the service host.");
+			throw new ProviderException(ProviderErrorCode.AuthExpired, "The Claude CLI could not refresh its login. Run `claude auth login` on the service host.");
 		}
 
 		return token;

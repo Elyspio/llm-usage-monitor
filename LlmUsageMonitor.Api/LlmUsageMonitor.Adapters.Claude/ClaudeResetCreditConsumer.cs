@@ -27,7 +27,7 @@ internal sealed class ClaudeResetCreditConsumer(IHttpClientFactory clients, IOpt
 		}
 		catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException or KeyNotFoundException or InvalidOperationException)
 		{
-			throw new ProviderException(ProviderErrorCodes.CredentialsUnavailable, "Cannot read the Claude OAuth organization. Set Claude:AccountConfigPath to the CLI .claude.json.", exception);
+			throw new ProviderException(ProviderErrorCode.CredentialsUnavailable, "Cannot read the Claude OAuth organization. Set Claude:AccountConfigPath to the CLI .claude.json.", exception);
 		}
 		using var request = new HttpRequestMessage(HttpMethod.Post, $"api/organizations/{organization}/reset_rate_limits");
 		request.Headers.Authorization = new("Bearer", credentials.AccessToken);
@@ -42,9 +42,9 @@ internal sealed class ClaudeResetCreditConsumer(IHttpClientFactory clients, IOpt
 			{
 				throw new ProviderException(response.StatusCode switch
 				{
-					HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => ProviderErrorCodes.AuthExpired,
-					HttpStatusCode.TooManyRequests => ProviderErrorCodes.RateLimited,
-					_ => ProviderErrorCodes.HttpError
+					HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => ProviderErrorCode.AuthExpired,
+					HttpStatusCode.TooManyRequests => ProviderErrorCode.RateLimited,
+					_ => ProviderErrorCode.HttpError
 				}, $"Claude reset endpoint returned HTTP {(int)response.StatusCode}.");
 			}
 			using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(timeout.Token), cancellationToken: timeout.Token);
@@ -52,7 +52,7 @@ internal sealed class ClaudeResetCreditConsumer(IHttpClientFactory clients, IOpt
 		}
 		catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
 		{
-			throw new ProviderException(ProviderErrorCodes.Timeout, "Claude reset request timed out.");
+			throw new ProviderException(ProviderErrorCode.Timeout, "Claude reset request timed out.");
 		}
 	}
 }
@@ -85,7 +85,7 @@ public static class ClaudeResetCreditParser
 			"not_limited" or "ineligible" => new(false, outcome),
 			"cooldown" => new(false, outcome, true, Date(root, "cooldown_until")),
 			"unavailable" => new(false, outcome, true),
-			_ => throw new ProviderException(ProviderErrorCodes.InvalidResponse, "Claude returned an unknown reset outcome; retry with the same request ID.")
+			_ => throw new ProviderException(ProviderErrorCode.InvalidResponse, "Claude returned an unknown reset outcome; retry with the same request ID.")
 		};
 	}
 

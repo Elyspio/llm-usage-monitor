@@ -51,7 +51,7 @@ public interface IClaudeKeepAlive
 {
 	/// <summary>
 	///     Refreshes the token if needed, then returns the state with the up-to-date expiry and the next keep-alive scheduled
-	///     four minutes before it. Throws <c>AUTH_EXPIRED</c> when the token cannot be refreshed.
+	///     four minutes before it. Throws a <c>ProviderException</c> coded <c>AuthExpired</c> when the token cannot be refreshed.
 	/// </summary>
 	Task<ProviderState> EnsureFresh(ProviderState state, CancellationToken cancellationToken);
 

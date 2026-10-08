@@ -175,7 +175,7 @@ Les logins vivent dans le home du compte de service et se rafraîchissent en pla
 - La consommation des crédits de reset Claude lit aussi `oauthAccount.organizationUuid` dans ce `.claude.json`. Si le fichier est ailleurs, définir `Claude:AccountConfigPath`. Ce flux non documenté suit Claude Code 2.1.289 ; l'absence d'offre ou une restriction d'éligibilité est affichée dans le dashboard.
 - Codex : `/var/lib/llm-monitor/.codex/auth.json`.
 
-Ce sont des secrets (refresh tokens) : pas de copie hors du LXC sans chiffrement. Les tokens tournent (le refresh token Claude est à usage unique) : une copie ancienne ne sert souvent plus, la reconnexion reste la procédure de référence. L'application prévient N jours avant l'expiration du login Claude (Réglages > Notifications) et dès qu'une lecture échoue en `AUTH_EXPIRED`.
+Ce sont des secrets (refresh tokens) : pas de copie hors du LXC sans chiffrement. Les tokens tournent (le refresh token Claude est à usage unique) : une copie ancienne ne sert souvent plus, la reconnexion reste la procédure de référence. L'application prévient N jours avant l'expiration du login Claude (Réglages > Notifications) et dès qu'une lecture échoue en `authExpired`.
 
 Reconnexion (LXC reconstruit, login expiré ou révoqué), depuis une session sur le LXC :
 

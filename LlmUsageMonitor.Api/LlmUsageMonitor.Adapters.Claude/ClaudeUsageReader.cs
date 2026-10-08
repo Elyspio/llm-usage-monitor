@@ -24,7 +24,7 @@ internal sealed class ClaudeUsageReader(IHttpClientFactory httpClients, IOptions
 		var credentials = await ClaudeCredentialsFile.Read(options.Value.ResolveCredentialsPath(), cancellationToken);
 		if (credentials.ExpiresAt is { } expiresAt && expiresAt <= time.GetUtcNow())
 		{
-			throw new ProviderException(ProviderErrorCodes.AuthExpired, "The Claude CLI login has expired. Refresh it through the Claude CLI.");
+			throw new ProviderException(ProviderErrorCode.AuthExpired, "The Claude CLI login has expired. Refresh it through the Claude CLI.");
 		}
 
 		// Claude Code 2.1.289 requests this block explicitly; a missing block remains unknown, not zero.
@@ -42,10 +42,10 @@ internal sealed class ClaudeUsageReader(IHttpClientFactory httpClients, IOptions
 			{
 				var code = response.StatusCode switch
 				{
-					HttpStatusCode.Unauthorized => ProviderErrorCodes.AuthExpired,
-					HttpStatusCode.Forbidden => ProviderErrorCodes.AccessDenied,
-					HttpStatusCode.TooManyRequests => ProviderErrorCodes.RateLimited,
-					_ => ProviderErrorCodes.HttpError
+					HttpStatusCode.Unauthorized => ProviderErrorCode.AuthExpired,
+					HttpStatusCode.Forbidden => ProviderErrorCode.AccessDenied,
+					HttpStatusCode.TooManyRequests => ProviderErrorCode.RateLimited,
+					_ => ProviderErrorCode.HttpError
 				};
 				throw new ProviderException(code, $"Claude usage endpoint returned HTTP {(int)response.StatusCode}.");
 			}
@@ -56,19 +56,19 @@ internal sealed class ClaudeUsageReader(IHttpClientFactory httpClients, IOptions
 		}
 		catch (Exception exception) when (exception is TimeoutRejectedException || (exception is OperationCanceledException && !cancellationToken.IsCancellationRequested))
 		{
-			throw new ProviderException(ProviderErrorCodes.Timeout, "Claude usage request timed out.", exception);
+			throw new ProviderException(ProviderErrorCode.Timeout, "Claude usage request timed out.", exception);
 		}
 		catch (BrokenCircuitException exception)
 		{
-			throw new ProviderException(ProviderErrorCodes.FetchFailed, "The Claude usage endpoint keeps failing: requests are paused for a moment.", exception);
+			throw new ProviderException(ProviderErrorCode.FetchFailed, "The Claude usage endpoint keeps failing: requests are paused for a moment.", exception);
 		}
 		catch (HttpRequestException exception)
 		{
-			throw new ProviderException(ProviderErrorCodes.FetchFailed, "Unable to reach the Claude usage endpoint.", exception);
+			throw new ProviderException(ProviderErrorCode.FetchFailed, "Unable to reach the Claude usage endpoint.", exception);
 		}
 		catch (JsonException exception)
 		{
-			throw new ProviderException(ProviderErrorCodes.InvalidResponse, "Claude returned an invalid usage document.", exception);
+			throw new ProviderException(ProviderErrorCode.InvalidResponse, "Claude returned an invalid usage document.", exception);
 		}
 	}
 }
@@ -83,7 +83,7 @@ public static class ClaudeUsageParser
 	{
 		if (root.ValueKind != JsonValueKind.Object)
 		{
-			throw new ProviderException(ProviderErrorCodes.InvalidResponse, "Expected a usage object.");
+			throw new ProviderException(ProviderErrorCode.InvalidResponse, "Expected a usage object.");
 		}
 
 		var windows = new List<UsageWindow>();

@@ -29,7 +29,7 @@ public sealed class LifecycleTests
 		storage.Initialized.ShouldBeTrue();
 		var interrupted = harness.Runs.All.ShouldHaveSingleItem();
 		interrupted.Status.ShouldBe(TriggerStatus.Failed);
-		interrupted.ErrorCode.ShouldBe(ProviderErrorCodes.Interrupted);
+		interrupted.ErrorCode.ShouldBe(ProviderErrorCode.Interrupted.ToStoredCode());
 		harness.Scheduler.PollIntervals.ShouldBe(new Dictionary<Provider, int> { [Provider.Claude] = 3, [Provider.Codex] = 3 });
 		harness.Scheduler.EnqueuedPolls.ShouldBe([Provider.Claude, Provider.Codex]);
 		harness.Scheduler.PriceRefreshScheduled.ShouldBeTrue();

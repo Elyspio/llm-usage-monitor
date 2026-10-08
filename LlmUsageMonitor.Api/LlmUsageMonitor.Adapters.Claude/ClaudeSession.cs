@@ -24,7 +24,7 @@ internal static class ClaudeCredentialsFile
 		}
 		catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
 		{
-			throw new ProviderException(ProviderErrorCodes.CredentialsUnavailable, "Cannot read the Claude CLI credentials. Sign in with `claude auth login` or set Claude:CredentialsPath.",
+			throw new ProviderException(ProviderErrorCode.CredentialsUnavailable, "Cannot read the Claude CLI credentials. Sign in with `claude auth login` or set Claude:CredentialsPath.",
 				exception);
 		}
 
@@ -34,7 +34,7 @@ internal static class ClaudeCredentialsFile
 			var oauth = root.TryGetProperty("claudeAiOauth", out var nested) && nested.ValueKind == JsonValueKind.Object ? nested : root;
 			if (!oauth.TryGetProperty("accessToken", out var token) || token.ValueKind != JsonValueKind.String || string.IsNullOrEmpty(token.GetString()))
 			{
-				throw new ProviderException(ProviderErrorCodes.AuthRequired, "The Claude CLI credentials contain no OAuth access token. Sign in with `claude auth login`.");
+				throw new ProviderException(ProviderErrorCode.AuthRequired, "The Claude CLI credentials contain no OAuth access token. Sign in with `claude auth login`.");
 			}
 
 			return new(token.GetString()!, ReadMilliseconds(oauth, "expiresAt"), ReadMilliseconds(oauth, "refreshTokenExpiresAt"));
@@ -75,7 +75,7 @@ internal sealed class ClaudeSession(IOptions<ClaudeOptions> options, ILogger<Cla
 		if (CliProcess.IsUnsupportedOption(output))
 		{
 			var version = await CliProcess.ReadVersion(settings.Executable, settings.ResolveWorkingDirectory(), logger, cancellationToken);
-			throw new ProviderException(ProviderErrorCodes.CliUnsupportedOption, $"{CliProcess.Truncate(output)} (claude {version}: `claude mcp list` no longer refreshes the token)");
+			throw new ProviderException(ProviderErrorCode.CliUnsupportedOption, $"{CliProcess.Truncate(output)} (claude {version}: `claude mcp list` no longer refreshes the token)");
 		}
 
 		// An MCP server failing to start is not fatal: the refreshed expiry, read next, decides.

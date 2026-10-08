@@ -952,6 +952,31 @@
           }
         }
       },
+      "ProviderErrorCode": {
+        "enum": [
+          "authExpired",
+          "authRequired",
+          "credentialsUnavailable",
+          "accessDenied",
+          "rateLimited",
+          "usageLimit",
+          "httpError",
+          "timeout",
+          "fetchFailed",
+          "invalidResponse",
+          "noUsageData",
+          "cliUnavailable",
+          "cliExited",
+          "cliBusy",
+          "triggerFailed",
+          "interrupted",
+          "overloaded",
+          "cancelled",
+          "unexpectedError",
+          "cliUnsupportedOption",
+          "notificationFailed"
+        ]
+      },
       "ProviderFailure": {
         "required": [
           "code",
@@ -961,7 +986,7 @@
         "type": "object",
         "properties": {
           "code": {
-            "type": "string"
+            "$ref": "#/components/schemas/ProviderErrorCode"
           },
           "message": {
             "type": "string"

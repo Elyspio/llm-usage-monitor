@@ -95,7 +95,7 @@ internal sealed class CodexAppServer : IAsyncDisposable
 			await server.Notify("initialized", new { });
 			return server;
 		}
-		catch (ProviderException exception) when (exception.Code == ProviderErrorCodes.CliExited)
+		catch (ProviderException exception) when (exception.Code == ProviderErrorCode.CliExited)
 		{
 			// Exited before answering: an argument the CLI no longer accepts is reported with its version.
 			var stderr = await server.ReadErrors();
@@ -103,7 +103,7 @@ internal sealed class CodexAppServer : IAsyncDisposable
 			if (CliProcess.IsUnsupportedOption(stderr))
 			{
 				var version = await CliProcess.ReadVersion(options.Executable, options.ResolveWorkingDirectory(), logger, cancellationToken);
-				throw new ProviderException(ProviderErrorCodes.CliUnsupportedOption, $"{CliProcess.Truncate(stderr)} (codex {version}: update the arguments of CodexAppServer)");
+				throw new ProviderException(ProviderErrorCode.CliUnsupportedOption, $"{CliProcess.Truncate(stderr)} (codex {version}: update the arguments of CodexAppServer)");
 			}
 
 			throw;
@@ -169,7 +169,7 @@ internal sealed class CodexAppServer : IAsyncDisposable
 		}
 		catch (IOException exception)
 		{
-			throw new ProviderException(ProviderErrorCodes.CliExited, "Codex closed its input before answering.", exception);
+			throw new ProviderException(ProviderErrorCode.CliExited, "Codex closed its input before answering.", exception);
 		}
 		finally
 		{
@@ -216,7 +216,7 @@ internal sealed class CodexAppServer : IAsyncDisposable
 		}
 		finally
 		{
-			var exited = new ProviderException(ProviderErrorCodes.CliExited, "Codex exited before answering.");
+			var exited = new ProviderException(ProviderErrorCode.CliExited, "Codex exited before answering.");
 			foreach (var completion in _pending.Values) completion.TrySetException(exited);
 			_notifications.Writer.TryComplete(exited);
 		}

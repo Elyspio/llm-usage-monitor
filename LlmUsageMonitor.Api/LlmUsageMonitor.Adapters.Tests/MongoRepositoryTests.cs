@@ -1,4 +1,5 @@
 using LlmUsageMonitor.Abstractions.Data;
+using LlmUsageMonitor.Abstractions.Exceptions;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
 using LlmUsageMonitor.Abstractions.Interfaces.Repositories;
 using LlmUsageMonitor.Adapters.MongoDB;
@@ -296,7 +297,7 @@ public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<Mon
 		var state = new ProviderState(Provider.Claude)
 		{
 			LastReading = new(Now, [new("five_hour", 0, null, 300)]),
-			LastFailure = new("RATE_LIMITED", "HTTP 429", Now),
+			LastFailure = new(ProviderErrorCode.RateLimited, "HTTP 429", Now),
 			BackoffLevel = 2,
 			BackoffUntil = Now.AddMinutes(30),
 			ActiveAlerts = [NotificationKind.AuthExpired],

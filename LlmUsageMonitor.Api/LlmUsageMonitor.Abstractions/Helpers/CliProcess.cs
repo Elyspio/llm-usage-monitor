@@ -49,7 +49,7 @@ public static partial class CliProcess
 					throw;
 				}
 
-				throw new ProviderException(ProviderErrorCodes.Timeout, $"{executable} did not finish within {timeout.TotalSeconds:0} s.");
+				throw new ProviderException(ProviderErrorCode.Timeout, $"{executable} did not finish within {timeout.TotalSeconds:0} s.");
 			}
 
 			var result = new CliResult(process.ExitCode, await standardOutput, await standardError);
@@ -87,12 +87,12 @@ public static partial class CliProcess
 
 		try
 		{
-			return Process.Start(info) ?? throw new ProviderException(ProviderErrorCodes.CliUnavailable, $"Cannot start {executable}.");
+			return Process.Start(info) ?? throw new ProviderException(ProviderErrorCode.CliUnavailable, $"Cannot start {executable}.");
 		}
 		catch (Win32Exception exception)
 		{
 			logger.LogWarning("{Command} could not start: {Error}", Describe(executable, arguments), exception.Message);
-			throw new ProviderException(ProviderErrorCodes.CliUnavailable, $"Cannot start {executable}. {unavailableHint}", exception);
+			throw new ProviderException(ProviderErrorCode.CliUnavailable, $"Cannot start {executable}. {unavailableHint}", exception);
 		}
 	}
 

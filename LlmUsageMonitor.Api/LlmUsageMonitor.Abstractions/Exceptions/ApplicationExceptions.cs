@@ -3,35 +3,60 @@ namespace LlmUsageMonitor.Abstractions.Exceptions;
 /// <summary>
 ///     A failure reported by a provider adapter (reading, prompt or CLI), with a stable code shown to the user.
 /// </summary>
-public sealed class ProviderException(string code, string message, Exception? innerException = null) : Exception(message, innerException)
+public sealed class ProviderException(ProviderErrorCode code, string message, Exception? innerException = null) : Exception(message, innerException)
 {
-	public string Code { get; } = code;
+	public ProviderErrorCode Code { get; } = code;
 }
 
-public static class ProviderErrorCodes
+/// <summary>
+///     The stable failure codes of the providers, shown on the dashboard and in the alerts.
+/// </summary>
+public enum ProviderErrorCode
 {
-	public const string AuthExpired = "AUTH_EXPIRED";
-	public const string AuthRequired = "AUTH_REQUIRED";
-	public const string CredentialsUnavailable = "CREDENTIALS_UNAVAILABLE";
-	public const string AccessDenied = "ACCESS_DENIED";
-	public const string RateLimited = "RATE_LIMITED";
-	public const string UsageLimit = "USAGE_LIMIT";
-	public const string HttpError = "HTTP_ERROR";
-	public const string Timeout = "TIMEOUT";
-	public const string FetchFailed = "FETCH_FAILED";
-	public const string InvalidResponse = "INVALID_RESPONSE";
-	public const string NoUsageData = "NO_USAGE_DATA";
-	public const string CliUnavailable = "CLI_UNAVAILABLE";
-	public const string CliExited = "CLI_EXITED";
-	public const string CliBusy = "CLI_BUSY";
-	public const string TriggerFailed = "TRIGGER_FAILED";
-	public const string Interrupted = "INTERRUPTED";
-	public const string Overloaded = "OVERLOADED";
-	public const string Cancelled = "CANCELLED";
-	public const string Unexpected = "UNEXPECTED_ERROR";
+	AuthExpired,
+	AuthRequired,
+	CredentialsUnavailable,
+	AccessDenied,
+	RateLimited,
+	UsageLimit,
+	HttpError,
+	Timeout,
+	FetchFailed,
+	InvalidResponse,
+	NoUsageData,
+	CliUnavailable,
+	CliExited,
+	CliBusy,
+	TriggerFailed,
+	Interrupted,
+	Overloaded,
+	Cancelled,
+	UnexpectedError,
 
 	/// <summary>The CLI updated itself and rejects an option or a protocol method the adapter uses; the message carries its version.</summary>
-	public const string CliUnsupportedOption = "CLI_UNSUPPORTED_OPTION";
+	CliUnsupportedOption,
+
+	/// <summary>A notification could not be sent.</summary>
+	NotificationFailed
+}
+
+public static class ProviderErrorCodeStorage
+{
+	/// <summary>
+	///     The upper snake case form (<c>AUTH_EXPIRED</c>) kept by the stored trigger and reset credit runs, and by the problem details.
+	/// </summary>
+	public static string ToStoredCode(this ProviderErrorCode code)
+	{
+		return string.Concat(code.ToString().Select((letter, index) => index > 0 && char.IsUpper(letter) ? $"_{letter}" : letter.ToString())).ToUpperInvariant();
+	}
+
+	/// <summary>
+	///     Reads a stored code back; a code this version does not know is an unexpected error.
+	/// </summary>
+	public static ProviderErrorCode ParseStoredCode(string? storedCode)
+	{
+		return Enum.GetValues<ProviderErrorCode>().FirstOrDefault(code => code.ToStoredCode() == storedCode, ProviderErrorCode.UnexpectedError);
+	}
 }
 
 /// <summary>

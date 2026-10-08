@@ -76,7 +76,7 @@ public sealed class TriggerService(
 		{
 			if (locks.IsBusy(provider) || await runs.GetRunning(provider, cancellationToken) is { })
 			{
-				throw new ProviderException(ProviderErrorCodes.CliBusy, "A CLI process is already running for this provider.");
+				throw new ProviderException(ProviderErrorCode.CliBusy, "A CLI process is already running for this provider.");
 			}
 
 			var settings = await settingsService.Get(cancellationToken);
@@ -102,7 +102,7 @@ public sealed class TriggerService(
 		if (providerLock is null)
 		{
 			logger.LogWarning("{Provider} manual trigger {RunId} given up: the provider is still busy after {Wait}", run.Provider, run.Id, ProviderLocks.JobWait);
-			await runs.Complete(run.Id, TriggerStatus.Failed, time.GetUtcNow(), ProviderErrorCodes.CliBusy, "Another CLI process kept the provider busy.", null, CancellationToken.None);
+			await runs.Complete(run.Id, TriggerStatus.Failed, time.GetUtcNow(), ProviderErrorCode.CliBusy.ToStoredCode(), "Another CLI process kept the provider busy.", null, CancellationToken.None);
 			return;
 		}
 
@@ -121,8 +121,8 @@ public sealed class TriggerService(
 		var now = time.GetUtcNow();
 		foreach (var run in running)
 		{
-			var retryAt = RetryAt(run, ProviderErrorCodes.Interrupted, now, TimeSpan.Zero);
-			await runs.Complete(run.Id, TriggerStatus.Failed, now, ProviderErrorCodes.Interrupted, "Interrupted by a service restart.", retryAt, cancellationToken);
+			var retryAt = RetryAt(run, ProviderErrorCode.Interrupted, now, TimeSpan.Zero);
+			await runs.Complete(run.Id, TriggerStatus.Failed, now, ProviderErrorCode.Interrupted.ToStoredCode(), "Interrupted by a service restart.", retryAt, cancellationToken);
 		}
 
 		return running.Count;
@@ -132,9 +132,9 @@ public sealed class TriggerService(
 	///     Transient failures: an overloaded provider, a CLI that timed out or exited, a run cut by a restart or a cancellation.
 	///     Never a login, usage limit or configuration error.
 	/// </summary>
-	public static bool IsTransient(string? errorCode)
+	public static bool IsTransient(ProviderErrorCode errorCode)
 	{
-		return errorCode is ProviderErrorCodes.Overloaded or ProviderErrorCodes.Timeout or ProviderErrorCodes.CliExited or ProviderErrorCodes.Interrupted or ProviderErrorCodes.Cancelled;
+		return errorCode is ProviderErrorCode.Overloaded or ProviderErrorCode.Timeout or ProviderErrorCode.CliExited or ProviderErrorCode.Interrupted or ProviderErrorCode.Cancelled;
 	}
 
 	private async Task<TriggerRun> Execute(TriggerRun run, CancellationToken cancellationToken)
@@ -153,26 +153,26 @@ public sealed class TriggerService(
 		{
 			// The job is stopping (service shutdown or deleted job): the run ends, it never stays running.
 			logger.LogWarning("{Provider} trigger cancelled", run.Provider);
-			await Fail(run, ProviderErrorCodes.Cancelled, "The trigger was cancelled before its end.", TimeSpan.Zero);
+			await Fail(run, ProviderErrorCode.Cancelled, "The trigger was cancelled before its end.", TimeSpan.Zero);
 			throw;
 		}
 		catch (Exception exception)
 		{
 			logger.LogError(exception, "{Provider} trigger failed unexpectedly", run.Provider);
-			return await Fail(run, ProviderErrorCodes.TriggerFailed, exception.Message);
+			return await Fail(run, ProviderErrorCode.TriggerFailed, exception.Message);
 		}
 	}
 
-	private Task<TriggerRun> Fail(TriggerRun run, string code, string message, TimeSpan? retryDelay = null)
+	private Task<TriggerRun> Fail(TriggerRun run, ProviderErrorCode code, string message, TimeSpan? retryDelay = null)
 	{
 		var now = time.GetUtcNow();
-		return runs.Complete(run.Id, TriggerStatus.Failed, now, code, message, RetryAt(run, code, now, retryDelay), CancellationToken.None);
+		return runs.Complete(run.Id, TriggerStatus.Failed, now, code.ToStoredCode(), message, RetryAt(run, code, now, retryDelay), CancellationToken.None);
 	}
 
 	/// <summary>
 	///     An automatic run failed on a transient error is retried, at most <see cref="MaxAttempts" /> attempts in all.
 	/// </summary>
-	private static DateTimeOffset? RetryAt(TriggerRun run, string code, DateTimeOffset now, TimeSpan? delay)
+	private static DateTimeOffset? RetryAt(TriggerRun run, ProviderErrorCode code, DateTimeOffset now, TimeSpan? delay)
 	{
 		if (run.Manual || !IsTransient(code) || run.Attempts >= MaxAttempts)
 		{
