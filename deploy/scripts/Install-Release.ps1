@@ -39,7 +39,8 @@ install -m 644 /tmp/llm-usage-monitor.service /etc/systemd/system/llm-usage-moni
 systemctl daemon-reload
 systemctl enable llm-usage-monitor >/dev/null
 systemctl stop llm-usage-monitor || true
-mkdir -p $InstallDirectory
+# 755 whatever it was: the archives installed before left it world-writable.
+install -d -m 755 $InstallDirectory
 # Left by the archives installed before: an appsettings.json on disk would override the defaults embedded in the executable.
 find $InstallDirectory -mindepth 1 -maxdepth 1 ! -name LlmUsageMonitor.WebApi -exec rm -rf {} +
 install -m 755 /tmp/llm-usage-monitor $InstallDirectory/LlmUsageMonitor.WebApi
