@@ -50,6 +50,10 @@ internal sealed class TriggerRunDocument
 	[BsonIgnoreIfNull] public string? CycleKey { get; set; }
 
 	public string Model { get; set; } = null!;
+
+	/// <summary>Absent from the runs stored before the effort was configurable.</summary>
+	[BsonIgnoreIfNull] public ReasoningEffort? Effort { get; set; }
+
 	public TriggerStatus Status { get; set; }
 	public DateTime StartedAt { get; set; }
 	public DateTime? EndedAt { get; set; }
@@ -63,7 +67,10 @@ internal sealed class TriggerRunDocument
 
 	public TriggerRun ToDomain()
 	{
-		return new(Id.ToString(), Provider, Manual, CycleKey, Model, Status, StartedAt.ToOffset(), EndedAt.ToOffset(), ErrorCode, Error, Math.Max(1, Attempts), NextRetryAt.ToOffset());
+		return new(Id.ToString(), Provider, Manual, CycleKey, Model, Status, StartedAt.ToOffset(), EndedAt.ToOffset(), ErrorCode, Error, Math.Max(1, Attempts), NextRetryAt.ToOffset())
+		{
+			Effort = Effort
+		};
 	}
 }
 
@@ -251,14 +258,17 @@ internal sealed class ProviderTriggerDocument
 	public bool AutoEnabled { get; set; }
 	public string Model { get; set; } = null!;
 
+	/// <summary>Absent from the settings stored before the effort was configurable: no reasoning.</summary>
+	public ReasoningEffort Effort { get; set; } = ReasoningEffort.None;
+
 	public static ProviderTriggerDocument FromDomain(ProviderTriggerSettings settings)
 	{
-		return new() { AutoEnabled = settings.AutoEnabled, Model = settings.Model };
+		return new() { AutoEnabled = settings.AutoEnabled, Model = settings.Model, Effort = settings.Effort };
 	}
 
 	public ProviderTriggerSettings ToDomain()
 	{
-		return new(AutoEnabled, Model);
+		return new(AutoEnabled, Model, Effort);
 	}
 }
 

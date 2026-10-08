@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json.Nodes;
+using LlmUsageMonitor.Abstractions.Data;
 using LlmUsageMonitor.Abstractions.Exceptions;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
 using LlmUsageMonitor.Adapters.Claude;
@@ -93,14 +94,28 @@ public sealed class ClaudeAdapterTests
 	{
 		using var cli = new FakeCli(Scenario(new() { ["-p"] = Command("""{"type":"result","is_error":false,"result":"2"}""") }));
 
-		await Runner(cli).Run("claude-test", Token);
+		await Runner(cli).Run("claude-test", ReasoningEffort.High, Token);
 
 		var invocation = cli.Invocations.ShouldHaveSingleItem();
 		invocation.ShouldStartWith($"-p {ClaudePromptRunner.Prompt}");
 		invocation.ShouldContain("--model claude-test");
+		invocation.ShouldContain("--effort high");
+		invocation.ShouldNotContain("--settings");
 		invocation.ShouldContain("--no-session-persistence");
 		invocation.ShouldContain("--max-turns 1");
 		invocation.ShouldNotContain("--bare");
+	}
+
+	[Fact]
+	public async Task No_reasoning_runs_at_the_lowest_effort_with_thinking_disabled()
+	{
+		using var cli = new FakeCli(Scenario(new() { ["-p"] = Command("""{"type":"result","is_error":false,"result":"2"}""") }));
+
+		await Runner(cli).Run("claude-test", ReasoningEffort.None, Token);
+
+		var invocation = cli.Invocations.ShouldHaveSingleItem();
+		invocation.ShouldContain("--effort low");
+		invocation.ShouldContain("""--settings {"alwaysThinkingEnabled":false}""");
 	}
 
 	[Fact]
@@ -108,7 +123,7 @@ public sealed class ClaudeAdapterTests
 	{
 		using var cli = new FakeCli(Scenario(new() { ["-p"] = Command("""{"type":"result","is_error":true,"result":"You've hit your limit · resets 5pm"}""", exitCode: 1) }));
 
-		var exception = await Should.ThrowAsync<ProviderException>(() => Runner(cli).Run("claude-test", Token));
+		var exception = await Should.ThrowAsync<ProviderException>(() => Runner(cli).Run("claude-test", ReasoningEffort.Low, Token));
 
 		exception.Code.ShouldBe(ProviderErrorCode.UsageLimit);
 	}

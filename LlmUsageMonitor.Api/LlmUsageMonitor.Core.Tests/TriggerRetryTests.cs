@@ -105,7 +105,7 @@ public sealed class TriggerRetryTests
 	{
 		var harness = await WaitingCycle();
 		var cycleKey = $"resets:{ResetsAt:yyyy-MM-ddTHH:mm}Z";
-		harness.Runs.Start(Provider.Codex, false, cycleKey, "gpt-5.6-luna", ResetsAt);
+		harness.Runs.Start(Provider.Codex, false, cycleKey, new(true, "gpt-5.6-luna", ReasoningEffort.None), ResetsAt);
 		await harness.States.Save(harness.States.Stored[Provider.Codex] with { CurrentCycleKey = cycleKey }, Token);
 
 		(await harness.Triggers.RecoverInterrupted(Token)).ShouldBe(1);

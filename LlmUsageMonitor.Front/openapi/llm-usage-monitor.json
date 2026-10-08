@@ -1078,7 +1078,8 @@
       "ProviderTriggerSettings": {
         "required": [
           "autoEnabled",
-          "model"
+          "model",
+          "effort"
         ],
         "type": "object",
         "properties": {
@@ -1087,8 +1088,23 @@
           },
           "model": {
             "type": "string"
+          },
+          "effort": {
+            "$ref": "#/components/schemas/ReasoningEffort"
           }
         }
+      },
+      "ReasoningEffort": {
+        "enum": [
+          "none",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+          "ultra",
+          null
+        ]
       },
       "ResetCredit": {
         "required": [
@@ -1590,6 +1606,16 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "effort": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ReasoningEffort"
+              }
+            ]
           },
           "durationMs": {
             "type": [

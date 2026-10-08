@@ -18,13 +18,14 @@ internal sealed class ClaudePromptRunner(IOptions<ClaudeOptions> options, ILogge
 
 	public Provider Provider => Provider.Claude;
 
-	public async Task Run(string model, CancellationToken cancellationToken)
+	public async Task Run(string model, ReasoningEffort effort, CancellationToken cancellationToken)
 	{
 		var settings = options.Value;
 		string[] arguments =
 		[
 			"-p", Prompt,
 			"--model", model,
+			.. EffortArguments(effort),
 			"--tools", "",
 			"--output-format", "json",
 			"--no-session-persistence",
@@ -48,6 +49,16 @@ internal sealed class ClaudePromptRunner(IOptions<ClaudeOptions> options, ILogge
 		}
 
 		throw failure;
+	}
+
+	/// <summary>
+	///     The CLI ignores <c>--effort none</c>: no reasoning is the lowest level with thinking disabled.
+	/// </summary>
+	private static string[] EffortArguments(ReasoningEffort effort)
+	{
+		return effort == ReasoningEffort.None
+			? ["--effort", ReasoningEffort.Low.ToCliValue(), "--settings", """{"alwaysThinkingEnabled":false}"""]
+			: ["--effort", effort.ToCliValue()];
 	}
 
 	/// <summary>

@@ -33,9 +33,6 @@ public sealed class CodexOptions
 
 	public int PromptTimeoutSeconds { get; init; } = 180;
 
-	/// <summary>The reasoning effort of the minimal prompt.</summary>
-	public string Effort { get; init; } = "low";
-
 	internal string ResolveWorkingDirectory()
 	{
 		var directory = WorkingDirectory ?? Path.Combine(Path.GetTempPath(), "llm-usage-monitor", "codex");

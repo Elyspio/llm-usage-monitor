@@ -73,7 +73,7 @@ const Outcome = ({ run }: { run: TriggerRun }) => {
 		<>
 			<Chip size="small" color={run.status === "succeeded" ? "success" : "error"} variant="outlined" label={run.status === "succeeded" ? "succeeded" : "failed"} />
 			<Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
-				{[run.model, duration, attempts, retry].filter(Boolean).join(" · ")}
+				{[run.model, run.effort, duration, attempts, retry].filter(Boolean).join(" · ")}
 			</Typography>
 			{run.error && (
 				<Box component="details" sx={{ typography: "caption", mt: 0.5 }}>

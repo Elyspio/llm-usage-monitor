@@ -45,7 +45,7 @@ public sealed class SettingsConcurrencyTests
 		await harness.States.Save(new(Provider.Codex) { PendingResetCheck = new("job-42", TestHarness.Start.AddHours(1)) }, Token);
 		var held = await harness.Locks.TryAcquire(Provider.Codex, TimeSpan.Zero, Token);
 
-		var update = harness.Settings.UpdateTriggers(new(new(true, "haiku"), new(false, "luna")), Token);
+		var update = harness.Settings.UpdateTriggers(new(new(true, "haiku", ReasoningEffort.None), new(false, "luna", ReasoningEffort.None)), Token);
 		harness.Scheduler.Deleted.ShouldBeEmpty();
 		held!.Dispose();
 		await update;
@@ -61,7 +61,7 @@ public sealed class SettingsConcurrencyTests
 		await harness.States.Save(new(Provider.Codex) { PendingResetCheck = new("job-42", TestHarness.Start.AddHours(1)) }, Token);
 		using (await harness.Locks.TryAcquire(Provider.Codex, TimeSpan.Zero, Token))
 		{
-			var update = harness.Settings.UpdateTriggers(new(new(true, "haiku"), new(false, "luna")), Token);
+			var update = harness.Settings.UpdateTriggers(new(new(true, "haiku", ReasoningEffort.None), new(false, "luna", ReasoningEffort.None)), Token);
 			harness.Time.Advance(SettingsService.ProviderWait);
 			await update;
 		}

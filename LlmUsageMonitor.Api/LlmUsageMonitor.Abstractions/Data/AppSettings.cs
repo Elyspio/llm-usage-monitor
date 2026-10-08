@@ -10,7 +10,7 @@ public sealed record AppSettings(PollingSettings Polling, TriggerSettings Trigge
 	{
 		return new(
 			new(3, 3),
-			new(new(autoTriggerEnabled, "haiku"), new(autoTriggerEnabled, "gpt-5.6-luna")),
+			new(new(autoTriggerEnabled, "haiku", ReasoningEffort.None), new(autoTriggerEnabled, "gpt-5.6-luna", ReasoningEffort.None)),
 			new("https://ntfy.sh", null, null, NotificationEventsByProvider.Default, 3, null, NotificationSettings.DefaultCredentialExpiryAlertDays));
 	}
 }
@@ -53,7 +53,39 @@ public sealed record TriggerSettings(ProviderTriggerSettings Claude, ProviderTri
 
 /// <param name="AutoEnabled">Whether the trigger starts on its own after a reset; readings and manual triggers are unaffected.</param>
 /// <param name="Model">The model of the minimal prompt.</param>
-public sealed record ProviderTriggerSettings(bool AutoEnabled, string Model);
+/// <param name="Effort">The reasoning effort of the minimal prompt.</param>
+public sealed record ProviderTriggerSettings(bool AutoEnabled, string Model, ReasoningEffort Effort);
+
+/// <summary>
+///     The reasoning effort of the minimal prompt: the lowest is enough to open the windows.
+/// </summary>
+public enum ReasoningEffort
+{
+	/// <summary>No reasoning. The Claude CLI has no such level: it runs at <c>low</c> with thinking disabled.</summary>
+	None,
+	Low,
+	Medium,
+	High,
+	Xhigh,
+	Max,
+
+	/// <summary>Codex only.</summary>
+	Ultra
+}
+
+public static class ReasoningEffortExtensions
+{
+	public static bool IsSupportedBy(this ReasoningEffort effort, Provider provider)
+	{
+		return Enum.IsDefined(effort) && (effort != ReasoningEffort.Ultra || provider == Provider.Codex);
+	}
+
+	/// <summary>The level as the CLIs write it.</summary>
+	public static string ToCliValue(this ReasoningEffort effort)
+	{
+		return effort.ToString().ToLowerInvariant();
+	}
+}
 
 /// <param name="Url">The ntfy server URL.</param>
 /// <param name="Topic">The topic; notifications are disabled while it is empty.</param>

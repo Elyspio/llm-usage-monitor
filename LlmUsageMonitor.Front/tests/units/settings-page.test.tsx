@@ -73,7 +73,7 @@ describe("SettingsPage", () => {
 			within(table)
 				.getAllByRole("columnheader")
 				.map((header) => header.textContent)
-		).toEqual(["Provider", "Automatic after reset", "Model"]);
+		).toEqual(["Provider", "Automatic after reset", "Model", "Effort"]);
 
 		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
 
@@ -105,6 +105,28 @@ describe("SettingsPage", () => {
 		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
 
 		await expect.poll(() => body).toMatchObject({ claude: { model: "claude-haiku-5-5" }, codex: { model: "custom-codex-model" } });
+	});
+
+	it("offers ultra to Codex only and saves the chosen effort", async () => {
+		let body: unknown = null;
+		server.use(
+			http.put(`${apiUrl}/api/settings/triggers`, async ({ request }) => {
+				body = await request.json();
+				return HttpResponse.json(body as Record<string, unknown>);
+			})
+		);
+		renderPage();
+		const form = await screen.findByRole("form", { name: "Trigger" });
+
+		fireEvent.mouseDown(within(form).getByRole("combobox", { name: "Claude effort" }));
+		const claudeOptions = within(await screen.findByRole("listbox")).getAllByRole("option");
+		expect(claudeOptions.map((option) => option.textContent)).toEqual(["none", "low", "medium", "high", "xhigh", "max"]);
+		fireEvent.click(claudeOptions[1]);
+		fireEvent.mouseDown(within(form).getByRole("combobox", { name: "Codex effort" }));
+		fireEvent.click(await screen.findByRole("option", { name: "ultra" }));
+		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
+
+		await expect.poll(() => body).toMatchObject({ claude: { effort: "low" }, codex: { effort: "ultra" } });
 	});
 
 	it("never shows the token and keeps it when the field stays empty", async () => {

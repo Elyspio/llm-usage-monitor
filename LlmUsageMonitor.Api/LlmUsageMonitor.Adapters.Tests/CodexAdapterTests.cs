@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using LlmUsageMonitor.Abstractions.Data;
 using LlmUsageMonitor.Abstractions.Exceptions;
 using LlmUsageMonitor.Adapters.Codex;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -89,7 +90,7 @@ public sealed class CodexAdapterTests
 	{
 		using var cli = new FakeCli(Scenario(rpc: PromptRpc(new JsonObject { ["status"] = "completed" })));
 
-		await Runner(cli).Run("gpt-test", Token);
+		await Runner(cli).Run("gpt-test", ReasoningEffort.None, Token);
 
 		Methods(cli).ShouldBe(["initialize", "initialized", "thread/start", "turn/start"]);
 		var thread = cli.Messages.Single(message => message.GetProperty("method").GetString() == "thread/start").GetProperty("params");
@@ -100,6 +101,7 @@ public sealed class CodexAdapterTests
 		var turn = cli.Messages.Single(message => message.GetProperty("method").GetString() == "turn/start").GetProperty("params");
 		turn.GetProperty("threadId").GetString().ShouldBe("thread-1");
 		turn.GetProperty("input")[0].GetProperty("text").GetString().ShouldBe(CodexPromptRunner.Prompt);
+		turn.GetProperty("effort").GetString().ShouldBe("none");
 	}
 
 	[Fact]
@@ -108,7 +110,7 @@ public sealed class CodexAdapterTests
 		var failed = new JsonObject { ["status"] = "failed", ["error"] = new JsonObject { ["message"] = "You've hit your usage limit.", ["codexErrorInfo"] = "usageLimitExceeded" } };
 		using var cli = new FakeCli(Scenario(rpc: PromptRpc(failed)));
 
-		var exception = await Should.ThrowAsync<ProviderException>(() => Runner(cli).Run("gpt-test", Token));
+		var exception = await Should.ThrowAsync<ProviderException>(() => Runner(cli).Run("gpt-test", ReasoningEffort.Low, Token));
 
 		exception.Code.ShouldBe(ProviderErrorCode.UsageLimit);
 		exception.Message.ShouldBe("You've hit your usage limit.");
@@ -121,7 +123,7 @@ public sealed class CodexAdapterTests
 		using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(Token);
 		cancellation.CancelAfter(TimeSpan.FromMilliseconds(500));
 
-		var exception = await Record.ExceptionAsync(() => Runner(cli).Run("gpt-test", cancellation.Token));
+		var exception = await Record.ExceptionAsync(() => Runner(cli).Run("gpt-test", ReasoningEffort.Low, cancellation.Token));
 
 		exception.ShouldBeAssignableTo<OperationCanceledException>();
 	}

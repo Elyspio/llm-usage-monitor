@@ -28,10 +28,10 @@ describe("HistoryPage", () => {
 		expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
 	});
 
-	it("lists the latest triggers with their mode, outcome, attempts and error", async () => {
+	it("lists the latest triggers with their mode, effort, outcome, attempts and error", async () => {
 		const runs = [
 			run({ id: "a", status: "running" }),
-			run({ id: "b", provider: "claude", manual: false, status: "succeeded", model: "claude-haiku-4-5", durationMs: 2100, startedAt: iso(-2 * hour) }),
+			run({ id: "b", provider: "claude", manual: false, status: "succeeded", model: "claude-haiku-4-5", effort: "low", durationMs: 2100, startedAt: iso(-2 * hour) }),
 			run({
 				id: "c",
 				manual: false,
@@ -54,7 +54,7 @@ describe("HistoryPage", () => {
 		expect(within(running).getByText("today 11:55")).toBeTruthy();
 		expect(within(succeeded).getByText("auto")).toBeTruthy();
 		expect(within(succeeded).getByText("succeeded")).toBeTruthy();
-		expect(within(succeeded).getByText("claude-haiku-4-5 · 2.1 s")).toBeTruthy();
+		expect(within(succeeded).getByText("claude-haiku-4-5 · low · 2.1 s")).toBeTruthy();
 		expect(within(failed).getByText("yesterday 10:00")).toBeTruthy();
 		expect(within(failed).getByText("gpt-5.6-luna · 3 attempts · retry scheduled")).toBeTruthy();
 		expect(within(failed).getByText("OVERLOADED")).toBeTruthy();

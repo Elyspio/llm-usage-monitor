@@ -1,4 +1,4 @@
-import type { Provider, ProviderErrorCode, ProviderHealth, UsageWindow } from "@/core/apis/generated/types.gen";
+import type { Provider, ProviderErrorCode, ProviderHealth, ReasoningEffort, UsageWindow } from "@/core/apis/generated/types.gen";
 
 export const providers: Provider[] = ["claude", "codex"];
 
@@ -15,6 +15,12 @@ export const windowColor = (provider: Provider, windowId: string) => (provider =
 export const modelSuggestions: Record<Provider, string[]> = {
 	claude: ["claude-haiku-5-5"],
 	codex: ["gpt-6-luna"],
+};
+
+/** Reasoning efforts of the trigger prompt, lowest first; ultra is Codex only. */
+export const effortOptions: Record<Provider, ReasoningEffort[]> = {
+	claude: ["none", "low", "medium", "high", "xhigh", "max"],
+	codex: ["none", "low", "medium", "high", "xhigh", "max", "ultra"],
 };
 
 const windowLabels: Record<string, string> = {

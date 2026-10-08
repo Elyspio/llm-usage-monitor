@@ -17,7 +17,7 @@ internal sealed class CodexPromptRunner(IOptions<CodexOptions> options, ILogger<
 
 	public Provider Provider => Provider.Codex;
 
-	public async Task Run(string model, CancellationToken cancellationToken)
+	public async Task Run(string model, ReasoningEffort effort, CancellationToken cancellationToken)
 	{
 		var settings = options.Value;
 		using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -40,7 +40,8 @@ internal sealed class CodexPromptRunner(IOptions<CodexOptions> options, ILogger<
 			{
 				threadId,
 				input = new object[] { new { type = "text", text = Prompt, text_elements = Array.Empty<object>() } },
-				effort = settings.Effort
+				// "none" is accepted by the models although their advertised levels start at low.
+				effort = effort.ToCliValue()
 			}, timeout.Token);
 
 			await foreach (var notification in server.Notifications.ReadAllAsync(timeout.Token))

@@ -106,17 +106,22 @@ public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<Mon
 
 	private static CancellationToken Token => TestContext.Current.CancellationToken;
 
+	private static ProviderTriggerSettings Prompt(string model, ReasoningEffort effort = ReasoningEffort.None)
+	{
+		return new(true, model, effort);
+	}
+
 	[Fact]
 	public async Task The_unique_index_allows_one_automatic_trigger_per_provider_and_cycle()
 	{
 		await using var services = await mongo.CreateServices();
 		var runs = services.GetRequiredService<ITriggerRunRepository>();
 
-		var first = await runs.TryStartAutomatic(Provider.Codex, "resets:2026-09-14T11:59Z", "luna", Now, Token);
-		var duplicate = await runs.TryStartAutomatic(Provider.Codex, "resets:2026-09-14T11:59Z", "luna", Now, Token);
-		var otherProvider = await runs.TryStartAutomatic(Provider.Claude, "resets:2026-09-14T11:59Z", "haiku", Now, Token);
-		await runs.StartManual(Provider.Codex, "luna", Now, Token);
-		await runs.StartManual(Provider.Codex, "luna", Now, Token);
+		var first = await runs.TryStartAutomatic(Provider.Codex, "resets:2026-09-14T11:59Z", Prompt("luna"), Now, Token);
+		var duplicate = await runs.TryStartAutomatic(Provider.Codex, "resets:2026-09-14T11:59Z", Prompt("luna"), Now, Token);
+		var otherProvider = await runs.TryStartAutomatic(Provider.Claude, "resets:2026-09-14T11:59Z", Prompt("haiku"), Now, Token);
+		await runs.StartManual(Provider.Codex, Prompt("luna"), Now, Token);
+		await runs.StartManual(Provider.Codex, Prompt("luna"), Now, Token);
 
 		first.ShouldNotBeNull();
 		duplicate.ShouldBeNull();
@@ -129,8 +134,8 @@ public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<Mon
 	{
 		await using var services = await mongo.CreateServices();
 		var runs = services.GetRequiredService<ITriggerRunRepository>();
-		var done = await runs.StartManual(Provider.Codex, "luna", Now, Token);
-		var running = await runs.StartManual(Provider.Claude, "haiku", Now, Token);
+		var done = await runs.StartManual(Provider.Codex, Prompt("luna"), Now, Token);
+		var running = await runs.StartManual(Provider.Claude, Prompt("haiku"), Now, Token);
 
 		var completed = await runs.Complete(done.Id, TriggerStatus.Failed, Now.AddSeconds(12), "USAGE_LIMIT", "limit", null, Token);
 
@@ -145,18 +150,19 @@ public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<Mon
 		await using var services = await mongo.CreateServices();
 		var runs = services.GetRequiredService<ITriggerRunRepository>();
 		const string cycle = "resets:2026-09-14T11:59Z";
-		var first = await runs.TryStartAutomatic(Provider.Codex, cycle, "luna", Now, Token);
+		var first = await runs.TryStartAutomatic(Provider.Codex, cycle, Prompt("luna"), Now, Token);
 		await runs.Complete(first!.Id, TriggerStatus.Failed, Now.AddSeconds(5), "OVERLOADED", "529", Now.AddMinutes(2), Token);
 
-		var early = await runs.TryStartAutomatic(Provider.Codex, cycle, "luna", Now.AddMinutes(1), Token);
-		var retried = await runs.TryStartAutomatic(Provider.Codex, cycle, "luna-2", Now.AddMinutes(2), Token);
-		var concurrent = await runs.TryStartAutomatic(Provider.Codex, cycle, "luna", Now.AddMinutes(2), Token);
+		var early = await runs.TryStartAutomatic(Provider.Codex, cycle, Prompt("luna"), Now.AddMinutes(1), Token);
+		var retried = await runs.TryStartAutomatic(Provider.Codex, cycle, Prompt("luna-2", ReasoningEffort.High), Now.AddMinutes(2), Token);
+		var concurrent = await runs.TryStartAutomatic(Provider.Codex, cycle, Prompt("luna"), Now.AddMinutes(2), Token);
 
 		early.ShouldBeNull();
 		concurrent.ShouldBeNull();
 		retried.ShouldNotBeNull();
 		retried.Id.ShouldBe(first.Id);
-		(retried.Status, retried.Attempts, retried.Model, retried.StartedAt).ShouldBe((TriggerStatus.Running, 2, "luna-2", Now.AddMinutes(2)));
+		(retried.Status, retried.Attempts, retried.Model, retried.Effort, retried.StartedAt).ShouldBe((TriggerStatus.Running, 2, "luna-2", ReasoningEffort.High, Now.AddMinutes(2)));
+		(await runs.Get(first.Id, Token))!.Effort.ShouldBe(ReasoningEffort.High);
 		(retried.EndedAt, retried.ErrorCode, retried.NextRetryAt).ShouldBe((null, null, null));
 	}
 
@@ -182,8 +188,9 @@ public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<Mon
 		}, cancellationToken: Token);
 		var runs = services.GetRequiredService<ITriggerRunRepository>();
 
-		(await runs.Get(id.ToString(), Token))!.Attempts.ShouldBe(1);
-		(await runs.TryStartAutomatic(Provider.Codex, "reset:1", "luna", Now, Token))!.Attempts.ShouldBe(2);
+		var legacy = (await runs.Get(id.ToString(), Token))!;
+		(legacy.Attempts, legacy.Effort).ShouldBe((1, null));
+		(await runs.TryStartAutomatic(Provider.Codex, "reset:1", Prompt("luna"), Now, Token))!.Attempts.ShouldBe(2);
 	}
 
 	[Fact]
@@ -344,14 +351,15 @@ public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<Mon
 		{
 			repository.SaveSendFailure(failure with { At = Now.AddSeconds(i) }, Token),
 			repository.SavePolling(new(5, 10), Token),
-			repository.SaveTriggers(new(new(false, "sonnet"), new(true, "luna")), Token),
+			repository.SaveTriggers(new(new(false, "sonnet", ReasoningEffort.High), new(true, "luna", ReasoningEffort.Ultra)), Token),
 			repository.SaveNotifications(defaults.Notifications with { Topic = "topic_1", ReadFailureThreshold = 7 }, Token)
 		});
 		await Task.WhenAll(writes);
 
 		var saved = (await repository.Find(Token))!;
 		saved.Polling.ShouldBe(new(5, 10));
-		saved.Triggers.Claude.ShouldBe(new(false, "sonnet"));
+		saved.Triggers.Claude.ShouldBe(new(false, "sonnet", ReasoningEffort.High));
+		saved.Triggers.Codex.Effort.ShouldBe(ReasoningEffort.Ultra);
 		(saved.Notifications.Topic, saved.Notifications.ReadFailureThreshold).ShouldBe(("topic_1", 7));
 		saved.Notifications.LastSendFailure!.Message.ShouldBe(failure.Message);
 
@@ -393,6 +401,7 @@ public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<Mon
 		var loaded = await services.GetRequiredService<ISettingsRepository>().Find(Token);
 
 		loaded.ShouldNotBeNull();
+		(loaded.Triggers.Claude.Effort, loaded.Triggers.Codex.Effort).ShouldBe((ReasoningEffort.None, ReasoningEffort.None));
 		loaded.Notifications.Events.Claude.ShouldBe(loaded.Notifications.Events.Codex);
 		loaded.Notifications.Events.Claude.TriggerFailed.ShouldBeFalse();
 		loaded.Notifications.Events.Claude.ResetCreditSucceeded.ShouldBeTrue();

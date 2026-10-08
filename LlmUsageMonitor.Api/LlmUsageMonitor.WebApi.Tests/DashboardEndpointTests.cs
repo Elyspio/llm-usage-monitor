@@ -103,6 +103,23 @@ public sealed class DashboardEndpointTests(ApiFactory factory) : IClassFixture<A
 	}
 
 	[Fact]
+	public async Task The_effort_is_sent_by_name_and_ultra_is_refused_for_claude()
+	{
+		using var client = factory.CreateClientWithRoles(ApiFactory.AdminRole);
+		object Trigger(string model, string effort) => new { autoEnabled = false, model, effort };
+
+		var refused = await client.PutAsJsonAsync("/api/settings/triggers", new { claude = Trigger("haiku", "ultra"), codex = Trigger("gpt-5.6-luna", "ultra") }, Token);
+		var saved = await client.PutAsJsonAsync("/api/settings/triggers", new { claude = Trigger("haiku", "xhigh"), codex = Trigger("gpt-5.6-luna", "none") }, Token);
+
+		refused.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+		var problem = await refused.Content.ReadFromJsonAsync<JsonElement>(Token);
+		problem.GetProperty("errors").EnumerateObject().Select(error => error.Name).ShouldBe(["claude.effort"]);
+		saved.StatusCode.ShouldBe(HttpStatusCode.OK);
+		var triggers = await client.GetFromJsonAsync<JsonElement>("/api/settings/triggers", Token);
+		(triggers.GetProperty("claude").GetProperty("effort").GetString(), triggers.GetProperty("codex").GetProperty("effort").GetString()).ShouldBe(("xhigh", "none"));
+	}
+
+	[Fact]
 	public async Task The_ntfy_token_is_never_sent_back()
 	{
 		using var client = factory.CreateClientWithRoles(ApiFactory.AdminRole);

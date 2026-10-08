@@ -10,9 +10,9 @@ internal sealed class TriggerRunRepository(IMongoDatabase database) : ITriggerRu
 {
 	private readonly IMongoCollection<TriggerRunDocument> _runs = database.GetCollection<TriggerRunDocument>(Collections.TriggerRuns);
 
-	public async Task<TriggerRun?> TryStartAutomatic(Provider provider, string cycleKey, string model, DateTimeOffset startedAt, CancellationToken cancellationToken)
+	public async Task<TriggerRun?> TryStartAutomatic(Provider provider, string cycleKey, ProviderTriggerSettings prompt, DateTimeOffset startedAt, CancellationToken cancellationToken)
 	{
-		var document = NewRun(provider, false, cycleKey, model, startedAt);
+		var document = NewRun(provider, false, cycleKey, prompt, startedAt);
 		try
 		{
 			await _runs.InsertOneAsync(document, cancellationToken: cancellationToken);
@@ -35,7 +35,8 @@ internal sealed class TriggerRunRepository(IMongoDatabase database) : ITriggerRu
 				new("$set", new BsonDocument
 				{
 					["status"] = nameof(TriggerStatus.Running),
-					["model"] = new BsonDocument("$literal", model),
+					["model"] = new BsonDocument("$literal", prompt.Model),
+					["effort"] = prompt.Effort.ToString(),
 					["startedAt"] = startedAt.UtcDateTime,
 					// Runs stored before retries existed have no attempts field: they count as one.
 					["attempts"] = new BsonDocument("$add", new BsonArray { new BsonDocument("$max", new BsonArray { new BsonDocument("$ifNull", new BsonArray { "$attempts", 1 }), 1 }), 1 }),
@@ -50,9 +51,9 @@ internal sealed class TriggerRunRepository(IMongoDatabase database) : ITriggerRu
 		return retry?.ToDomain();
 	}
 
-	public async Task<TriggerRun> StartManual(Provider provider, string model, DateTimeOffset startedAt, CancellationToken cancellationToken)
+	public async Task<TriggerRun> StartManual(Provider provider, ProviderTriggerSettings prompt, DateTimeOffset startedAt, CancellationToken cancellationToken)
 	{
-		var document = NewRun(provider, true, null, model, startedAt);
+		var document = NewRun(provider, true, null, prompt, startedAt);
 		await _runs.InsertOneAsync(document, cancellationToken: cancellationToken);
 		return document.ToDomain();
 	}
@@ -121,7 +122,7 @@ internal sealed class TriggerRunRepository(IMongoDatabase database) : ITriggerRu
 		return documents.Select(document => document.ToDomain()).ToList();
 	}
 
-	private static TriggerRunDocument NewRun(Provider provider, bool manual, string? cycleKey, string model, DateTimeOffset startedAt)
+	private static TriggerRunDocument NewRun(Provider provider, bool manual, string? cycleKey, ProviderTriggerSettings prompt, DateTimeOffset startedAt)
 	{
 		return new()
 		{
@@ -129,7 +130,8 @@ internal sealed class TriggerRunRepository(IMongoDatabase database) : ITriggerRu
 			Provider = provider,
 			Manual = manual,
 			CycleKey = cycleKey,
-			Model = model,
+			Model = prompt.Model,
+			Effort = prompt.Effort,
 			Status = TriggerStatus.Running,
 			StartedAt = startedAt.ToUtc(),
 			Attempts = 1

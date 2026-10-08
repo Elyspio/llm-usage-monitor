@@ -29,7 +29,7 @@ public interface IPromptRunner
 {
 	Provider Provider { get; }
 
-	Task Run(string model, CancellationToken cancellationToken);
+	Task Run(string model, ReasoningEffort effort, CancellationToken cancellationToken);
 }
 
 /// <summary>

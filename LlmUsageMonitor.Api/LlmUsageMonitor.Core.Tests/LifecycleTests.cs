@@ -20,7 +20,7 @@ public sealed class LifecycleTests
 	public async Task The_start_prepares_the_storage_recovers_the_runs_and_schedules_every_job()
 	{
 		var harness = new TestHarness();
-		harness.Runs.Start(Provider.Codex, false, "cycle", "gpt", Start.AddMinutes(-5));
+		harness.Runs.Start(Provider.Codex, false, "cycle", new(true, "gpt", ReasoningEffort.None), Start.AddMinutes(-5));
 		var storage = new RecordingStorage();
 		var prices = new InMemoryPrices();
 
