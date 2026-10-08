@@ -13,8 +13,8 @@ export const windowColor = (provider: Provider, windowId: string) => (provider =
  * The field stays free: the installed CLI is the reference, this list is only a shortcut.
  */
 export const modelSuggestions: Record<Provider, string[]> = {
-	claude: ["claude-haiku-4-5", "claude-sonnet-5", "claude-opus-5", "claude-fable-5-1"],
-	codex: ["gpt-6-astra", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.3-codex-spark", "gpt-5.5", "gpt-5.4", "gpt-5.4-mini"],
+	claude: ["claude-haiku-5-5"],
+	codex: ["gpt-6-luna"],
 };
 
 const windowLabels: Record<string, string> = {

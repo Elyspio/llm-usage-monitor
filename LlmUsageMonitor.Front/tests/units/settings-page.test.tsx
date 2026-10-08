@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vite-plus/test";
 import { SettingsPage } from "@pages/SettingsPage";
@@ -25,15 +25,43 @@ const server = mockApi(
 
 const renderPage = (queryClient = testQueryClient()) => render(<SettingsPage />, { queryClient });
 
+async function selectInterval(form: HTMLElement, minutes: number) {
+	const input = within(form).getByLabelText("Claude interval (minutes)");
+	act(() => input.focus());
+	fireEvent.change(input, { target: { value: String(minutes) } });
+	const option = await screen.findByRole("option", { name: `${minutes} min` });
+	fireEvent.click(option);
+}
+
 describe("SettingsPage", () => {
-	it("checks the polling interval before sending it", async () => {
+	it("offers only divisors of 60 and does not save custom input", async () => {
+		polling = { claudeIntervalMinutes: 3, codexIntervalMinutes: 3 };
 		renderPage();
 		const form = await screen.findByRole("form", { name: "Usage reading" });
-
-		fireEvent.change(within(form).getByLabelText("Claude interval (minutes)"), { target: { value: "0" } });
+		const input = within(form).getByRole("combobox", { name: "Claude interval (minutes)" });
+		fireEvent.focus(input);
+		fireEvent.keyDown(input, { key: "ArrowDown" });
+		expect((await screen.findAllByRole("option")).map((option) => option.textContent)).toEqual([
+			"1 min",
+			"2 min",
+			"3 min",
+			"4 min",
+			"5 min",
+			"6 min",
+			"10 min",
+			"12 min",
+			"15 min",
+			"20 min",
+			"30 min",
+			"60 min",
+		]);
+		fireEvent.change(input, { target: { value: "7" } });
+		expect(screen.queryByRole("option")).toBeNull();
+		fireEvent.blur(input);
+		expect((input as HTMLInputElement).value).toBe("3 min");
 		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
-
-		expect(within(form).getByText("Between 1 and 60 minutes.")).toBeTruthy();
+		expect(within(await within(form).findByRole("status")).getByText("Saved, applied immediately.")).toBeTruthy();
+		expect(polling.claudeIntervalMinutes).toBe(3);
 	});
 
 	it("shows the field errors returned by the API", async () => {
@@ -65,12 +93,18 @@ describe("SettingsPage", () => {
 		const form = await screen.findByRole("form", { name: "Trigger" });
 		const model = within(form).getByLabelText("Claude model");
 
-		fireEvent.change(model, { target: { value: "sonnet" } });
-		fireEvent.click(await screen.findByRole("option", { name: "claude-sonnet-5" }));
-		fireEvent.change(within(form).getByLabelText("Codex model"), { target: { value: "gpt-5.6-terra" } });
+		fireEvent.change(model, { target: { value: "haiku" } });
+		fireEvent.keyDown(model, { key: "ArrowDown" });
+		fireEvent.click(await screen.findByRole("option", { name: "claude-haiku-5-5" }));
+		const codexModel = within(form).getByLabelText("Codex model");
+		fireEvent.change(codexModel, { target: { value: "luna" } });
+		fireEvent.keyDown(codexModel, { key: "ArrowDown" });
+		fireEvent.click(await screen.findByRole("option", { name: "gpt-6-luna" }));
+		expect((codexModel as HTMLInputElement).value).toBe("gpt-6-luna");
+		fireEvent.change(codexModel, { target: { value: "custom-codex-model" } });
 		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
 
-		await expect.poll(() => body).toMatchObject({ claude: { model: "claude-sonnet-5" }, codex: { model: "gpt-5.6-terra" } });
+		await expect.poll(() => body).toMatchObject({ claude: { model: "claude-haiku-5-5" }, codex: { model: "custom-codex-model" } });
 	});
 
 	it("never shows the token and keeps it when the field stays empty", async () => {
@@ -135,17 +169,19 @@ describe("SettingsPage", () => {
 		const page = renderPage(queryClient);
 		const form = await screen.findByRole("form", { name: "Usage reading" });
 
-		fireEvent.change(within(form).getByLabelText("Claude interval (minutes)"), { target: { value: "5" } });
+		await selectInterval(form, 5);
 		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
 		expect(within(await within(form).findByRole("status")).getByText("Saved, applied immediately.")).toBeTruthy();
 
-		fireEvent.change(within(form).getByLabelText("Claude interval (minutes)"), { target: { value: "10" } });
-		expect(within(form).queryByText("Saved, applied immediately.")).toBeNull();
+		await waitFor(() => expect((within(form).getByLabelText("Claude interval (minutes)") as HTMLInputElement).value).toBe("5 min"));
+		await selectInterval(form, 10);
+		expect((within(form).getByLabelText("Claude interval (minutes)") as HTMLInputElement).value).toBe("10 min");
+		await waitFor(() => expect(within(form).queryByText("Saved, applied immediately.")).toBeNull());
 
 		page.unmount();
 		renderPage(queryClient);
 		const again = await screen.findByRole("form", { name: "Usage reading" });
-		expect((within(again).getByLabelText("Claude interval (minutes)") as HTMLInputElement).value).toBe("5");
+		expect((within(again).getByLabelText("Claude interval (minutes)") as HTMLInputElement).value).toBe("5 min");
 	});
 
 	it("follows the server values while the form is untouched", async () => {
@@ -157,7 +193,7 @@ describe("SettingsPage", () => {
 		polling = { claudeIntervalMinutes: 12, codexIntervalMinutes: 3 };
 		await queryClient.refetchQueries();
 
-		await waitFor(() => expect((within(form).getByLabelText("Claude interval (minutes)") as HTMLInputElement).value).toBe("12"));
+		await waitFor(() => expect((within(form).getByLabelText("Claude interval (minutes)") as HTMLInputElement).value).toBe("12 min"));
 	});
 
 	it("tells a server failure apart from a field error", async () => {
@@ -228,14 +264,14 @@ describe("SettingsPage", () => {
 		const form = await screen.findByRole("form", { name: "Usage reading" });
 		const claude = () => within(form).getByLabelText("Claude interval (minutes)") as HTMLInputElement;
 
-		fireEvent.change(claude(), { target: { value: "5" } });
+		await selectInterval(form, 5);
 		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
 		await waitFor(() => expect(within(form).getByRole("button", { name: "Save" }).hasAttribute("disabled")).toBe(true));
-		fireEvent.change(claude(), { target: { value: "10" } });
+		await selectInterval(form, 10);
 		release();
 
 		await waitFor(() => expect(polling.claudeIntervalMinutes).toBe(5));
 		await waitFor(() => expect(within(form).getByRole("button", { name: "Save" }).hasAttribute("disabled")).toBe(false));
-		expect(claude().value).toBe("10");
+		expect(claude().value).toBe("10 min");
 	});
 });
