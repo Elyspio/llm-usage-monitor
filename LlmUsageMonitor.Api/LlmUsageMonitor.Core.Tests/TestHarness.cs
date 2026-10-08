@@ -150,12 +150,12 @@ internal sealed class InMemoryRuns : ITriggerRunRepository
 	/// <summary>Awaited before a manual run is stored, to hold concurrent requests between their check and their insert.</summary>
 	public Func<Task>? BeforeStartManual { get; set; }
 
-	public Task<TriggerRun?> TryStartAutomatic(Provider provider, string cycleKey, string model, DateTimeOffset startedAt, CancellationToken cancellationToken)
+	public Task<TriggerRun?> TryStartAutomatic(Provider provider, string cycleKey, ProviderTriggerSettings prompt, DateTimeOffset startedAt, CancellationToken cancellationToken)
 	{
 		var index = All.FindIndex(run => !run.Manual && run.Provider == provider && run.CycleKey == cycleKey);
 		if (index < 0)
 		{
-			return Task.FromResult<TriggerRun?>(Start(provider, false, cycleKey, model, startedAt));
+			return Task.FromResult<TriggerRun?>(Start(provider, false, cycleKey, prompt, startedAt));
 		}
 
 		var existing = All[index];
@@ -167,7 +167,8 @@ internal sealed class InMemoryRuns : ITriggerRunRepository
 		All[index] = existing with
 		{
 			Status = TriggerStatus.Running,
-			Model = model,
+			Model = prompt.Model,
+			Effort = prompt.Effort,
 			StartedAt = startedAt,
 			EndedAt = null,
 			ErrorCode = null,
@@ -178,14 +179,14 @@ internal sealed class InMemoryRuns : ITriggerRunRepository
 		return Task.FromResult<TriggerRun?>(All[index]);
 	}
 
-	public async Task<TriggerRun> StartManual(Provider provider, string model, DateTimeOffset startedAt, CancellationToken cancellationToken)
+	public async Task<TriggerRun> StartManual(Provider provider, ProviderTriggerSettings prompt, DateTimeOffset startedAt, CancellationToken cancellationToken)
 	{
 		if (BeforeStartManual is { } before)
 		{
 			await before();
 		}
 
-		return Start(provider, true, null, model, startedAt);
+		return Start(provider, true, null, prompt, startedAt);
 	}
 
 	public Task<TriggerRun> Complete(string id, TriggerStatus status, DateTimeOffset endedAt, string? errorCode, string? error, DateTimeOffset? nextRetryAt,
@@ -221,9 +222,12 @@ internal sealed class InMemoryRuns : ITriggerRunRepository
 		return Task.FromResult<IReadOnlyList<TriggerRun>>(All.Where(run => run.Status == TriggerStatus.Running).ToList());
 	}
 
-	public TriggerRun Start(Provider provider, bool manual, string? cycleKey, string model, DateTimeOffset startedAt)
+	public TriggerRun Start(Provider provider, bool manual, string? cycleKey, ProviderTriggerSettings prompt, DateTimeOffset startedAt)
 	{
-		var run = new TriggerRun($"run-{All.Count + 1}", provider, manual, cycleKey, model, TriggerStatus.Running, startedAt, null, null, null, 1, null);
+		var run = new TriggerRun($"run-{All.Count + 1}", provider, manual, cycleKey, prompt.Model, TriggerStatus.Running, startedAt, null, null, null, 1, null)
+		{
+			Effort = prompt.Effort
+		};
 		All.Add(run);
 		return run;
 	}
@@ -417,11 +421,14 @@ internal sealed class FakeRunner(Provider provider) : IPromptRunner
 
 	public List<string> Models { get; } = [];
 
+	public List<ReasoningEffort> Efforts { get; } = [];
+
 	public Provider Provider => provider;
 
-	public Task Run(string model, CancellationToken cancellationToken)
+	public Task Run(string model, ReasoningEffort effort, CancellationToken cancellationToken)
 	{
 		Models.Add(model);
+		Efforts.Add(effort);
 		var failure = Outcomes.TryDequeue(out var next) ? next : Failure;
 		return failure is null ? Task.CompletedTask : Task.FromException(failure);
 	}

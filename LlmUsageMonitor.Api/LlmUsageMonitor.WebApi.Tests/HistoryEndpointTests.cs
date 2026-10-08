@@ -21,9 +21,9 @@ public sealed class HistoryEndpointTests(ApiFactory factory) : IClassFixture<Api
 		await snapshots.Add(Provider.Claude, new(now.AddHours(-2), [new("five_hour", 20, now.AddHours(1), 300), new("seven_day", 50, now.AddDays(3), 10080)]), Token);
 		await snapshots.Add(Provider.Claude, new(now.AddHours(-1), [new("five_hour", 35, now.AddHours(1), 300), new("seven_day", 55, now.AddDays(3), 10080)]), Token);
 		await snapshots.Add(Provider.Codex, new(now.AddHours(-1), [new("codex/primary", 10, now.AddDays(2), 10080)]), Token);
-		var recent = await runs.StartManual(Provider.Claude, "claude-sonnet", now.AddMinutes(-30), Token);
-		await runs.StartManual(Provider.Claude, "claude-sonnet", now.AddDays(-2), Token);
-		await runs.StartManual(Provider.Codex, "gpt", now.AddMinutes(-20), Token);
+		var recent = await runs.StartManual(Provider.Claude, new(true, "claude-sonnet", ReasoningEffort.None), now.AddMinutes(-30), Token);
+		await runs.StartManual(Provider.Claude, new(true, "claude-sonnet", ReasoningEffort.None), now.AddDays(-2), Token);
+		await runs.StartManual(Provider.Codex, new(true, "gpt", ReasoningEffort.None), now.AddMinutes(-20), Token);
 		using var client = factory.CreateClientWithRoles(ApiFactory.AdminRole);
 
 		var history = await client.GetFromJsonAsync<JsonElement>("/api/history?provider=claude&range=24h", Token);

@@ -43,7 +43,7 @@ public sealed class TriggerService(
 	public async Task Run(Provider provider, string cycleKey, CancellationToken cancellationToken)
 	{
 		var settings = await settingsService.Get(cancellationToken);
-		var run = await runs.TryStartAutomatic(provider, cycleKey, settings.Triggers.For(provider).Model, time.GetUtcNow(), cancellationToken);
+		var run = await runs.TryStartAutomatic(provider, cycleKey, settings.Triggers.For(provider), time.GetUtcNow(), cancellationToken);
 		if (run is null)
 		{
 			return;
@@ -80,7 +80,7 @@ public sealed class TriggerService(
 			}
 
 			var settings = await settingsService.Get(cancellationToken);
-			var run = await runs.StartManual(provider, settings.Triggers.For(provider).Model, time.GetUtcNow(), cancellationToken);
+			var run = await runs.StartManual(provider, settings.Triggers.For(provider), time.GetUtcNow(), cancellationToken);
 			scheduler.EnqueueTrigger(run.Id);
 			return run;
 		}
@@ -141,7 +141,7 @@ public sealed class TriggerService(
 	{
 		try
 		{
-			await _runners[run.Provider].Run(run.Model, cancellationToken);
+			await _runners[run.Provider].Run(run.Model, run.Effort ?? ReasoningEffort.None, cancellationToken);
 			return await runs.Complete(run.Id, TriggerStatus.Succeeded, time.GetUtcNow(), null, null, null, CancellationToken.None);
 		}
 		catch (ProviderException exception)

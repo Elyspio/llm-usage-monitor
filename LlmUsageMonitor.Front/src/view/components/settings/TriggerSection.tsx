@@ -1,10 +1,10 @@
 import BoltOutlinedIcon from "@mui/icons-material/BoltOutlined";
-import { Autocomplete, Box, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from "@mui/material";
+import { Autocomplete, Box, MenuItem, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { getDashboardQueryKey, getTriggerSettingsQueryKey, updateTriggerSettingsMutation } from "@/core/apis/generated/@tanstack/react-query.gen";
-import type { TriggerSettings } from "@/core/apis/generated/types.gen";
-import { modelSuggestions, providerLabel, providers } from "@/core/dashboard";
+import type { ReasoningEffort, TriggerSettings } from "@/core/apis/generated/types.gen";
+import { effortOptions, modelSuggestions, providerLabel, providers } from "@/core/dashboard";
 import { collect, type FieldErrors, serverFieldErrors, validateModel } from "@/core/settings.validation";
 import { SaveBar, SettingsSection, useDraft } from "./SettingsSection";
 
@@ -43,14 +43,15 @@ export function TriggerSection({ settings }: { settings: TriggerSettings }) {
 			actions={<SaveBar pending={save.isPending} saved={save.isSuccess} error={save.error} />}
 		>
 			<Box sx={{ overflowX: "auto" }}>
-				<Table size="small" aria-label="Trigger per provider" sx={{ minWidth: 440 }}>
+				<Table size="small" aria-label="Trigger per provider" sx={{ minWidth: 560 }}>
 					<TableHead>
 						<TableRow>
 							<TableCell sx={{ pl: 0 }}>Provider</TableCell>
 							<TableCell align="center" sx={{ width: 130, whiteSpace: "normal" }}>
 								Automatic after reset
 							</TableCell>
-							<TableCell sx={{ pr: 0 }}>Model</TableCell>
+							<TableCell>Model</TableCell>
+							<TableCell sx={{ pr: 0 }}>Effort</TableCell>
 						</TableRow>
 					</TableHead>
 					<TableBody>
@@ -66,7 +67,7 @@ export function TriggerSection({ settings }: { settings: TriggerSettings }) {
 										slotProps={{ input: { "aria-label": `${providerLabel[provider]} automatic after reset` } }}
 									/>
 								</TableCell>
-								<TableCell sx={{ pr: 0 }}>
+								<TableCell>
 									<Autocomplete
 										freeSolo
 										autoSelect
@@ -88,13 +89,31 @@ export function TriggerSection({ settings }: { settings: TriggerSettings }) {
 										)}
 									/>
 								</TableCell>
+								<TableCell sx={{ pr: 0 }}>
+									<TextField
+										select
+										size="small"
+										sx={{ width: 110 }}
+										value={values[provider].effort}
+										onChange={(event) => setValues({ ...values, [provider]: { ...values[provider], effort: event.target.value as ReasoningEffort } })}
+										error={Boolean(errors[`${provider}.effort`])}
+										helperText={errors[`${provider}.effort`]}
+										slotProps={{ select: { SelectDisplayProps: { "aria-label": `${providerLabel[provider]} effort` } } }}
+									>
+										{effortOptions[provider].map((effort) => (
+											<MenuItem key={effort} value={effort}>
+												{effort}
+											</MenuItem>
+										))}
+									</TextField>
+								</TableCell>
 							</TableRow>
 						))}
 					</TableBody>
 				</Table>
 			</Box>
 			<Typography variant="caption" sx={{ color: "text.secondary" }}>
-				Model used for the "1+1=?" prompt.
+				Model and reasoning effort used for the "1+1=?" prompt. The Claude CLI has no "none" level: it runs at low with thinking disabled.
 			</Typography>
 		</SettingsSection>
 	);

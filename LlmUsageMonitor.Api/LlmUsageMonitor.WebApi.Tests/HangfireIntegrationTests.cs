@@ -146,7 +146,7 @@ public sealed class FakeProvider(Provider provider) : IUsageReader, IPromptRunne
 
 	public Provider Provider => provider;
 
-	public Task Run(string model, CancellationToken cancellationToken)
+	public Task Run(string model, ReasoningEffort effort, CancellationToken cancellationToken)
 	{
 		lock (Prompts)
 		{

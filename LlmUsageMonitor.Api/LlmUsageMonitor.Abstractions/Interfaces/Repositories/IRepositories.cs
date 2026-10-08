@@ -28,9 +28,9 @@ public interface ITriggerRunRepository
 	///     Starts the automatic run of the cycle, or restarts it when it failed and its retry is due (one more attempt); returns
 	///     <c>null</c> when the cycle already had its run.
 	/// </summary>
-	Task<TriggerRun?> TryStartAutomatic(Provider provider, string cycleKey, string model, DateTimeOffset startedAt, CancellationToken cancellationToken);
+	Task<TriggerRun?> TryStartAutomatic(Provider provider, string cycleKey, ProviderTriggerSettings prompt, DateTimeOffset startedAt, CancellationToken cancellationToken);
 
-	Task<TriggerRun> StartManual(Provider provider, string model, DateTimeOffset startedAt, CancellationToken cancellationToken);
+	Task<TriggerRun> StartManual(Provider provider, ProviderTriggerSettings prompt, DateTimeOffset startedAt, CancellationToken cancellationToken);
 
 	/// <param name="nextRetryAt">When a failed automatic run may be started again; <c>null</c> for a final outcome.</param>
 	Task<TriggerRun> Complete(string id, TriggerStatus status, DateTimeOffset endedAt, string? errorCode, string? error, DateTimeOffset? nextRetryAt,

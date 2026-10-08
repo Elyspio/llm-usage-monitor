@@ -109,7 +109,10 @@ export type ProviderResetCreditSettings = {
 export type ProviderTriggerSettings = {
     autoEnabled: boolean;
     model: string;
+    effort: ReasoningEffort;
 };
+
+export type ReasoningEffort = 'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max' | 'ultra';
 
 export type ResetCredit = {
     id: string;
@@ -220,6 +223,7 @@ export type TriggerRun = {
     error: null | string;
     attempts: number;
     nextRetryAt: null | string;
+    effort?: null | ReasoningEffort;
     durationMs?: null | number;
 };
 

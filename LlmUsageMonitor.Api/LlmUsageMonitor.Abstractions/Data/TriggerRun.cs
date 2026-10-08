@@ -36,5 +36,8 @@ public sealed record TriggerRun(
 	int Attempts,
 	DateTimeOffset? NextRetryAt)
 {
+	/// <summary>The reasoning effort of the prompt; <c>null</c> for the runs stored before it was configurable.</summary>
+	public ReasoningEffort? Effort { get; init; }
+
 	public double? DurationMs => EndedAt is { } ended ? (ended - StartedAt).TotalMilliseconds : null;
 }

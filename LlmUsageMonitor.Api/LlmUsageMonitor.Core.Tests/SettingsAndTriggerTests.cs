@@ -60,7 +60,7 @@ public sealed class SettingsServiceTests
 		var harness = new TestHarness();
 		await harness.States.Save(new(Provider.Codex) { PendingResetCheck = new("job-42", TestHarness.Start.AddHours(1)) }, Token);
 
-		await harness.Settings.UpdateTriggers(new(new(true, "haiku"), new(false, " gpt-5.6-luna ")), Token);
+		await harness.Settings.UpdateTriggers(new(new(true, "haiku", ReasoningEffort.None), new(false, " gpt-5.6-luna ", ReasoningEffort.None)), Token);
 
 		harness.Scheduler.Deleted.ShouldBe(["job-42"]);
 		harness.States.Stored[Provider.Codex].PendingResetCheck.ShouldBeNull();
@@ -73,7 +73,7 @@ public sealed class SettingsServiceTests
 		var harness = new TestHarness();
 
 		var exception = await Should.ThrowAsync<RequestValidationException>(() =>
-			harness.Settings.UpdateTriggers(new(new(true, " "), new(true, "luna")), Token));
+			harness.Settings.UpdateTriggers(new(new(true, " ", ReasoningEffort.None), new(true, "luna", ReasoningEffort.None)), Token));
 
 		exception.Errors.Keys.ShouldBe(["claude.model"]);
 	}
@@ -245,6 +245,30 @@ public sealed class TriggerServiceTests
 		completed.Status.ShouldBe(TriggerStatus.Succeeded);
 		harness.CodexRunner.Models.ShouldBe(["gpt-5.6-luna"]);
 		harness.Sender.Sent.ShouldBeEmpty();
+	}
+
+	[Fact]
+	public async Task The_prompt_runs_at_the_effort_of_the_settings_and_records_it()
+	{
+		var harness = new TestHarness();
+		await harness.Settings.UpdateTriggers(new(new(true, "haiku", ReasoningEffort.None), new(true, "gpt-5.6-luna", ReasoningEffort.Ultra)), Token);
+
+		var run = await harness.Triggers.RequestManual(Provider.Codex, Token);
+		await harness.Triggers.ExecuteManual(run.Id, Token);
+
+		run.Effort.ShouldBe(ReasoningEffort.Ultra);
+		harness.CodexRunner.Efforts.ShouldBe([ReasoningEffort.Ultra]);
+	}
+
+	[Fact]
+	public async Task Ultra_is_rejected_for_claude()
+	{
+		var harness = new TestHarness();
+
+		var exception = await Should.ThrowAsync<RequestValidationException>(() =>
+			harness.Settings.UpdateTriggers(new(new(true, "haiku", ReasoningEffort.Ultra), new(true, "luna", ReasoningEffort.Ultra)), Token));
+
+		exception.Errors.Keys.ShouldBe(["claude.effort"]);
 	}
 
 	[Fact]

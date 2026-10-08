@@ -58,6 +58,8 @@ public sealed partial class SettingsService(
 		var errors = new Dictionary<string, string[]>();
 		ValidateModel(errors, "claude.model", triggers.Claude.Model);
 		ValidateModel(errors, "codex.model", triggers.Codex.Model);
+		ValidateEffort(errors, "claude.effort", triggers.Claude.Effort, Provider.Claude);
+		ValidateEffort(errors, "codex.effort", triggers.Codex.Effort, Provider.Codex);
 		ThrowIfAny(errors);
 
 		var normalized = new TriggerSettings(triggers.Claude with { Model = triggers.Claude.Model.Trim() }, triggers.Codex with { Model = triggers.Codex.Model.Trim() });
@@ -201,6 +203,14 @@ public sealed partial class SettingsService(
 		if (string.IsNullOrWhiteSpace(model) || model.Trim().Length > MaxModelLength)
 		{
 			errors[field] = [$"Model required, {MaxModelLength} characters at most."];
+		}
+	}
+
+	private static void ValidateEffort(Dictionary<string, string[]> errors, string field, ReasoningEffort effort, Provider provider)
+	{
+		if (!effort.IsSupportedBy(provider))
+		{
+			errors[field] = [$"Effort not available for {provider}."];
 		}
 	}
 
