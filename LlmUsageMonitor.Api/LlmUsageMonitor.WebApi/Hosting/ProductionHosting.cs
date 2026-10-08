@@ -1,8 +1,10 @@
 using System.Net;
+using System.Reflection;
 using System.Text.Json;
 using LlmUsageMonitor.Abstractions.Configurations;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration.Json;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 
 namespace LlmUsageMonitor.Hosting;
@@ -17,8 +19,16 @@ public static class ProductionHosting
 
 	private const string ApiPaths = "api/|health/|hangfire|swagger|openapi|signin-oidc|conf\\.js";
 
+	/// <summary>Directory of the embedded files holding the SPA, in a release build.</summary>
+	private const string EmbeddedSpaDirectory = "wwwroot";
+
+	/// <summary>The version of the build (<c>0.0.0-dev</c> outside a release), shown by the SPA.</summary>
+	public static string Version { get; } =
+		typeof(ProductionHosting).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.0-dev";
+
 	public static WebApplicationBuilder AddProductionHosting(this WebApplicationBuilder builder)
 	{
+		AddDefaultSettings(builder.Configuration, new ManifestEmbeddedFileProvider(typeof(ProductionHosting).Assembly));
 		if (Environment.GetEnvironmentVariable(SettingsFileVariable) is { Length: > 0 } settingsFile)
 		{
 			AddSettingsFile(builder.Configuration, settingsFile);
@@ -36,6 +46,25 @@ public static class ProductionHosting
 		});
 
 		return builder;
+	}
+
+	/// <summary>
+	///     Adds the <c>appsettings.json</c> of <paramref name="files" /> below every other source: the executable carries its
+	///     defaults, and an <c>appsettings</c> file on disk, the production settings file, an environment variable or a
+	///     command-line argument overrides them.
+	/// </summary>
+	public static void AddDefaultSettings(IConfigurationBuilder configuration, IFileProvider files)
+	{
+		configuration.AddJsonFile(files, "appsettings.json", true, false);
+
+		var sources = configuration.Sources;
+		var defaults = sources[^1];
+		sources.RemoveAt(sources.Count - 1);
+		var firstJsonFile = 0;
+		while (firstJsonFile < sources.Count && sources[firstJsonFile] is not JsonConfigurationSource)
+			firstJsonFile++;
+
+		sources.Insert(firstJsonFile == sources.Count ? 0 : firstJsonFile, defaults);
 	}
 
 	/// <summary>
@@ -106,8 +135,29 @@ public static class ProductionHosting
 	}
 
 	/// <summary>
-	///     Serves the built SPA from <c>wwwroot</c> when it is deployed, with the runtime <c>/conf.js</c> and a fallback to
-	///     <c>index.html</c> for the client routes.
+	///     The SPA embedded in <paramref name="assembly" /> by a release build, or <c>null</c> when it has none.
+	/// </summary>
+	public static IFileProvider? EmbeddedSpa(Assembly assembly)
+	{
+		var files = new ManifestEmbeddedFileProvider(assembly);
+		return files.GetFileInfo($"{EmbeddedSpaDirectory}/index.html").Exists ? new ManifestEmbeddedFileProvider(assembly, EmbeddedSpaDirectory) : null;
+	}
+
+	/// <summary>
+	///     A release build serves the SPA embedded in the executable, whatever a <c>wwwroot</c> directory on disk holds; any
+	///     other build serves <c>wwwroot</c>. Called before the static files middleware, which reads the provider.
+	/// </summary>
+	public static void UseEmbeddedSpa(this WebApplication app)
+	{
+		if (EmbeddedSpa(typeof(ProductionHosting).Assembly) is { } spa)
+		{
+			app.Environment.WebRootFileProvider = spa;
+		}
+	}
+
+	/// <summary>
+	///     Serves the built SPA (<see cref="UseEmbeddedSpa" />) when there is one, with the runtime <c>/conf.js</c> and a
+	///     fallback to <c>index.html</c> for the client routes.
 	/// </summary>
 	public static void MapSpa(this WebApplication app)
 	{
@@ -120,7 +170,7 @@ public static class ProductionHosting
 			.AllowAnonymous()
 			.ExcludeFromDescription();
 
-		if (app.Environment.WebRootPath is { } webRoot && File.Exists(Path.Combine(webRoot, "index.html")))
+		if (app.Environment.WebRootFileProvider.GetFileInfo("index.html").Exists)
 		{
 			app.MapFallbackToFile($"{{*path:regex(^(?!{ApiPaths}).*$)}}", "index.html")
 				.AllowAnonymous();
@@ -134,9 +184,11 @@ public static class ProductionHosting
 	{
 		var authority = JsonSerializer.Serialize(oidc.Authority);
 		var clientId = JsonSerializer.Serialize(oidc.ClientId);
+		var version = JsonSerializer.Serialize(Version);
 		return $$"""
 		         window["llm-usage-monitor"] = {
 		         	config: {
+		         		version: {{version}},
 		         		endpoints: { apiUrl: window.location.origin },
 		         		oauth: { authority: {{authority}}, clientId: {{clientId}}, callbackUrl: `${window.location.origin}/auth/callback` },
 		         	},

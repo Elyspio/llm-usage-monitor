@@ -1,6 +1,6 @@
 {
 	"name": "@elyspio/llm-usage-collector",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Uploads the hourly Claude Code and Codex token usage of a workstation to LLM Usage Monitor.",
 	"license": "MIT",
 	"author": "jona.guich69@gmail.com",
@@ -31,8 +31,7 @@
 		"build": "vp pack -F lib",
 		"build:exe": "vp pack -F exe",
 		"check": "vp check",
-		"test": "vp test run",
-		"release": "pwsh ./release.ps1"
+		"test": "vp test run"
 	},
 	"devDependencies": {
 		"@elyspio/vite-eslint-config": "8.0.0-rc.0",

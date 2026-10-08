@@ -1,0 +1,170 @@
+# Publishes a release from a tag: vX.Y.Z for the server (executables linux-x64 / linux-arm64), collector-vX.Y.Z for the
+# collector (npm package and executables). A tag with a suffix (v1.2.0-rc.1) publishes a prerelease. Each series is gated
+# by the tests of its component; a failed run can be re-run, the steps already published being skipped.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+      - "collector-v*"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  TAG: ${{ github.ref_name }}
+
+jobs:
+  server-test:
+    name: Server · tests
+    if: startsWith(github.ref_name, 'v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: LlmUsageMonitor.Front/package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: pnpm
+          cache-dependency-path: LlmUsageMonitor.Front/pnpm-lock.yaml
+
+      - name: Build
+        run: dotnet build LlmUsageMonitor.slnx
+      - name: Install the front
+        working-directory: LlmUsageMonitor.Front
+        run: pnpm install --frozen-lockfile
+      # The WebApi build rewrites the OpenAPI document; the client generated from it must be committed with it.
+      - name: Check the API contract
+        run: |
+          (cd LlmUsageMonitor.Front && pnpm gen:api)
+          git diff --exit-code -- LlmUsageMonitor.Front/openapi LlmUsageMonitor.Front/src/core/apis/generated \
+            || { echo "::error::OpenAPI document or generated client out of date: build, run pnpm gen:api and commit"; exit 1; }
+      - name: Test the backend
+        run: dotnet test --solution LlmUsageMonitor.slnx --no-build
+      - name: Check, test and build the front
+        working-directory: LlmUsageMonitor.Front
+        run: |
+          pnpm check
+          pnpm test
+          pnpm build
+
+  server-release:
+    name: Server · release
+    needs: server-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    services:
+      mongo:
+        image: mongo:8.0
+        ports:
+          - 27017:27017
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: docker/setup-buildx-action@v3
+
+      # VERSION is read by docker-bake.hcl and stamped in the executables: the tag without its "v".
+      - name: Read the version
+        run: echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+      - name: Build the executables
+        uses: docker/bake-action@v6
+        with:
+          source: .
+          targets: artifact,artifact-arm64
+          set: |
+            *.cache-from=type=gha
+            *.cache-to=type=gha,mode=max
+      - name: Collect the assets
+        run: |
+          mkdir -p release
+          cp deploy/out/x64/LlmUsageMonitor.WebApi release/llm-usage-monitor-linux-x64
+          cp deploy/out/arm64/LlmUsageMonitor.WebApi release/llm-usage-monitor-linux-arm64
+          chmod +x release/llm-usage-monitor-linux-*
+          cp deploy/config/appsettings.Production.example.json deploy/systemd/llm-usage-monitor.service release/
+          (cd release && sha256sum -- * > SHA256SUMS)
+          cat release/SHA256SUMS
+      - name: Smoke test (linux-x64)
+        run: bash deploy/scripts/smoke-test.sh release/llm-usage-monitor-linux-x64 mongodb://localhost:27017/llm-usage-monitor "$VERSION"
+
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/publish-release.sh "LLM Usage Monitor $VERSION" release/*
+
+  collector-release:
+    name: Collector · tests and release
+    if: startsWith(github.ref_name, 'collector-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      # npm trusted publishing (OIDC) and provenance.
+      id-token: write
+    defaults:
+      run:
+        working-directory: LlmUsageMonitor.Collector
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: LlmUsageMonitor.Collector/package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: pnpm
+          cache-dependency-path: LlmUsageMonitor.Collector/pnpm-lock.yaml
+          registry-url: https://registry.npmjs.org
+
+      - name: Check the tag against package.json
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          [[ "$TAG" == "collector-v$version" ]] || { echo "::error::$TAG does not match the package.json version $version"; exit 1; }
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm test
+      - name: Build the npm package
+        run: pnpm build
+      # The executables embed the Node.js of this runner (SEA): win-x64, linux-x64, linux-arm64.
+      - name: Build the executables
+        run: pnpm build:exe
+      - name: Smoke test (linux-x64)
+        run: |
+          sudo apt-get install -y --no-install-recommends libatomic1 > /dev/null
+          [[ "$(./build/llm-usage-linux-x64 --version)" == *"$VERSION"* ]] || { echo "::error::llm-usage-linux-x64 --version does not print $VERSION"; exit 1; }
+      - name: Collect the assets
+        run: |
+          mkdir -p release
+          cp build/llm-usage-win-x64.exe build/llm-usage-linux-x64 build/llm-usage-linux-arm64 release/
+          (cd release && sha256sum -- * > SHA256SUMS)
+          cat release/SHA256SUMS
+
+      - name: Publish to npm
+        run: |
+          name=$(node -p 'require("./package.json").name')
+          if [[ -n "$(npm view "$name@$VERSION" version 2> /dev/null)" ]]; then
+            echo "$name@$VERSION already on npm"
+            exit 0
+          fi
+          # Trusted publishing needs npm 11.5.1 or later.
+          npm install --global npm@latest > /dev/null
+          tag=latest
+          [[ "$VERSION" == *-* ]] && tag=next
+          npm publish --access public --tag "$tag"
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash ../.github/scripts/publish-release.sh "LLM Usage Collector $VERSION" release/*

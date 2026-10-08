@@ -9,7 +9,7 @@ One package, two uses:
 
 ## Standalone executable
 
-Download `llm-usage-win-x64.exe` or `llm-usage-linux-x64` from the latest [`collector-v*` release](https://github.com/Elyspio/llm-usage-monitor/releases), then:
+Download `llm-usage-win-x64.exe`, `llm-usage-linux-x64` or `llm-usage-linux-arm64` (Raspberry Pi) from the latest [`collector-v*` release](https://github.com/Elyspio/llm-usage-monitor/releases), then:
 
 ```sh
 ./llm-usage-linux-x64 install   # copies itself to ~/.local/bin/llm-usage and schedules `sync` every 5 minutes
@@ -69,7 +69,7 @@ pnpm install
 pnpm check       # Oxfmt, Oxlint, types
 pnpm test
 pnpm build       # dist/: library + bin (npm)
-pnpm build:exe   # build/: llm-usage-win-x64.exe, llm-usage-linux-x64 (run it from PowerShell on Windows: the Git Bash tar cannot extract the Node archive)
+pnpm build:exe   # build/: llm-usage-win-x64.exe, llm-usage-linux-x64, llm-usage-linux-arm64 (run it from PowerShell on Windows: the Git Bash tar cannot extract the Node archive)
 ```
 
-`./release.ps1` checks, tests and builds, then publishes the npm package and the GitHub release `collector-v<version>` with both executables. Bump `version` in `package.json` first.
+Release: bump `version` in `package.json`, commit, then push the tag `collector-v<version>`. The release workflow (`.github/workflows/release.yml`) checks that the tag matches `package.json`, checks, tests and builds, then publishes the npm package (trusted publishing, with provenance) and the GitHub release `collector-v<version>` with the three executables and their `SHA256SUMS`. A version with a suffix (`0.3.0-rc.1`) is published as a prerelease, under the npm tag `next`.

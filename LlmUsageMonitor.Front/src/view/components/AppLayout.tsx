@@ -6,6 +6,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import { Avatar, Box, Button, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import { NavLink, Outlet } from "react-router";
 import { routes } from "@/config/routes";
+import { runtimeConfig } from "@/config/runtime.config";
 import { useAuth } from "@/view/context/auth.context";
 import { AppLogo } from "@components/AppLogo";
 
@@ -109,6 +110,9 @@ export const AppLayout = () => {
 							</IconButton>
 						</Tooltip>
 					</Stack>
+					<Typography variant="caption" component="p" sx={{ color: "text.secondary", fontFamily: "IBM Plex Mono", mt: 1.5 }}>
+						v{runtimeConfig.version}
+					</Typography>
 				</Box>
 			</Box>
 			<Box component="main" id="main" tabIndex={-1} sx={{ p: { xs: 2, sm: 3, xl: 5 }, width: "100%", minWidth: 0, maxWidth: 1900, mx: "auto" }}>

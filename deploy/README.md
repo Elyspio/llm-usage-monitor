@@ -6,14 +6,16 @@ Cible : `ely-llm-wake-up.elylan` (Debian 13, CT 106), service systemd, derrière
 
 ## Fichiers
 
-- `deploy.ps1` : point d'entrée, enchaîne les étapes de `scripts/` (build, réglages si `-UploadSettings`, installation). `-Platform arm64 -Target root@<pi>` pour le Raspberry Pi.
+- `deploy.ps1` : point d'entrée, enchaîne les étapes de `scripts/` (téléchargement de la release `-Version X.Y.Z` ou build local, réglages si `-UploadSettings`, installation). `-Platform arm64 -Target root@<pi>` pour le Raspberry Pi.
 - `update-clis.ps1` : mise à jour simultanée de `claude` et `codex` vers leur dernière version sous le compte `llm-monitor`, puis redémarrage du service. `-Target root@<pi>` pour le Raspberry Pi.
 - `scripts/` : étapes utilisables seules.
+  - `Get-Release.ps1` : téléchargement (`gh`) de l'exécutable et de l'unité d'une release GitHub dans `out/release-<version>`, vérifiés par son `SHA256SUMS`.
   - `Build-Artifact.ps1` : build Docker sur le poste via `docker-bake.hcl` à la racine, cible `artifact` (`linux-x64`) ou `artifact-arm64` (`linux-arm64`, publication croisée sans émulation), dans `out/<plateforme>`.
   - `Install-Settings.ps1` : envoi du fichier de réglages sur l'hôte.
-  - `Install-Release.ps1` : scp de l'artefact et de l'unité, extraction dans `/opt/llm-usage-monitor/` (écrasement en place), redémarrage, sonde `/health/live`.
+  - `Install-Release.ps1` : scp de l'exécutable et de l'unité, remplacement de `/opt/llm-usage-monitor/` (l'exécutable seul y reste : les `wwwroot`, `appsettings.json` et `.pdb` des anciennes archives sont supprimés), redémarrage, sonde `/health/live`.
+  - `smoke-test.sh` : lance un exécutable seul dans un dossier vide et vérifie la SPA embarquée, `/conf.js` et la protection de l'API (workflow de release).
   - `Remote.psm1` : `Invoke-Remote`, exécution d'un script bash sur l'hôte.
-- `docker/Dockerfile` : artefact (SPA dans `wwwroot`, API self-contained en fichier unique, sans ICU).
+- `docker/Dockerfile` : artefact, un exécutable unique self-contained sans ICU, qui embarque la SPA et l'`appsettings.json` par défaut ; version passée par `docker-bake.hcl` (`VERSION`, `0.0.0-dev` par défaut).
 - `systemd/llm-usage-monitor.service` : unité systemd durcie (voir « Durcissement »), compte `llm-monitor`.
 - `config/appsettings.Production.example.json` : modèle de `/etc/llm-usage-monitor/appsettings.Production.json` ; la copie remplie `config/appsettings.Production.json` n'est jamais commitée.
 - `out/` : artefacts et archives (ignoré).
@@ -49,10 +51,10 @@ Le déclenchement automatique est actif par défaut en prod (`App:AutoTriggerEna
 ## Mises à jour
 
 ```sh
-./deploy/deploy.ps1
+./deploy/deploy.ps1 -Version X.Y.Z
 ```
 
-Build et tests verts en local avant (voir `AGENTS.md`).
+Installe la release `vX.Y.Z` publiée par le workflow de release (tests verts, smoke test du binaire, voir « Releases » dans `AGENTS.md`). Sans `-Version`, `deploy.ps1` construit l'exécutable sur le poste depuis le checkout (version `0.0.0-dev`, affichée en bas du menu) : pour tester une modification non publiée, build et tests verts en local avant.
 
 CLIs, à mettre à jour quand un modèle récent est refusé (le backend Codex filtre les modèles selon la version du CLI) :
 
@@ -62,7 +64,7 @@ CLIs, à mettre à jour quand un modèle récent est refusé (le backend Codex f
 
 Les deux installeurs tournent en parallèle ; le script affiche les versions avant et après, puis redémarre le service pour qu'aucun `codex app-server` de l'ancienne version ne reste actif. Vérifier ensuite un déclenchement manuel de chaque provider.
 
-Retour arrière d'une version : redéployer la précédente (`git checkout <commit>` puis `./deploy/deploy.ps1`).
+Retour arrière d'une version : redéployer la précédente (`./deploy/deploy.ps1 -Version <précédente>`).
 
 Retour arrière complet, vers le cron :
 
@@ -78,8 +80,8 @@ Le cron tourne sous `root`, avec les logins CLI de `root` : ils doivent donc exi
 Même installation que le LXC, sur un Pi 4 en OS 64 bits (Raspberry Pi OS ou Debian arm64) : compte `llm-monitor`, CLIs, unité systemd et réglages comme dans « Mise en service » (les scripts d'installation de `claude` et `codex` choisissent leur binaire arm64). `deploy.ps1` se connecte en `root` par SSH (pas de `sudo`) et doit recevoir la cible :
 
 ```powershell
-./deploy/deploy.ps1 -Platform arm64 -Target root@<pi> -UploadSettings deploy/config/appsettings.Production.json   # première fois
-./deploy/deploy.ps1 -Platform arm64 -Target root@<pi>
+./deploy/deploy.ps1 -Platform arm64 -Target root@<pi> -Version X.Y.Z -UploadSettings deploy/config/appsettings.Production.json   # première fois
+./deploy/deploy.ps1 -Platform arm64 -Target root@<pi> -Version X.Y.Z
 ```
 
 Dans les réglages du Pi, `Urls` porte son adresse et `ForwardedHeaders:KnownProxies` l'IP de HAProxy, comme pour le LXC.
@@ -131,7 +133,7 @@ systemctl edit llm-usage-monitor   # par exemple [Service] puis RestrictNamespac
 systemctl restart llm-usage-monitor
 ```
 
-Le fichier de prod (`LLM_USAGE_MONITOR_SETTINGS`) passe au-dessus des `appsettings*.json` et des variables `ASPNETCORE_*`, mais une variable d'environnement non préfixée (`Oidc__Authority=...`) ou un argument de ligne de commande le remplacent toujours : un drop-in `Environment=` suffit pour une surcharge temporaire.
+Le fichier de prod (`LLM_USAGE_MONITOR_SETTINGS`) passe au-dessus de l'`appsettings.json` embarqué dans l'exécutable (le plus bas de tous), des `appsettings*.json` sur disque et des variables `ASPNETCORE_*`, mais une variable d'environnement non préfixée (`Oidc__Authority=...`) ou un argument de ligne de commande le remplacent toujours : un drop-in `Environment=` suffit pour une surcharge temporaire.
 
 ## Supervision
 

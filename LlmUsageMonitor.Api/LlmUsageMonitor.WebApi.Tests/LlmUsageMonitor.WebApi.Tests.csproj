@@ -3,14 +3,21 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <IsPackable>false</IsPackable>
+        <!-- Fixtures/spa stands in for the SPA a release build embeds in the WebApi executable. -->
+        <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="Hangfire.InMemory"/>
         <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing"/>
+        <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded"/>
         <PackageReference Include="Shouldly"/>
         <PackageReference Include="Testcontainers.MongoDb"/>
         <PackageReference Include="xunit.v3"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="Fixtures/spa/**" Link="wwwroot$([System.IO.Path]::DirectorySeparatorChar)%(RecursiveDir)%(Filename)%(Extension)"/>
     </ItemGroup>
 
     <ItemGroup>
