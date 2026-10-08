@@ -6,11 +6,11 @@
 	"author": "jona.guich69@gmail.com",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/Elyspio/llm-usage-monitor.git",
+		"url": "git+https://github.com/Elyspio/llm-usage-monitor.git",
 		"directory": "LlmUsageMonitor.Collector"
 	},
 	"bin": {
-		"llm-usage": "./dist/cli.mjs"
+		"llm-usage": "dist/cli.mjs"
 	},
 	"files": [
 		"dist",
