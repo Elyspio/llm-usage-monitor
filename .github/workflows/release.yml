@@ -107,6 +107,8 @@ jobs:
     name: Collector · tests and release
     if: startsWith(github.ref_name, 'collector-v')
     runs-on: ubuntu-latest
+    # The environment of the npm trusted publisher: the OIDC token must carry it.
+    environment: llm-usage-monitor
     permissions:
       contents: write
       # npm trusted publishing (OIDC) and provenance.
