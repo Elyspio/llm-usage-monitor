@@ -16,7 +16,7 @@ internal sealed class FakeCli : IDisposable
 	}
 
 	/// <summary>The fake executable, copied next to the tests by the CopyFakeCli target.</summary>
-	public static string Executable { get; } = Path.Combine(AppContext.BaseDirectory, "fake-cli", OperatingSystem.IsWindows() ? "fake-cli.exe" : "fake-cli");
+	public static string Executable { get; } = Path.Combine(AppContext.BaseDirectory, "fake-cli-bin", OperatingSystem.IsWindows() ? "fake-cli.exe" : "fake-cli");
 
 	public string Directory { get; } = Path.Combine(Path.GetTempPath(), "llm-usage-monitor-tests", $"fake-cli-{Guid.NewGuid():N}");
 

@@ -64,7 +64,7 @@ La génération du document OpenAPI au build démarre l'application sans MongoDB
 
 Le paquet `typescript` du front reste en 6.x : `@hey-api/openapi-ts` utilise l'API JavaScript du compilateur, que TypeScript 7 n'expose pas encore. Le typecheck de `vp check` passe par tsgolint (TypeScript 7).
 
-Les adapters CLI sont testés sur des fixtures capturées et anonymisées (aucun token, id de compte ni email), issues des lecteurs TypeScript d'origine (`LlmUsageMonitor.Scripts/`, supprimé depuis, retrouvable dans l'historique git). La gestion du process CLI est testée avec `LlmUsageMonitor.FakeCli` (copié dans `fake-cli/` à côté des tests) : scénario lu dans `fake-cli.json` de son dossier de travail, appels et messages JSON-RPC journalisés à côté ; le comportement des vrais CLIs après une mise à jour se valide à la main.
+Les adapters CLI sont testés sur des fixtures capturées et anonymisées (aucun token, id de compte ni email), issues des lecteurs TypeScript d'origine (`LlmUsageMonitor.Scripts/`, supprimé depuis, retrouvable dans l'historique git). La gestion du process CLI est testée avec `LlmUsageMonitor.FakeCli` (copié dans `fake-cli-bin/` à côté des tests) : scénario lu dans `fake-cli.json` de son dossier de travail, appels et messages JSON-RPC journalisés à côté ; le comportement des vrais CLIs après une mise à jour se valide à la main.
 
 ## Releases
 

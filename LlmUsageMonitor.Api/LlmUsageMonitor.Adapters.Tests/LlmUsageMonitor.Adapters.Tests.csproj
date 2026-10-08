@@ -19,7 +19,7 @@
         <ProjectReference Include="..\LlmUsageMonitor.Adapters.LiteLlm\LlmUsageMonitor.Adapters.LiteLlm.csproj"/>
         <ProjectReference Include="..\LlmUsageMonitor.Adapters.MongoDB\LlmUsageMonitor.Adapters.MongoDB.csproj"/>
         <ProjectReference Include="..\LlmUsageMonitor.Adapters.Ntfy\LlmUsageMonitor.Adapters.Ntfy.csproj"/>
-        <!-- Built first, then copied into fake-cli/ by CopyFakeCli: the CLI adapters run it in place of claude and codex. -->
+        <!-- Built first, then copied into fake-cli-bin/ by CopyFakeCli (on Linux, the SDK copies the fake-cli apphost itself next to the tests): the CLI adapters run it in place of claude and codex. -->
         <ProjectReference Include="..\LlmUsageMonitor.FakeCli\LlmUsageMonitor.FakeCli.csproj" ReferenceOutputAssembly="false"/>
     </ItemGroup>
 
@@ -35,7 +35,7 @@
         <ItemGroup>
             <FakeCliFiles Include="$([System.IO.Path]::GetDirectoryName($(FakeCliTargetPath)))\fake-cli*"/>
         </ItemGroup>
-        <Copy SourceFiles="@(FakeCliFiles)" DestinationFolder="$(OutDir)fake-cli" SkipUnchangedFiles="true"/>
+        <Copy SourceFiles="@(FakeCliFiles)" DestinationFolder="$(OutDir)fake-cli-bin" SkipUnchangedFiles="true"/>
     </Target>
 
 </Project>
