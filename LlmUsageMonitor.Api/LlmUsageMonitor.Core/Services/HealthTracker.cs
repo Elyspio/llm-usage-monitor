@@ -72,7 +72,7 @@ public sealed class HealthTracker(INotificationService notifications) : IHealthT
 		}
 
 		var login = state.Provider == Provider.Claude ? "claude auth login" : "codex login --device-auth";
-		var detail = string.Create(CultureInfo.InvariantCulture, $"La connexion du CLI expire le {expiresAt.UtcDateTime:yyyy-MM-dd HH:mm} UTC : relancer `{login}` sur le serveur.");
+		var detail = string.Create(CultureInfo.InvariantCulture, $"La connexion du CLI expire le {expiresAt.UtcDateTime:yyyy-MM-dd HH:mm} UTC : relancer `{login}` sur le serveur, sous le compte `{Environment.UserName}`.");
 		// Marked only once delivered: a warning skipped while ntfy is not configured is sent once it is.
 		return await notifications.Notify(NotificationKind.AuthExpiring, state.Provider, detail, cancellationToken) == NotificationOutcome.Delivered
 			? state with { CredentialExpiryAlertedFor = expiresAt }

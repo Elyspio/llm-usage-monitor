@@ -245,6 +245,20 @@ public sealed class TriggerServiceTests
 		completed.Status.ShouldBe(TriggerStatus.Succeeded);
 		harness.CodexRunner.Models.ShouldBe(["gpt-5.6-luna"]);
 		harness.Sender.Sent.ShouldBeEmpty();
+		harness.Scheduler.EnqueuedPolls.ShouldBe([Provider.Codex]);
+	}
+
+	[Fact]
+	public async Task A_failed_manual_trigger_queues_no_reading()
+	{
+		var harness = new TestHarness();
+		harness.CodexRunner.Failure = new ProviderException(ProviderErrorCode.AuthExpired, "no");
+
+		var run = await harness.Triggers.RequestManual(Provider.Codex, Token);
+		await harness.Triggers.ExecuteManual(run.Id, Token);
+
+		(await harness.Triggers.Get(run.Id, Token)).Status.ShouldBe(TriggerStatus.Failed);
+		harness.Scheduler.EnqueuedPolls.ShouldBeEmpty();
 	}
 
 	[Fact]
@@ -295,5 +309,6 @@ public sealed class TriggerServiceTests
 		snapshot.Providers[1].RunningTrigger.ShouldNotBeNull();
 		snapshot.Providers[0].PollIntervalMinutes.ShouldBe(3);
 		snapshot.RecentTriggerRuns.ShouldHaveSingleItem();
+		snapshot.ServiceUser.ShouldBe(Environment.UserName);
 	}
 }

@@ -25,7 +25,7 @@ export const DashboardPage = () => {
 					<Grid container spacing={3}>
 						{data.providers.map((provider) => (
 							<Grid key={provider.provider} size={{ xs: 12, md: 6 }}>
-								<ProviderColumn provider={provider} now={now} />
+								<ProviderColumn provider={provider} serviceUser={data.serviceUser} now={now} />
 							</Grid>
 						))}
 					</Grid>

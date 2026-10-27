@@ -14,7 +14,8 @@ public enum Provider
 /// </summary>
 /// <param name="Providers">The state of every monitored provider.</param>
 /// <param name="RecentTriggerRuns">The ten latest triggers, newest first.</param>
-public sealed record DashboardSnapshot(IReadOnlyList<ProviderDashboard> Providers, IReadOnlyList<TriggerRun> RecentTriggerRuns);
+/// <param name="ServiceUser">The OS account running the service, whose CLI logins are read: the one to sign in again with.</param>
+public sealed record DashboardSnapshot(IReadOnlyList<ProviderDashboard> Providers, IReadOnlyList<TriggerRun> RecentTriggerRuns, string ServiceUser);
 
 /// <summary>
 ///     The dashboard state of one provider.

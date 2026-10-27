@@ -44,8 +44,9 @@ describe("dashboard logic", () => {
 	it("labels the windows and the errors", () => {
 		expect(windowLabel(window("five_hour", 300))).toBe("5 h session");
 		expect(windowLabel(window("codex/primary", 10_080))).toBe("Weekly");
-		expect(errorInfo("rateLimited", "claude").severity).toBe("warning");
-		expect(errorInfo("authExpired", "codex").action).toContain("codex login --device-auth");
+		expect(errorInfo("rateLimited", "claude", "llm-monitor").severity).toBe("warning");
+		expect(errorInfo("authExpired", "codex", "llm-monitor").action).toContain("codex login --device-auth");
+		expect(errorInfo("authExpired", "claude", "llm-monitor").action).toContain('as user "llm-monitor"');
 	});
 });
 

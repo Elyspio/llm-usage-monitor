@@ -12,6 +12,7 @@ export type ConsumeResetCreditRequest = {
 export type DashboardSnapshot = {
     providers: Array<ProviderDashboard>;
     recentTriggerRuns: Array<TriggerRun>;
+    serviceUser: string;
 };
 
 export type NotificationEvents = {
