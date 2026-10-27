@@ -23,7 +23,8 @@ jobs:
   server-test:
     name: Server · tests
     if: startsWith(github.ref_name, 'v')
-    runs-on: ubuntu-latest
+    # MongoDB 8.0 cannot start on the newer kernel used by ubuntu-26.04 (SERVER-121912).
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-dotnet@v5
@@ -61,7 +62,8 @@ jobs:
   server-release:
     name: Server · release
     needs: server-test
-    runs-on: ubuntu-latest
+    # The smoke test also needs MongoDB 8.0.
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     services:
