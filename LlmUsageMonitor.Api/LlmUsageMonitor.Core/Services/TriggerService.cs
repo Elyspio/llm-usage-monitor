@@ -106,8 +106,12 @@ public sealed class TriggerService(
 			return;
 		}
 
-		// Manual triggers are never notified: the user is in front of the application.
-		await Execute(run, cancellationToken);
+		// Manual triggers are never notified: the user is in front of the application. A success proves the login works:
+		// reading at once clears a login error without waiting for the next poll.
+		if ((await Execute(run, cancellationToken)).Status == TriggerStatus.Succeeded)
+		{
+			scheduler.EnqueuePoll(run.Provider);
+		}
 	}
 
 	public async Task<TriggerRun> Get(string runId, CancellationToken cancellationToken)

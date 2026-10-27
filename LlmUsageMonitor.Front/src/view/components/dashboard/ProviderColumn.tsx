@@ -7,11 +7,11 @@ import { ProviderLogo } from "./ProviderLogo";
 import { TriggerButton } from "./TriggerButton";
 import { ResetCredits } from "./ResetCredits";
 
-export const ProviderColumn = ({ provider, now }: { provider: ProviderDashboard; now: number }) => {
+export const ProviderColumn = ({ provider, serviceUser, now }: { provider: ProviderDashboard; serviceUser: string; now: number }) => {
 	const { health, lastReading } = provider;
 	const degraded = isDegraded(health);
 	const failure = degraded ? health.lastFailure : null;
-	const error = failure ? errorInfo(failure.code, provider.provider) : null;
+	const error = failure ? errorInfo(failure.code, provider.provider, serviceUser) : null;
 
 	return (
 		<Paper component="section" aria-label={providerLabel[provider.provider]} variant="outlined" sx={{ p: { xs: 2, lg: 3 }, height: "100%" }}>

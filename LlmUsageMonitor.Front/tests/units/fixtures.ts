@@ -44,7 +44,7 @@ export const codex: ProviderDashboard = {
 	health,
 };
 
-export const dashboard: DashboardSnapshot = { providers: [claude, codex], recentTriggerRuns: [] };
+export const dashboard: DashboardSnapshot = { providers: [claude, codex], recentTriggerRuns: [], serviceUser: "llm-monitor" };
 
 export const emptyHistory: UsageHistory = { from: iso(-24 * hour), to: iso(0), series: [], triggerRuns: [] };
 

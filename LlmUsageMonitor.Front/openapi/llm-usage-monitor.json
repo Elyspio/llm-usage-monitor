@@ -635,7 +635,8 @@
       "DashboardSnapshot": {
         "required": [
           "providers",
-          "recentTriggerRuns"
+          "recentTriggerRuns",
+          "serviceUser"
         ],
         "type": "object",
         "properties": {
@@ -650,6 +651,9 @@
             "items": {
               "$ref": "#/components/schemas/TriggerRun"
             }
+          },
+          "serviceUser": {
+            "type": "string"
           }
         }
       },

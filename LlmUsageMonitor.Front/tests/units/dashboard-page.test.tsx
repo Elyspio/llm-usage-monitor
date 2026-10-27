@@ -34,7 +34,7 @@ describe("DashboardPage", () => {
 
 		const claude = await screen.findByRole("region", { name: "Claude" });
 		expect(within(claude).getAllByText("Login expired").length).toBeGreaterThan(0);
-		expect(within(claude).getByText(/claude auth login/)).toBeTruthy();
+		expect(within(claude).getByText(/claude auth login.*as user "llm-monitor"/)).toBeTruthy();
 		expect(within(claude).getByText(/authExpired · The Claude CLI could not refresh its login./)).toBeTruthy();
 		expect(screen.getAllByText(/stale · read .* ago/).length).toBe(2);
 	});

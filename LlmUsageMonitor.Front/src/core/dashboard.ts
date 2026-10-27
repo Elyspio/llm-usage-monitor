@@ -47,14 +47,15 @@ export function isDegraded(health: ProviderHealth): boolean {
 
 export type ErrorInfo = { title: string; action: string; severity: "error" | "warning" };
 
-export function errorInfo(code: ProviderErrorCode, provider: Provider): ErrorInfo {
+/** `serviceUser`: the OS account running the service, whose CLI logins are read. */
+export function errorInfo(code: ProviderErrorCode, provider: Provider, serviceUser: string): ErrorInfo {
 	const login = provider === "claude" ? "claude auth login" : "codex login --device-auth";
 	switch (code) {
 		case "authExpired":
 		case "authRequired":
-			return { title: "Login expired", action: `Run "${login}" again on the service host.`, severity: "error" };
+			return { title: "Login expired", action: `Run "${login}" again on the service host, as user "${serviceUser}".`, severity: "error" };
 		case "credentialsUnavailable":
-			return { title: "Credentials not found", action: `Log in with "${login}" on the service host.`, severity: "error" };
+			return { title: "Credentials not found", action: `Log in with "${login}" on the service host, as user "${serviceUser}".`, severity: "error" };
 		case "rateLimited":
 			return { title: "Rate limited by the provider (429)", action: "No immediate retry: waiting 15, 30 then 60 min.", severity: "warning" };
 		case "cliUnavailable":

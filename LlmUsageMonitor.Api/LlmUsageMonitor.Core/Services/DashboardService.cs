@@ -46,7 +46,7 @@ public sealed class DashboardService(
 			});
 		}
 
-		return new(providers, await runs.GetRecent(RecentTriggerCount, cancellationToken));
+		return new(providers, await runs.GetRecent(RecentTriggerCount, cancellationToken), Environment.UserName);
 	}
 
 	private async Task<ResetCreditDashboard> CreditDashboard(ProviderState state, ProviderResetCreditSettings settings, DateTimeOffset now, CancellationToken cancellationToken)
