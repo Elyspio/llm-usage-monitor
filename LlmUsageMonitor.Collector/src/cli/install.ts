@@ -5,6 +5,7 @@ import path from "node:path";
 import { readJson, writeJsonAtomic } from "../files";
 import { env } from "../paths";
 import { isStandalone, run, runChecked } from "./process";
+import { assetName, findRelease, installRelease, moveIntoPlace } from "./update";
 
 export const TASK_NAME = "LLM Usage Collector";
 export const SYSTEMD_UNIT = "llm-usage-collector";
@@ -32,14 +33,14 @@ export function defaultInstallPath(): string {
 }
 
 /**
- * Copies the running executable to its stable place and schedules `sync` every 5 minutes for the current user.
+ * Puts the executable in its stable place and schedules `sync` every 5 minutes for the current user: the running
+ * executable is copied, or through npm the executable of the same version is downloaded.
  * Installing again replaces the binary and the schedule.
  */
 export async function install(dataDir: string, version: string): Promise<InstallRecord> {
-	if (!isStandalone()) throw new Error("`install` only works from the standalone executable. From npm, schedule `llm-usage sync` yourself.");
-
 	const target = defaultInstallPath();
-	if (!samePath(process.execPath, target)) await replaceFile(process.execPath, target);
+	if (!isStandalone()) await downloadExecutable(version, target);
+	else if (!samePath(process.execPath, target)) await replaceFile(process.execPath, target);
 
 	const scheduler = await schedule(target);
 	const record: InstallRecord = { path: target, scheduler, installedAt: new Date().toISOString(), version };
@@ -68,22 +69,16 @@ export async function replaceFile(source: string, target: string): Promise<void>
 	await moveIntoPlace(temporary, target);
 }
 
-/** Renames <temporary> over <target>. Windows cannot overwrite a running executable but can rename it: `<target>.old` is removed on the next run. */
-export async function moveIntoPlace(temporary: string, target: string): Promise<void> {
-	if (process.platform === "win32") {
-		if (fs.existsSync(target)) {
-			await fs.promises.rm(`${target}.old`, { force: true });
-			await fs.promises.rename(target, `${target}.old`);
-		}
-	} else {
-		await fs.promises.chmod(temporary, 0o755);
-	}
-	await fs.promises.rename(temporary, target);
-}
-
 /** Removes what an update or an install left next to the running executable. */
 export async function cleanupPreviousExecutable(): Promise<void> {
 	if (isStandalone()) await fs.promises.rm(`${process.execPath}.old`, { force: true }).catch(() => undefined);
+}
+
+async function downloadExecutable(version: string, target: string) {
+	if (!assetName()) throw new Error(`No llm-usage executable exists for ${process.platform}-${process.arch}: schedule \`llm-usage sync\` yourself.`);
+	const release = await findRelease(version);
+	if (!release) throw new Error(`The release collector-v${version} does not exist (yet): try again in a few minutes, or use another version of the package.`);
+	await installRelease(release, target);
 }
 
 async function schedule(executable: string): Promise<Scheduler> {

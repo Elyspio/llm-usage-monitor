@@ -5,7 +5,7 @@ Reads the Claude Code and Codex session logs of a workstation (`~/.claude/projec
 One package, two uses:
 
 - **library**: imported by the Elytools desktop app, which provides its own OIDC sign-in and settings;
-- **`llm-usage` CLI**: a standalone executable (Node SEA) for the workstations without Elytools. The same CLI runs through `npx` where Node ≥ 26 is installed.
+- **`llm-usage` CLI**: a standalone executable (Node SEA) for the workstations without Elytools. The same CLI runs through `npx` where Node ≥ 26 is installed, and its `install` sets up that executable.
 
 ## Standalone executable
 
@@ -16,6 +16,8 @@ Download `llm-usage-win-x64.exe`, `llm-usage-linux-x64` or `llm-usage-linux-arm6
 llm-usage login                 # once: open the printed URL and enter the code (works over SSH)
 llm-usage status
 ```
+
+With Node ≥ 26, npx does the same without a manual download: `npx @elyspio/llm-usage-collector install` downloads the executable of the same version from its GitHub release, checks it against `SHA256SUMS`, runs it, then schedules it. The schedule does not depend on Node. macOS has no executable: `install` refuses there, `sync` still works through npx.
 
 On Windows, `install` copies the executable to `%LOCALAPPDATA%\Programs\llm-usage\llm-usage.exe` and creates the scheduled task `LLM Usage Collector`. The task runs it through `conhost --headless`, so no window flashes. On Linux, `install` creates a `systemd --user` timer, or a crontab line when systemd is not available. To keep a user timer running on a server without an open session, run `loginctl enable-linger $USER`.
 

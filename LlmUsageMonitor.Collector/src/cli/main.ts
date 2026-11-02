@@ -29,7 +29,7 @@ Usage: llm-usage <command>
   config                     Show the settings
   config set <key> <value>   Keys: ${CONFIG_KEYS.join(", ")}
   config unset <key>         Back to the default value
-  install                    Copy this executable to a stable place and run \`sync\` every 5 minutes
+  install                    Put the executable in a stable place (through npm: downloaded) and run \`sync\` every 5 minutes
   uninstall [--purge]        Remove the schedule and the executable (--purge: the data folder too)
   update [--check]           Install the latest release
   version                    Print the version
@@ -81,6 +81,7 @@ async function main(argv: string[]): Promise<number> {
 		case "config":
 			return await configCommand(rest);
 		case "install": {
+			if (!isStandalone()) console.log(`Downloading the executable ${VERSION}…`);
 			const record = await install(dataDir, VERSION);
 			logger.info("Installed", record);
 			const lines = [`Installed in ${record.path}, sync every 5 minutes (${record.scheduler}).`];
@@ -163,16 +164,19 @@ async function configCommand([action = "get", key, ...values]: string[]) {
 }
 
 async function update(checkOnly: boolean, logger: FileLogger) {
-	const release = await findLatestRelease();
-	if (!release || compareVersions(release.version, VERSION) <= 0) return print(`Up to date (${VERSION}).`);
-	if (checkOnly) return print(`Version ${release.version} is available (installed: ${VERSION}). Run \`llm-usage update\`.`);
-	if (!isStandalone()) return fail(`Version ${release.version} is available: update the npm package.`);
-
 	const record = await readInstallRecord(dataDir);
+	if (!record && !isStandalone()) return fail("Not installed: run `llm-usage install`.");
+
+	// Through npm, the running package says nothing about the installed executable.
+	const installed = record?.version ?? VERSION;
+	const release = await findLatestRelease();
+	if (!release || compareVersions(release.version, installed) <= 0) return print(`Up to date (${installed}).`);
+	if (checkOnly) return print(`Version ${release.version} is available (installed: ${installed}). Run \`llm-usage update\`.`);
+
 	const target = record?.path ?? process.execPath;
 	await installRelease(release, target);
 	if (record) await writeInstallRecord(dataDir, { ...record, version: release.version });
-	logger.info("Updated", { from: VERSION, to: release.version, path: target });
+	logger.info("Updated", { from: installed, to: release.version, path: target });
 	return print(`Updated to ${release.version} (${target}).`);
 }
 
