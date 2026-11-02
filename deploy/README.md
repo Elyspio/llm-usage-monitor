@@ -54,7 +54,7 @@ Le déclenchement automatique est actif par défaut en prod (`App:AutoTriggerEna
 ./deploy/deploy.ps1 -Version X.Y.Z
 ```
 
-Installe la release `vX.Y.Z` publiée par le workflow de release (tests verts, smoke test du binaire, voir « Releases » dans `AGENTS.md`). Sans `-Version`, `deploy.ps1` construit l'exécutable sur le poste depuis le checkout (version `0.0.0-dev`, affichée en bas du menu) : pour tester une modification non publiée, build et tests verts en local avant.
+Installe la release `vX.Y.Z` publiée par le workflow de release (tests verts, smoke test du binaire, voir `.github/workflows/release.yml`). Sans `-Version`, `deploy.ps1` construit l'exécutable sur le poste depuis le checkout (version `0.0.0-dev`, affichée en bas du menu) : pour tester une modification non publiée, build et tests verts en local avant.
 
 CLIs, à mettre à jour quand un modèle récent est refusé (le backend Codex filtre les modèles selon la version du CLI) :
 
@@ -246,6 +246,7 @@ L'historique est agrégé par MongoDB : un point par fenêtre et par tranche de 
 
 ## Notes
 
+- En prod, l'API sert aussi la SPA (embarquée dans l'exécutable par `ProductionHosting.UseEmbeddedSpa`, `wwwroot` hors build de release) et `/conf.js` (`Cache-Control: no-store`), avec une CSP stricte sur toutes les réponses hors `/hangfire` (`ProductionHosting.ContentSecurityPolicy` : aucun script inline ; `style-src 'unsafe-inline'` pour Emotion/MUI ; `connect-src` limité à l'application et à Keycloak).
 - Le shell de `root` sur le LXC est fish : les scripts distants de `deploy.ps1` sont passés à `bash` par l'entrée standard, jamais au shell de connexion.
 - La télémétrie envoie les traces (Hangfire compris) au collector en HTTP/protobuf. `Elyspio.Utils.Telemetry` ajoute aussi un exporteur de métriques non désactivable : ses envois vers `/v1/metrics` échouent en silence sur un collector limité aux traces.
 - Les CLIs gardent leur mise à jour automatique : un changement de comportement se verra par les erreurs de lecture, notifiées.
