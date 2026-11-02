@@ -1,19 +1,28 @@
+import { createHash } from "node:crypto";
 import fs from "node:fs";
-import { moveIntoPlace } from "./install";
+import path from "node:path";
+import { run, type RunResult } from "./process";
 
-const RELEASES_URL = "https://api.github.com/repos/Elyspio/llm-usage-monitor/releases?per_page=100";
+const RELEASES_API = "https://api.github.com/repos/Elyspio/llm-usage-monitor/releases";
+const RELEASES_URL = `${RELEASES_API}?per_page=100`;
+const CHECKSUMS_ASSET = "SHA256SUMS";
 const TAG_PREFIX = "collector-v";
 /** The server releases (`v*`) share the repository: pages are read until one holds a collector release. */
 const MAX_RELEASE_PAGES = 10;
 
 type GithubRelease = { tag_name: string; draft: boolean; prerelease: boolean; assets: { name: string; browser_download_url: string }[] };
 
-export type CollectorRelease = { version: string; tag: string; assetUrl: string | undefined };
+export type CollectorRelease = { version: string; tag: string; assetUrl: string | undefined; checksumsUrl: string | undefined };
 
-/** `llm-usage-win-x64.exe`, `llm-usage-linux-x64` or `llm-usage-linux-arm64`, as built by `vp pack -F exe`. */
-export function assetName(platform: NodeJS.Platform = process.platform, arch: NodeJS.Architecture = process.arch): string {
+/**
+ * `llm-usage-win-x64.exe`, `llm-usage-linux-x64` or `llm-usage-linux-arm64`, as built by `vp pack -F exe`; undefined on
+ * the platforms without an executable. Windows arm64 runs the x64 one through emulation.
+ */
+export function assetName(platform: NodeJS.Platform = process.platform, arch: NodeJS.Architecture = process.arch): string | undefined {
+	if (arch !== "x64" && arch !== "arm64") return undefined;
 	if (platform === "win32") return "llm-usage-win-x64.exe";
-	return arch === "arm64" ? "llm-usage-linux-arm64" : "llm-usage-linux-x64";
+	if (platform === "linux") return `llm-usage-linux-${arch}`;
+	return undefined;
 }
 
 /** -1, 0 or 1, on the numeric parts of `x.y.z`; a prerelease (`x.y.z-rc.1`) comes before its release. */
@@ -50,6 +59,24 @@ export async function findLatestRelease(fetchReleases: (url: string) => Promise<
 	return null;
 }
 
+/** The release of exactly <version>, a prerelease too; null when it does not exist. */
+export async function findRelease(version: string, fetchRelease: (url: string) => Promise<Response> = fetchGithub): Promise<CollectorRelease | null> {
+	const response = await fetchRelease(`${RELEASES_API}/tags/${TAG_PREFIX}${version}`);
+	if (response.status === 404) return null;
+	if (!response.ok) throw new Error(`GitHub releases unavailable (${response.status})`);
+	return toCollectorRelease((await response.json()) as GithubRelease);
+}
+
+function toCollectorRelease(release: GithubRelease, platform: NodeJS.Platform = process.platform, arch: NodeJS.Architecture = process.arch): CollectorRelease {
+	const url = (name: string | undefined) => release.assets.find((asset) => asset.name === name)?.browser_download_url;
+	return {
+		version: release.tag_name.slice(TAG_PREFIX.length),
+		tag: release.tag_name,
+		assetUrl: url(assetName(platform, arch)),
+		checksumsUrl: url(CHECKSUMS_ASSET),
+	};
+}
+
 function fetchGithub(url: string): Promise<Response> {
 	return fetch(url, { headers: { Accept: "application/vnd.github+json", "User-Agent": "llm-usage-collector" } });
 }
@@ -57,22 +84,82 @@ function fetchGithub(url: string): Promise<Response> {
 export function pickLatestRelease(releases: GithubRelease[], platform: NodeJS.Platform = process.platform, arch: NodeJS.Architecture = process.arch): CollectorRelease | null {
 	const candidates = releases
 		.filter((release) => !release.draft && !release.prerelease && release.tag_name.startsWith(TAG_PREFIX))
-		.map((release) => ({
-			version: release.tag_name.slice(TAG_PREFIX.length),
-			tag: release.tag_name,
-			assetUrl: release.assets.find((asset) => asset.name === assetName(platform, arch))?.browser_download_url,
-		}))
+		.map((release) => toCollectorRelease(release, platform, arch))
 		.sort((a, b) => compareVersions(b.version, a.version));
 	return candidates[0] ?? null;
 }
 
-/** Downloads the executable of <release> over <target>. */
-export async function installRelease(release: CollectorRelease, target: string): Promise<void> {
-	if (!release.assetUrl) throw new Error(`${release.tag} has no ${assetName()} asset`);
-	const response = await fetch(release.assetUrl, { headers: { "User-Agent": "llm-usage-collector" } });
-	if (!response.ok) throw new Error(`Download of ${release.tag} failed (${response.status})`);
+type InstallReleaseOptions = {
+	fetchUrl?: (url: string) => Promise<Response>;
+	verify?: (file: string) => Promise<void>;
+};
 
+/** Downloads the executable of <release> over <target>, once its checksum is verified and it has run. On failure <target> is left untouched. */
+export async function installRelease(release: CollectorRelease, target: string, options: InstallReleaseOptions = {}): Promise<void> {
+	const { fetchUrl = download, verify = (file) => verifyExecutable(file, release.version) } = options;
+	const name = assetName() ?? `llm-usage-${process.platform}-${process.arch}`;
+	if (!release.assetUrl) throw new Error(`${release.tag} has no ${name} asset`);
+	if (!release.checksumsUrl) throw new Error(`${release.tag} has no ${CHECKSUMS_ASSET}`);
+
+	const content = new Uint8Array(await (await fetchOk(fetchUrl, release.assetUrl, release.tag)).arrayBuffer());
+	const expected = findChecksum(await (await fetchOk(fetchUrl, release.checksumsUrl, release.tag)).text(), name);
+	if (!expected) throw new Error(`${CHECKSUMS_ASSET} of ${release.tag} has no ${name}`);
+	if (createHash("sha256").update(content).digest("hex") !== expected) throw new Error(`Checksum mismatch for ${name} of ${release.tag}`);
+
+	await fs.promises.mkdir(path.dirname(target), { recursive: true });
 	const temporary = `${target}.new`;
-	await fs.promises.writeFile(temporary, new Uint8Array(await response.arrayBuffer()));
-	await moveIntoPlace(temporary, target);
+	try {
+		await fs.promises.writeFile(temporary, content, { mode: 0o755 });
+		await verify(temporary);
+		await moveIntoPlace(temporary, target);
+	} finally {
+		await fs.promises.rm(temporary, { force: true });
+	}
+}
+
+/** Runs <file>, which must print <version>: catches an executable this machine cannot start before anything is scheduled. */
+export async function verifyExecutable(
+	file: string,
+	version: string,
+	runFile: (command: string, args: string[]) => Promise<RunResult> = run,
+	platform: NodeJS.Platform = process.platform
+): Promise<void> {
+	const result = await runFile(file, ["--version"]);
+	if (result.code !== 0) {
+		const hint = platform === "linux" ? " It may need libatomic1 (apt install libatomic1)." : "";
+		throw new Error(`The downloaded executable does not start (${result.code}): ${(result.stderr || result.stdout).trim()}.${hint}`);
+	}
+	if (!result.stdout.includes(version)) throw new Error(`The downloaded executable printed ${result.stdout.trim()} instead of ${version}`);
+}
+
+/** Renames <temporary> over <target>. Windows cannot overwrite a running executable but can rename it: `<target>.old` is removed on the next run. */
+export async function moveIntoPlace(temporary: string, target: string): Promise<void> {
+	if (process.platform === "win32") {
+		if (fs.existsSync(target)) {
+			await fs.promises.rm(`${target}.old`, { force: true });
+			await fs.promises.rename(target, `${target}.old`);
+		}
+	} else {
+		await fs.promises.chmod(temporary, 0o755);
+	}
+	await fs.promises.rename(temporary, target);
+}
+
+function download(url: string): Promise<Response> {
+	return fetch(url, { headers: { "User-Agent": "llm-usage-collector" } });
+}
+
+async function fetchOk(fetchUrl: (url: string) => Promise<Response>, url: string, tag: string): Promise<Response> {
+	const response = await fetchUrl(url);
+	if (!response.ok) throw new Error(`Download of ${tag} failed (${response.status})`);
+	return response;
+}
+
+/** The hash of <name> in the output of `sha256sum` (`<hash>  <name>`, or `<hash> *<name>` in binary mode). */
+function findChecksum(checksums: string, name: string): string | undefined {
+	for (const line of checksums.split("\n")) {
+		const match = /^([0-9a-f]{64}) [ *](.+?)\s*$/i.exec(line);
+		if (match?.[2] === name) return match[1]?.toLowerCase();
+	}
+	return undefined;
 }
