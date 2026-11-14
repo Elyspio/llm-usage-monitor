@@ -111,7 +111,44 @@ public static class ClaudeUsageParser
 				duration));
 		}
 
+		if (ReadFable(root) is { } fable && windows.All(window => window.Id != FableWindowId))
+		{
+			windows.Add(fable);
+		}
+
 		return windows;
+	}
+
+	/// <summary>The id the earned resets give the Fable weekly limit in <c>clears</c>.</summary>
+	public const string FableWindowId = "seven_day_overage_included";
+
+	/// <summary>
+	///     The Fable weekly limit has no block of its own: it is the <c>weekly_scoped</c> entry of <c>limits</c> whose model is
+	///     Fable. Other scoped models are ignored, their id in the earned resets being unknown.
+	/// </summary>
+	private static UsageWindow? ReadFable(JsonElement root)
+	{
+		if (!root.TryGetProperty("limits", out var limits) || limits.ValueKind != JsonValueKind.Array)
+		{
+			return null;
+		}
+
+		foreach (var limit in limits.EnumerateArray())
+		{
+			if (limit.ValueKind == JsonValueKind.Object
+			    && limit.TryGetProperty("kind", out var kind) && kind.ValueKind == JsonValueKind.String && kind.GetString() == "weekly_scoped"
+			    && limit.TryGetProperty("scope", out var scope) && scope.ValueKind == JsonValueKind.Object
+			    && scope.TryGetProperty("model", out var model) && model.ValueKind == JsonValueKind.Object
+			    && model.TryGetProperty("display_name", out var name) && name.ValueKind == JsonValueKind.String
+			    && string.Equals(name.GetString(), "Fable", StringComparison.OrdinalIgnoreCase)
+			    && limit.TryGetProperty("percent", out var percent) && percent.ValueKind == JsonValueKind.Number)
+			{
+				return UsageWindowFactory.Create(FableWindowId, UsageWindowFactory.ReadNumber(percent),
+					limit.TryGetProperty("resets_at", out var resetsAt) ? UsageWindowFactory.ParseReset(resetsAt, FableWindowId) : null, 10_080);
+			}
+		}
+
+		return null;
 	}
 
 	private static int? DurationOf(string id)

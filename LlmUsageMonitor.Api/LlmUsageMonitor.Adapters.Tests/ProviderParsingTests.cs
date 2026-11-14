@@ -24,6 +24,24 @@ public sealed class ClaudeUsageParserTests
 	}
 
 	[Fact]
+	public void The_fable_weekly_limit_becomes_a_window_named_as_in_the_earned_resets()
+	{
+		var windows = ClaudeUsageParser.Parse(Json("""
+		{ "limits": [
+			{ "kind": "weekly_all", "percent": 47, "resets_at": "2026-11-15T04:00:00+00:00", "scope": null },
+			{ "kind": "weekly_scoped", "percent": 12, "resets_at": "2026-11-15T04:00:00+00:00", "scope": { "model": { "id": null, "display_name": "Other" }, "surface": null } },
+			{ "kind": "weekly_scoped", "percent": 68, "resets_at": "2026-11-15T04:00:00+00:00", "scope": { "model": { "id": null, "display_name": "Fable" }, "surface": null } }
+		] }
+		"""));
+
+		var fable = windows.ShouldHaveSingleItem();
+		fable.Id.ShouldBe("seven_day_overage_included");
+		fable.UsedPercent.ShouldBe(68);
+		fable.WindowDurationMinutes.ShouldBe(10_080);
+		fable.ResetsAt.ShouldBe(new DateTimeOffset(2026, 11, 15, 4, 0, 0, TimeSpan.Zero));
+	}
+
+	[Fact]
 	public void Reset_times_may_be_unix_seconds_and_usage_above_100_leaves_nothing()
 	{
 		var windows = ClaudeUsageParser.Parse(Json("""{ "five_hour": { "utilization": 120, "resets_at": 1789806548 } }"""));

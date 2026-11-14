@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Shouldly;
 using Xunit;
 using static LlmUsageMonitor.Adapters.Tests.FakeCli;
@@ -131,16 +132,54 @@ public sealed class ClaudeAdapterTests
 	[Fact]
 	public async Task The_reader_sends_the_cli_token_and_parses_the_usage()
 	{
-		using var cli = new FakeCli(Scenario());
+		using var cli = new FakeCli(Scenario(new() { ["--version"] = Command("9.9.9 (Claude Code)") }));
 		var handler = new StubHandler(HttpStatusCode.OK, await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "claude-usage.json"), Token));
+		var reader = Reader(cli, WriteCredentials(cli, ExpiresAt), handler);
 
-		var windows = await Reader(WriteCredentials(cli, ExpiresAt), handler).Read(Token);
+		var windows = await reader.Read(Token);
 
 		windows.ShouldBe(ClaudeUsageParser.Parse(Fixtures.Load("claude-usage.json")));
 		var request = handler.Requests.ShouldHaveSingleItem();
 		request.RequestUri!.ToString().ShouldBe("https://api.anthropic.com/api/oauth/usage?cedar_ember=1&skip_spend=1");
 		request.Headers.Authorization!.ToString().ShouldBe("Bearer access-token");
 		request.Headers.GetValues("anthropic-beta").ShouldBe(["oauth-2025-04-20"]);
+		// Without the CLI User-Agent the endpoint hides the earned resets ("ineligible_reason": "surface").
+		request.Headers.UserAgent.ToString().ShouldBe("claude-cli/9.9.9 (external, cli)");
+
+		await reader.Read(Token);
+
+		cli.Invocations.ShouldBe(["--version"]);
+	}
+
+	[Fact]
+	public async Task An_unreadable_cli_version_falls_back_without_failing_the_read()
+	{
+		using var cli = new FakeCli(Scenario(new() { ["--version"] = Command(stderr: "boom", exitCode: 1) }));
+		var handler = new StubHandler(HttpStatusCode.OK, await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "claude-usage.json"), Token));
+
+		await Reader(cli, WriteCredentials(cli, ExpiresAt), handler).Read(Token);
+
+		handler.Requests.ShouldHaveSingleItem().Headers.UserAgent.ToString().ShouldBe($"claude-cli/{ClaudeUserAgent.FallbackVersion} (external, cli)");
+	}
+
+	[Fact]
+	public async Task The_cli_version_is_read_again_after_a_day()
+	{
+		using var cli = new FakeCli(Scenario(new() { ["--version"] = Command("9.9.9 (Claude Code)") }));
+		var time = new FakeTimeProvider(DateTimeOffset.UtcNow);
+		var userAgent = new ClaudeUserAgent(Options.Create(OptionsFor(cli, null)), time, NullLogger<ClaudeUserAgent>.Instance);
+
+		await userAgent.Get(Token);
+		time.Advance(TimeSpan.FromHours(23));
+		await userAgent.Get(Token);
+		cli.Invocations.Count.ShouldBe(1);
+
+		// The version becomes unreadable: the last known one is kept.
+		await File.WriteAllTextAsync(Path.Combine(cli.Directory, "fake-cli.json"), Scenario(new() { ["--version"] = Command(exitCode: 1) }).ToJsonString(), Token);
+		time.Advance(TimeSpan.FromHours(1));
+
+		(await userAgent.Get(Token)).ShouldBe("claude-cli/9.9.9 (external, cli)");
+		cli.Invocations.Count.ShouldBe(2);
 	}
 
 	[Theory]
@@ -153,7 +192,7 @@ public sealed class ClaudeAdapterTests
 		using var cli = new FakeCli(Scenario());
 		var handler = new StubHandler(status, "{}");
 
-		var exception = await Should.ThrowAsync<ProviderException>(() => Reader(WriteCredentials(cli, ExpiresAt), handler).Read(Token));
+		var exception = await Should.ThrowAsync<ProviderException>(() => Reader(cli, WriteCredentials(cli, ExpiresAt), handler).Read(Token));
 
 		exception.Code.ShouldBe(code);
 		// A 429 goes to the reading backoff: retrying would only extend the rate limiting.
@@ -165,7 +204,7 @@ public sealed class ClaudeAdapterTests
 	{
 		using var cli = new FakeCli(Scenario());
 
-		var exception = await Should.ThrowAsync<ProviderException>(() => Reader(WriteCredentials(cli, ExpiresAt), new StubHandler(HttpStatusCode.OK, "<html>")).Read(Token));
+		var exception = await Should.ThrowAsync<ProviderException>(() => Reader(cli, WriteCredentials(cli, ExpiresAt), new StubHandler(HttpStatusCode.OK, "<html>")).Read(Token));
 
 		exception.Code.ShouldBe(ProviderErrorCode.InvalidResponse);
 	}
@@ -176,7 +215,7 @@ public sealed class ClaudeAdapterTests
 		using var cli = new FakeCli(Scenario());
 		var handler = new StubHandler(HttpStatusCode.OK, "{}");
 
-		var exception = await Should.ThrowAsync<ProviderException>(() => Reader(WriteCredentials(cli, DateTimeOffset.UtcNow.AddMinutes(-1)), handler).Read(Token));
+		var exception = await Should.ThrowAsync<ProviderException>(() => Reader(cli, WriteCredentials(cli, DateTimeOffset.UtcNow.AddMinutes(-1)), handler).Read(Token));
 
 		exception.Code.ShouldBe(ProviderErrorCode.AuthExpired);
 		handler.Requests.ShouldBeEmpty();
@@ -193,9 +232,12 @@ public sealed class ClaudeAdapterTests
 	}
 
 	/// <summary>The reader as the module registers it (resilience included), over a stubbed endpoint.</summary>
-	private static IUsageReader Reader(string credentialsPath, StubHandler handler)
+	private static IUsageReader Reader(FakeCli cli, string credentialsPath, StubHandler handler)
 	{
-		var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Claude:CredentialsPath"] = credentialsPath }).Build();
+		var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+		{
+			["Claude:CredentialsPath"] = credentialsPath, ["Claude:Executable"] = Executable, ["Claude:WorkingDirectory"] = cli.Directory
+		}).Build();
 		var services = new ServiceCollection();
 		services.AddLogging();
 		services.AddSingleton(TimeProvider.System);

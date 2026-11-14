@@ -3,6 +3,7 @@ using LlmUsageMonitor.Abstractions.Injections;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http.Resilience;
 
 namespace LlmUsageMonitor.Adapters.Claude;
@@ -17,9 +18,13 @@ public sealed class ClaudeAdapterModule : IModule
 	public void Load(IServiceCollection services, IConfiguration configuration)
 	{
 		services.Configure<ClaudeOptions>(configuration.GetSection(ClaudeOptions.Section));
-		services.AddHttpClient(HttpClientName, client => client.BaseAddress = new("https://api.anthropic.com/"))
+		services.TryAddSingleton(TimeProvider.System);
+		services.AddSingleton<ClaudeUserAgent>();
+		services.AddTransient<ClaudeUserAgentHandler>();
+		var client = services.AddHttpClient(HttpClientName, client => client.BaseAddress = new("https://api.anthropic.com/"))
 			.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false })
-			.AddStandardResilienceHandler(options =>
+			.AddHttpMessageHandler<ClaudeUserAgentHandler>();
+		client.AddStandardResilienceHandler(options =>
 			{
 				// A 429 goes to the reading backoff: retrying it would only extend the rate limiting.
 				options.Retry.ShouldHandle = arguments => ValueTask.FromResult(

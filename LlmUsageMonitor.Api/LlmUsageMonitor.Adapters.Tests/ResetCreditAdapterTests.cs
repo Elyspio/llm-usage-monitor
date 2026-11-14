@@ -71,7 +71,7 @@ public sealed class ResetCreditAdapterTests
 	[InlineData("unavailable", false, true)]
 	public async Task Claude_redemption_uses_the_cli_organization_and_durable_request_id(string outcome, bool succeeded, bool retryable)
 	{
-		using var cli = new FakeCli(Scenario());
+		using var cli = new FakeCli(Scenario(new() { ["--version"] = Command("9.9.9 (Claude Code)") }));
 		var credentials = Path.Combine(cli.Directory, ".credentials.json");
 		var config = Path.Combine(cli.Directory, ".claude.json");
 		const string organization = "7d259c85-9958-4871-9cdc-f4a3d4e7f133";
@@ -81,7 +81,7 @@ public sealed class ResetCreditAdapterTests
 		var services = new ServiceCollection();
 		services.AddLogging();
 		new ClaudeAdapterModule().Load(services, new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
-		{ ["Claude:CredentialsPath"] = credentials, ["Claude:AccountConfigPath"] = config }).Build());
+		{ ["Claude:CredentialsPath"] = credentials, ["Claude:AccountConfigPath"] = config, ["Claude:Executable"] = Executable, ["Claude:WorkingDirectory"] = cli.Directory }).Build());
 		services.AddHttpClient(ClaudeAdapterModule.HttpClientName).ConfigurePrimaryHttpMessageHandler(() => handler);
 		await using var provider = services.BuildServiceProvider();
 		var key = Guid.NewGuid().ToString();
@@ -95,6 +95,7 @@ public sealed class ResetCreditAdapterTests
 		body.RootElement.GetProperty("program").GetString().ShouldBe("cedar_ember");
 		body.RootElement.GetProperty("grant_id").GetString().ShouldBe("grant_1");
 		body.RootElement.GetProperty("request_id").GetString().ShouldBe(key);
-		cli.Invocations.ShouldBeEmpty();
+		request.Headers.UserAgent.ToString().ShouldBe("claude-cli/9.9.9 (external, cli)");
+		cli.Invocations.ShouldBe(["--version"]);
 	}
 }

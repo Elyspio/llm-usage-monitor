@@ -63,7 +63,7 @@ export function ResetCredits({ provider, now }: { provider: ProviderDashboard; n
 			)}
 			{data?.balance?.unavailableReason && (
 				<Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-					The provider currently marks these resets as unavailable.
+					The provider marks these resets as unavailable (reason: {data.balance.unavailableReason}).
 				</Typography>
 			)}
 			{(data?.balance?.availableCount ?? 0) > credits.reduce((sum, credit) => sum + credit.remainingUses, 0) && (
