@@ -35,18 +35,13 @@ export const UsagePage = () => {
 
 	return (
 		<Stack spacing={3}>
-			<Typography variant="overline" sx={{ color: "text.secondary" }}>
+			<Typography variant="overline" component="h1" aria-label="Usage" sx={{ color: "text.secondary" }}>
 				03 / Usage
 			</Typography>
 			<Stack direction={{ xs: "column", lg: "row" }} spacing={2} sx={{ justifyContent: "space-between", alignItems: { lg: "flex-end" } }}>
-				<Box>
-					<Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
-						Usage
-					</Typography>
-					<Typography variant="body2" sx={{ color: "text.secondary" }}>
-						{period}
-					</Typography>
-				</Box>
+				<Typography variant="body2" sx={{ color: "text.secondary" }}>
+					{period}
+				</Typography>
 				<Stack direction="row" spacing={1.5} useFlexGap sx={{ flexWrap: "wrap", alignItems: "center", opacity: isFetching && !isPending ? 0.7 : 1 }}>
 					<TextField select label="Workstation" value={machineId} onChange={(event) => setMachineId(event.target.value)} sx={{ minWidth: 180 }}>
 						<MenuItem value={ALL_MACHINES}>All workstations</MenuItem>
