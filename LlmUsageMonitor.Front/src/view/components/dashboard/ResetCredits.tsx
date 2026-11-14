@@ -8,6 +8,10 @@ import type { ProviderDashboard, ResetCredit } from "@/core/apis/generated/types
 import { providerLabel, windowLabel } from "@/core/dashboard";
 import { fmtIn, fmtWhen } from "@/core/format";
 
+/** A reset is used from the end of its line, by a button no taller than the text beside it. */
+const action = { flex: "none", px: 1.5, py: 0.5, fontSize: "0.8125rem", whiteSpace: "nowrap" };
+const line = { alignItems: "center", justifyContent: "space-between" };
+
 export function ResetCredits({ provider, now }: { provider: ProviderDashboard; now: number }) {
 	const data = provider.resetCredits;
 	const queryClient = useQueryClient();
@@ -50,13 +54,22 @@ export function ResetCredits({ provider, now }: { provider: ProviderDashboard; n
 				{data?.settings.autoEnabled ? `Automatic use ${data.settings.beforeExpiryMinutes} min before expiry.` : "Automatic use disabled."}
 			</Typography>
 			{next && (
-				<Typography variant="body2" sx={{ mt: 1 }}>
-					Next selected: {next.title ?? "Reset"} ·{" "}
-					{next.expiresAt ? `expires ${fmtWhen(next.expiresAt, now)} (${fmtIn(next.expiresAt, now)})` : "expiry unknown, manual use only"}.
-				</Typography>
+				<Stack direction="row" spacing={2} sx={{ ...line, mt: 1.5, px: 1.5, py: 1.25, bgcolor: "background.default", borderRadius: 2 }}>
+					<Box sx={{ minWidth: 0 }}>
+						<Typography variant="body2" sx={{ fontWeight: 600 }}>
+							{next.title ?? "Reset"}
+						</Typography>
+						<Typography variant="caption" component="p" color="text.secondary">
+							Next selected, {next.expiresAt ? `expires ${fmtWhen(next.expiresAt, now)} (${fmtIn(next.expiresAt, now)})` : "expiry unknown, manual use only"}.
+						</Typography>
+					</Box>
+					<Button variant="outlined" color="inherit" size="small" disabled={busy || !available(next)} onClick={() => open(next)} sx={action}>
+						Use reset
+					</Button>
+				</Stack>
 			)}
 			{data?.nextAttemptAt && (
-				<Typography variant="caption" color="text.secondary">
+				<Typography variant="caption" component="p" color="text.secondary" sx={{ mt: 1 }}>
 					Next attempt: {fmtWhen(data.nextAttemptAt, now)}
 					{next && !next.isUsable ? " · waiting for provider eligibility" : ""}.
 				</Typography>
@@ -71,11 +84,6 @@ export function ResetCredits({ provider, now }: { provider: ProviderDashboard; n
 					Only some credit details are available. Automatic selection requires a known expiration.
 				</Typography>
 			)}
-			{next && (
-				<Button variant="outlined" color="inherit" size="small" disabled={busy || !available(next)} onClick={() => open(next)} sx={{ mt: 1.5 }}>
-					Use selected reset
-				</Button>
-			)}
 			<Accordion disableGutters elevation={0} sx={{ mt: 1.5, bgcolor: "transparent", "&:before": { display: "none" } }}>
 				<AccordionSummary sx={{ px: 0, minHeight: 36 }}>
 					<Typography variant="body2">Reset details and history</Typography>
@@ -83,24 +91,34 @@ export function ResetCredits({ provider, now }: { provider: ProviderDashboard; n
 				<AccordionDetails sx={{ px: 0 }}>
 					<Stack spacing={2}>
 						{credits.map((credit, index) => (
-							<Box key={credit.id}>
-								<Typography variant="body2" sx={{ fontWeight: 600 }}>
-									{credit.title ?? `Reset ${index + 1}`} · {credit.remainingUses} remaining{credit.id === data?.nextCreditId ? " · next selected" : ""}
-								</Typography>
-								<Typography variant="caption" color="text.secondary">
-									{credit.expiresAt ? `Expires ${fmtWhen(credit.expiresAt, now)}` : "No known expiration"}
-									{credit.requiresLimit ? " · requires an exhausted limit" : ""}
-									{!credit.isUsable ? " · currently unavailable" : ""}
-								</Typography>
-								{credit.windowIds.length > 0 && (
-									<Typography variant="caption" component="p">
-										Restores: {credit.windowIds.map((id) => windowLabel({ id, windowDurationMinutes: null })).join(", ")}
+							<Stack key={credit.id} direction="row" spacing={2} sx={line}>
+								<Box sx={{ minWidth: 0 }}>
+									<Typography variant="body2" sx={{ fontWeight: 600 }}>
+										{credit.title ?? `Reset ${index + 1}`} · {credit.remainingUses} remaining{credit.id === data?.nextCreditId ? " · next selected" : ""}
 									</Typography>
-								)}
-								<Button size="small" disabled={busy || !available(credit)} onClick={() => open(credit)} aria-label={`Use reset ${index + 1}`}>
-									Use this reset
+									<Typography variant="caption" color="text.secondary">
+										{credit.expiresAt ? `Expires ${fmtWhen(credit.expiresAt, now)}` : "No known expiration"}
+										{credit.requiresLimit ? " · requires an exhausted limit" : ""}
+										{!credit.isUsable ? " · currently unavailable" : ""}
+									</Typography>
+									{credit.windowIds.length > 0 && (
+										<Typography variant="caption" component="p">
+											Restores: {credit.windowIds.map((id) => windowLabel({ id, windowDurationMinutes: null })).join(", ")}
+										</Typography>
+									)}
+								</Box>
+								<Button
+									variant="outlined"
+									color="inherit"
+									size="small"
+									disabled={busy || !available(credit)}
+									onClick={() => open(credit)}
+									aria-label={`Use reset ${index + 1}`}
+									sx={action}
+								>
+									Use reset
 								</Button>
-							</Box>
+							</Stack>
 						))}
 						{credits.length === 0 && (
 							<Typography variant="body2" color="text.secondary">

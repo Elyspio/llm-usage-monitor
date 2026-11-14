@@ -58,7 +58,7 @@ describe("Earned reset credits", () => {
 		);
 		renderPage(<ResetCredits provider={provider} now={fixtureNow} />);
 		expect(screen.getByText("2 available")).toBeTruthy();
-		openReset("Use selected reset");
+		openReset("Use reset");
 		expect(body).toBeNull();
 		const dialog = screen.getByRole("dialog");
 		fireEvent.click(within(dialog).getByRole("button", { name: "Confirm reset" }));
@@ -89,7 +89,7 @@ describe("Earned reset credits", () => {
 			})
 		);
 		renderPage(<ResetCredits provider={provider} now={fixtureNow} />);
-		openReset("Use selected reset");
+		openReset("Use reset");
 		fireEvent.click(screen.getByRole("button", { name: "Confirm reset" }));
 		fireEvent.click(await screen.findByRole("button", { name: "Retry same request" }));
 		await waitFor(() => expect(keys).toHaveLength(2));
@@ -117,7 +117,7 @@ describe("Earned reset credits", () => {
 				now={fixtureNow}
 			/>
 		);
-		openReset("Use selected reset");
+		openReset("Use reset");
 		fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Confirm reset" }));
 		await waitFor(() => expect(body).toEqual({ creditId: "first", idempotencyKey: result.id }));
 	});
