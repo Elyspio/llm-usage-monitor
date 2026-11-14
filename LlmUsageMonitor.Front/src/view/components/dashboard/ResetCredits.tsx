@@ -1,5 +1,23 @@
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
-import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography } from "@mui/material";
+import {
+	Accordion,
+	AccordionDetails,
+	AccordionSummary,
+	Alert,
+	Box,
+	Button,
+	Chip,
+	Dialog,
+	DialogActions,
+	DialogContent,
+	DialogTitle,
+	ListItemText,
+	Menu,
+	MenuItem,
+	Stack,
+	Typography,
+} from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { apiErrorMessage } from "@/core/apis/api-error";
@@ -17,6 +35,7 @@ export function ResetCredits({ provider, now }: { provider: ProviderDashboard; n
 	const queryClient = useQueryClient();
 	const [selected, setSelected] = useState<ResetCredit | null>(null);
 	const [requestKey, setRequestKey] = useState<string | null>(null);
+	const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
 	const consume = useMutation({
 		...consumeResetCreditMutation(),
 		onSuccess: () => setSelected(null),
@@ -30,7 +49,11 @@ export function ResetCredits({ provider, now }: { provider: ProviderDashboard; n
 	const busy = consume.isPending || Boolean(provider.runningTrigger);
 	const available = (credit: ResetCredit) =>
 		credit.isUsable && credit.remainingUses > 0 && (!credit.expiresAt || Date.parse(credit.expiresAt) > now) && (!credit.startsAt || Date.parse(credit.startsAt) <= now);
+	// Several usable resets restore different quotas (a full reset, a Fable-only one): the button asks which one.
+	const usable = credits.filter(available);
+	const restores = (credit: ResetCredit) => credit.windowIds.map((id) => windowLabel({ id, windowDurationMinutes: null })).join(", ");
 	const open = (credit: ResetCredit) => {
+		setMenuAnchor(null);
 		setSelected(credit);
 		setRequestKey(data?.recentRuns.find((run) => run.creditId === credit.id && run.status === "running")?.id ?? null);
 		consume.reset();
@@ -54,7 +77,7 @@ export function ResetCredits({ provider, now }: { provider: ProviderDashboard; n
 				{data?.settings.autoEnabled ? `Automatic use ${data.settings.beforeExpiryMinutes} min before expiry.` : "Automatic use disabled."}
 			</Typography>
 			{next && (
-				<Stack direction="row" spacing={2} sx={{ ...line, mt: 1.5, px: 1.5, py: 1.25, bgcolor: "background.default", borderRadius: 2 }}>
+				<Stack direction="row" spacing={2} sx={{ ...line, mt: 1.5, px: 1.5, py: 1.25, bgcolor: "background.default", borderRadius: "8px" }}>
 					<Box sx={{ minWidth: 0 }}>
 						<Typography variant="body2" sx={{ fontWeight: 600 }}>
 							{next.title ?? "Reset"}
@@ -63,9 +86,41 @@ export function ResetCredits({ provider, now }: { provider: ProviderDashboard; n
 							Next selected, {next.expiresAt ? `expires ${fmtWhen(next.expiresAt, now)} (${fmtIn(next.expiresAt, now)})` : "expiry unknown, manual use only"}.
 						</Typography>
 					</Box>
-					<Button variant="outlined" color="inherit" size="small" disabled={busy || !available(next)} onClick={() => open(next)} sx={action}>
+					<Button
+						variant="outlined"
+						color="inherit"
+						size="small"
+						disabled={busy || usable.length === 0}
+						onClick={(event) => (usable.length > 1 ? setMenuAnchor(event.currentTarget) : open(usable[0]))}
+						endIcon={usable.length > 1 ? <ArrowDropDownIcon /> : undefined}
+						aria-haspopup={usable.length > 1 ? "menu" : undefined}
+						aria-expanded={usable.length > 1 ? menuAnchor !== null : undefined}
+						sx={action}
+					>
 						Use reset
 					</Button>
+					<Menu
+						anchorEl={menuAnchor}
+						open={menuAnchor !== null}
+						onClose={() => setMenuAnchor(null)}
+						anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+						transformOrigin={{ vertical: "top", horizontal: "right" }}
+						slotProps={{ list: { "aria-label": "Reset to use" } }}
+					>
+						{usable.map((credit, index) => (
+							<MenuItem key={credit.id} onClick={() => open(credit)} sx={{ maxWidth: 440, whiteSpace: "normal" }}>
+								<ListItemText
+									primary={credit.title ?? `Reset ${index + 1}`}
+									secondary={[
+										credit.windowIds.length > 0 ? `Restores ${restores(credit)}` : null,
+										credit.expiresAt ? `expires ${fmtWhen(credit.expiresAt, now)}` : "no known expiration",
+									]
+										.filter(Boolean)
+										.join(" · ")}
+								/>
+							</MenuItem>
+						))}
+					</Menu>
 				</Stack>
 			)}
 			{data?.nextAttemptAt && (
@@ -103,7 +158,7 @@ export function ResetCredits({ provider, now }: { provider: ProviderDashboard; n
 									</Typography>
 									{credit.windowIds.length > 0 && (
 										<Typography variant="caption" component="p">
-											Restores: {credit.windowIds.map((id) => windowLabel({ id, windowDurationMinutes: null })).join(", ")}
+											Restores: {restores(credit)}
 										</Typography>
 									)}
 								</Box>
@@ -163,11 +218,8 @@ export function ResetCredits({ provider, now }: { provider: ProviderDashboard; n
 						<Typography>{selected?.title ?? "Selected reset"}</Typography>
 						<Typography variant="body2">{selected?.expiresAt ? `Expires ${fmtWhen(selected.expiresAt, now)}.` : "No known expiration."}</Typography>
 						<Typography variant="body2">
-							Restores{" "}
-							{selected?.windowIds.length
-								? selected.windowIds.map((id) => windowLabel({ id, windowDurationMinutes: null })).join(", ")
-								: "the provider's eligible quotas"}
-							. This consumes one earned reset and cannot be undone. No prompt will be sent.
+							Restores {selected?.windowIds.length ? restores(selected) : "the provider's eligible quotas"}. This consumes one earned reset and cannot be undone. No
+							prompt will be sent.
 						</Typography>
 						{consume.isError && <Alert severity="error">{apiErrorMessage(consume.error)}</Alert>}
 					</Stack>
