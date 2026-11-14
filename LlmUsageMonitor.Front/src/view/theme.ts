@@ -52,7 +52,6 @@ export const theme = createTheme({
 	typography: {
 		fontFamily: '"Manrope", sans-serif',
 		h1: { fontSize: "2.75rem", fontWeight: 600, letterSpacing: "-0.045em" },
-		h5: { fontSize: "2rem", fontWeight: 600, letterSpacing: "-0.04em" },
 		h6: { fontSize: "1.12rem", fontWeight: 700, letterSpacing: "-0.025em" },
 		body2: { fontSize: "0.8rem", lineHeight: 1.7 },
 		// 0.75rem is the smallest text of the application.
