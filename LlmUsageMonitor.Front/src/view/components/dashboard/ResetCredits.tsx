@@ -12,7 +12,6 @@ import {
 	DialogActions,
 	DialogContent,
 	DialogTitle,
-	ListItemText,
 	Menu,
 	MenuItem,
 	Stack,
@@ -22,13 +21,26 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { apiErrorMessage } from "@/core/apis/api-error";
 import { consumeResetCreditMutation, getDashboardQueryKey, getHistoryQueryKey } from "@/core/apis/generated/@tanstack/react-query.gen";
-import type { ProviderDashboard, ResetCredit } from "@/core/apis/generated/types.gen";
-import { providerLabel, windowLabel } from "@/core/dashboard";
+import type { Provider, ProviderDashboard, ResetCredit } from "@/core/apis/generated/types.gen";
+import { providerLabel, windowColor, windowLabel } from "@/core/dashboard";
 import { fmtIn, fmtWhen } from "@/core/format";
 
 /** A reset is used from the end of its line, by a button no taller than the text beside it. */
 const action = { flex: "none", px: 1.5, py: 0.5, fontSize: "0.8125rem", whiteSpace: "nowrap" };
 const line = { alignItems: "center", justifyContent: "space-between" };
+
+/** The quotas a reset restores, each marked with the colour its window has on the timeline and in the history. */
+const RestoredWindows = ({ provider, windowIds }: { provider: Provider; windowIds: string[] }) =>
+	windowIds.length === 0 ? null : (
+		<Stack component="ul" aria-label="Restores" direction="row" useFlexGap sx={{ flexWrap: "wrap", columnGap: 1.5, rowGap: 0.25, m: 0, p: 0, listStyle: "none" }}>
+			{windowIds.map((id) => (
+				<Typography key={id} component="li" variant="caption" sx={{ display: "flex", alignItems: "center", gap: 0.75, whiteSpace: "nowrap" }}>
+					<Box aria-hidden="true" sx={{ width: 8, height: 8, borderRadius: "2px", bgcolor: windowColor(provider, id) }} />
+					{windowLabel({ id, windowDurationMinutes: null })}
+				</Typography>
+			))}
+		</Stack>
+	);
 
 export function ResetCredits({ provider, now }: { provider: ProviderDashboard; now: number }) {
 	const data = provider.resetCredits;
@@ -109,15 +121,15 @@ export function ResetCredits({ provider, now }: { provider: ProviderDashboard; n
 					>
 						{usable.map((credit, index) => (
 							<MenuItem key={credit.id} onClick={() => open(credit)} sx={{ maxWidth: 440, whiteSpace: "normal" }}>
-								<ListItemText
-									primary={credit.title ?? `Reset ${index + 1}`}
-									secondary={[
-										credit.windowIds.length > 0 ? `Restores ${restores(credit)}` : null,
-										credit.expiresAt ? `expires ${fmtWhen(credit.expiresAt, now)}` : "no known expiration",
-									]
-										.filter(Boolean)
-										.join(" · ")}
-								/>
+								<Stack spacing={0.75} sx={{ py: 0.5 }}>
+									<Typography variant="body2" sx={{ fontWeight: 600 }}>
+										{credit.title ?? `Reset ${index + 1}`}
+									</Typography>
+									<RestoredWindows provider={provider.provider} windowIds={credit.windowIds} />
+									<Typography variant="caption" color="text.secondary">
+										{credit.expiresAt ? `Expires ${fmtWhen(credit.expiresAt, now)} (${fmtIn(credit.expiresAt, now)})` : "No known expiration"}
+									</Typography>
+								</Stack>
 							</MenuItem>
 						))}
 					</Menu>
@@ -156,11 +168,9 @@ export function ResetCredits({ provider, now }: { provider: ProviderDashboard; n
 										{credit.requiresLimit ? " · requires an exhausted limit" : ""}
 										{!credit.isUsable ? " · currently unavailable" : ""}
 									</Typography>
-									{credit.windowIds.length > 0 && (
-										<Typography variant="caption" component="p">
-											Restores: {restores(credit)}
-										</Typography>
-									)}
+									<Box sx={{ mt: 0.5 }}>
+										<RestoredWindows provider={provider.provider} windowIds={credit.windowIds} />
+									</Box>
 								</Box>
 								<Button
 									variant="outlined"
