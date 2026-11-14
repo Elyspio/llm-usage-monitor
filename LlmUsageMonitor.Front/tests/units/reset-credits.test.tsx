@@ -14,6 +14,11 @@ function openReset(name: string) {
 	button.focus();
 	fireEvent.click(button);
 }
+/** Two resets are usable: the button opens the list, and the reset is picked there. */
+function chooseReset(index: number) {
+	openReset("Use reset");
+	fireEvent.click(within(screen.getByRole("menu", { name: "Reset to use" })).getAllByRole("menuitem")[index]);
+}
 const provider: ProviderDashboard = {
 	...codex,
 	resetCredits: {
@@ -58,7 +63,7 @@ describe("Earned reset credits", () => {
 		);
 		renderPage(<ResetCredits provider={provider} now={fixtureNow} />);
 		expect(screen.getByText("2 available")).toBeTruthy();
-		openReset("Use reset");
+		chooseReset(0);
 		expect(body).toBeNull();
 		const dialog = screen.getByRole("dialog");
 		fireEvent.click(within(dialog).getByRole("button", { name: "Confirm reset" }));
@@ -79,6 +84,34 @@ describe("Earned reset credits", () => {
 		fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Confirm reset" }));
 		await waitFor(() => expect(body).toMatchObject({ creditId: "second" }));
 	});
+	it("lets the button choose which of several usable resets to use", async () => {
+		let body: unknown = null;
+		server.use(
+			http.post(`${apiUrl}/api/providers/codex/reset-credits/consume`, async ({ request }) => {
+				body = await request.json();
+				return HttpResponse.json(result);
+			})
+		);
+		const credits = provider.resetCredits!.balance!.credits!;
+		const fable = { ...credits[1], title: "Fable reset", windowIds: ["five_hour", "seven_day_overage_included"] };
+		renderPage(
+			<ResetCredits provider={{ ...provider, resetCredits: { ...provider.resetCredits!, balance: { availableCount: 2, credits: [credits[0], fable] } } }} now={fixtureNow} />
+		);
+		openReset("Use reset");
+		const items = within(screen.getByRole("menu", { name: "Reset to use" })).getAllByRole("menuitem");
+		expect(items.map((item) => item.textContent)).toEqual([expect.stringContaining("Full reset"), expect.stringContaining("Restores 5 h session, Weekly · Fable only")]);
+		fireEvent.click(items[1]);
+		expect(within(screen.getByRole("dialog")).getByText("Fable reset")).toBeTruthy();
+		fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Confirm reset" }));
+		await waitFor(() => expect(body).toMatchObject({ creditId: "second" }));
+	});
+	it("opens the confirmation directly when a single reset is usable", () => {
+		const single = { ...provider.resetCredits!, balance: { availableCount: 1, credits: [provider.resetCredits!.balance!.credits![0]] } };
+		renderPage(<ResetCredits provider={{ ...provider, resetCredits: single }} now={fixtureNow} />);
+		openReset("Use reset");
+		expect(screen.queryByRole("menu")).toBeNull();
+		expect(screen.getByRole("dialog")).toBeTruthy();
+	});
 	it("reuses the same logical request after an HTTP failure", async () => {
 		const keys: string[] = [];
 		server.use(
@@ -89,7 +122,7 @@ describe("Earned reset credits", () => {
 			})
 		);
 		renderPage(<ResetCredits provider={provider} now={fixtureNow} />);
-		openReset("Use reset");
+		chooseReset(0);
 		fireEvent.click(screen.getByRole("button", { name: "Confirm reset" }));
 		fireEvent.click(await screen.findByRole("button", { name: "Retry same request" }));
 		await waitFor(() => expect(keys).toHaveLength(2));
@@ -117,7 +150,7 @@ describe("Earned reset credits", () => {
 				now={fixtureNow}
 			/>
 		);
-		openReset("Use reset");
+		chooseReset(0);
 		fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Confirm reset" }));
 		await waitFor(() => expect(body).toEqual({ creditId: "first", idempotencyKey: result.id }));
 	});
