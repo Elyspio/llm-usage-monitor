@@ -5,8 +5,19 @@ export const providers: Provider[] = ["claude", "codex"];
 export const providerLabel: Record<Provider, string> = { claude: "Claude", codex: "Codex" };
 export const providerColor: Record<Provider, string> = { claude: "#d97757", codex: "#10a37f" };
 
-/** Colour of a window on the dashboard and in the history: the provider's, a lighter orange for the Claude session. */
-export const windowColor = (provider: Provider, windowId: string) => (provider === "claude" && windowId === "five_hour" ? "#f4a261" : providerColor[provider]);
+/** The Fable weekly limit of Claude, under the id the earned resets give it. */
+export const fableWindowId = "seven_day_overage_included";
+
+const claudeWindowColors: Record<string, string> = { five_hour: "#f4a261", [fableWindowId]: "#b5532f" };
+
+/** Colour of a window on the dashboard and in the history: the provider's, lighter for the Claude session and darker for Fable. */
+export const windowColor = (provider: Provider, windowId: string) => (provider === "claude" && claudeWindowColors[windowId]) || providerColor[provider];
+
+/** A window counted inside another one, drawn under it: Fable usage is a share of the weekly limit. */
+export const parentWindowId: Record<string, string> = { [fableWindowId]: "seven_day" };
+
+/** Label of a nested window next to its parent, where "Weekly" would repeat. */
+export const nestedWindowLabel: Record<string, string> = { [fableWindowId]: "Fable only" };
 
 /**
  * Models offered for the trigger prompt: the model ids from the providers' documentation, never the family aliases.
@@ -28,6 +39,7 @@ const windowLabels: Record<string, string> = {
 	seven_day: "Weekly · all models",
 	seven_day_opus: "Weekly · Opus",
 	seven_day_sonnet: "Weekly · Sonnet",
+	[fableWindowId]: "Weekly · Fable only",
 };
 
 /** Known Claude windows by id; the others (Codex slots) by duration. */
@@ -93,11 +105,13 @@ export function windowTiming(window: UsageWindow): WindowTiming | null {
 	return { start, end };
 }
 
-/** The trigger window first, then the others by duration. */
+/** The trigger window first, then the others by duration; a nested window right after its parent. */
 export function sortWindows(windows: UsageWindow[], triggerWindowId: string | null | undefined): UsageWindow[] {
-	return [...windows].sort((a, b) => {
+	const sorted = [...windows].sort((a, b) => {
 		if (a.id === triggerWindowId) return -1;
 		if (b.id === triggerWindowId) return 1;
 		return (a.windowDurationMinutes ?? Number.MAX_SAFE_INTEGER) - (b.windowDurationMinutes ?? Number.MAX_SAFE_INTEGER);
 	});
+	const isNested = (window: UsageWindow) => sorted.some((parent) => parent.id === parentWindowId[window.id]);
+	return sorted.filter((window) => !isNested(window)).flatMap((window) => [window, ...sorted.filter((child) => parentWindowId[child.id] === window.id)]);
 }

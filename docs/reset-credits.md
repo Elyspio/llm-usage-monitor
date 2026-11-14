@@ -19,4 +19,4 @@ La collection Mongo `resetCreditRuns` conserve les tentatives et clés d'idempot
 ## Fournisseurs
 
 - Codex : `account/rateLimitResetCredit/consume`.
-- Claude : bloc `cedar_ember` demandé sur l'endpoint OAuth et flux de consommation repéré dans Claude Code 2.1.289. `Claude:AccountConfigPath` peut désigner le `.claude.json` contenant l'organisation OAuth. L'accès Claude a été vérifié en lecture seule ; les tests de consommation utilisent des adapters factices.
+- Claude : bloc `cedar_ember` demandé sur l'endpoint OAuth et flux de consommation repéré dans Claude Code 2.1.289. Les deux appels portent le `User-Agent` du CLI installé (`claude-cli/<version> (external, cli)`) : sans lui, l'endpoint répond `ineligible_reason: "surface"` et masque les crédits. `Claude:AccountConfigPath` peut désigner le `.claude.json` contenant l'organisation OAuth. L'accès Claude a été vérifié en lecture seule ; les tests de consommation utilisent des adapters factices.

@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vite-plus/test";
 import { DashboardPage } from "@pages/DashboardPage";
-import { apiUrl, claude, dashboard, degradedClaude, iso, run } from "./fixtures";
+import { apiUrl, claude, codex, dashboard, degradedClaude, hour, iso, run } from "./fixtures";
 import { mockApi, renderPage as render, testQueryClient } from "./render";
 
 const runningRun = run();
@@ -17,8 +17,10 @@ describe("DashboardPage", () => {
 
 		expect(screen.getByRole("heading", { level: 1, name: "Dashboard" })).toBeTruthy();
 		const timeline = await screen.findByRole("region", { name: "Quota timeline" });
-		const cards = within(timeline).getAllByText(/Claude · 5 h session|Claude · Weekly · all models/);
-		expect(cards.map((card) => card.textContent)).toEqual(["Claude · 5 h session", "Claude · Weekly · all models"]);
+		const group = within(timeline).getByRole("region", { name: "Claude windows" });
+		expect(within(group).getByRole("heading", { level: 3, name: "Claude" })).toBeTruthy();
+		const cards = within(group).getAllByText(/^5 h session$|^Weekly · all models$/);
+		expect(cards.map((card) => card.textContent)).toEqual(["5 h session", "Weekly · all models"]);
 		expect(within(timeline).getByText("60%")).toBeTruthy();
 		expect(within(timeline).getByRole("progressbar", { name: "Claude 5 h session used" }).getAttribute("value")).toBe("40");
 		expect(await screen.findByRole("region", { name: "Codex" })).toBeTruthy();
@@ -36,7 +38,22 @@ describe("DashboardPage", () => {
 		expect(within(claude).getAllByText("Login expired").length).toBeGreaterThan(0);
 		expect(within(claude).getByText(/claude auth login.*as user "llm-monitor"/)).toBeTruthy();
 		expect(within(claude).getByText(/authExpired · The Claude CLI could not refresh its login./)).toBeTruthy();
-		expect(screen.getAllByText(/stale · read .* ago/).length).toBe(2);
+		// Once for the provider, next to its name: not on every window.
+		expect(within(screen.getByRole("region", { name: "Claude windows" })).getAllByText(/stale · read .* ago/).length).toBe(1);
+	});
+
+	it("nests the Fable weekly limit under the weekly window of its provider", async () => {
+		const fable = { id: "seven_day_overage_included", usedPercent: 68, remainingPercent: 32, resetsAt: iso(5 * 24 * hour), windowDurationMinutes: 10_080 };
+		const withFable = { ...claude, lastReading: { ...claude.lastReading!, windows: [fable, ...claude.lastReading!.windows] } };
+		server.use(http.get(`${apiUrl}/api/dashboard`, () => HttpResponse.json({ ...dashboard, providers: [withFable, codex] })));
+		renderPage();
+
+		const group = await screen.findByRole("region", { name: "Claude windows" });
+		const labels = within(group).getAllByText(/^5 h session$|^Weekly · all models$|^Fable only$/);
+		expect(labels.map((label) => label.textContent)).toEqual(["5 h session", "Weekly · all models", "Fable only"]);
+		expect(within(group).getByText("Counts within the weekly limit")).toBeTruthy();
+		expect(within(group).getByRole("progressbar", { name: "Claude Weekly · Fable only used" }).getAttribute("value")).toBe("68");
+		expect(within(screen.getByRole("region", { name: "Codex windows" })).queryByText("Fable only")).toBeNull();
 	});
 
 	it("queues a manual trigger and follows it until it ends", async () => {

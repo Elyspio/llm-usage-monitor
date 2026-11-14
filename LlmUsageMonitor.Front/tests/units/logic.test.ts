@@ -43,6 +43,7 @@ describe("dashboard logic", () => {
 
 	it("labels the windows and the errors", () => {
 		expect(windowLabel(window("five_hour", 300))).toBe("5 h session");
+		expect(windowLabel(window("seven_day_overage_included", 10_080))).toBe("Weekly · Fable only");
 		expect(windowLabel(window("codex/primary", 10_080))).toBe("Weekly");
 		expect(errorInfo("rateLimited", "claude", "llm-monitor").severity).toBe("warning");
 		expect(errorInfo("authExpired", "codex", "llm-monitor").action).toContain("codex login --device-auth");
