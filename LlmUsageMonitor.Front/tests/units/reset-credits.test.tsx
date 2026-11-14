@@ -99,7 +99,10 @@ describe("Earned reset credits", () => {
 		);
 		openReset("Use reset");
 		const items = within(screen.getByRole("menu", { name: "Reset to use" })).getAllByRole("menuitem");
-		expect(items.map((item) => item.textContent)).toEqual([expect.stringContaining("Full reset"), expect.stringContaining("Restores 5 h session, Weekly · Fable only")]);
+		expect(within(items[0]).getByText("Full reset")).toBeTruthy();
+		expect(within(items[0]).queryByRole("list", { name: "Restores" })).toBeNull();
+		const restored = within(within(items[1]).getByRole("list", { name: "Restores" })).getAllByRole("listitem");
+		expect(restored.map((item) => item.textContent)).toEqual(["5 h session", "Weekly · Fable only"]);
 		fireEvent.click(items[1]);
 		expect(within(screen.getByRole("dialog")).getByText("Fable reset")).toBeTruthy();
 		fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Confirm reset" }));
