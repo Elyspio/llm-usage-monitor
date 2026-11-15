@@ -68,7 +68,11 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 	options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
 });
 builder.Services.AddProblemDetails();
-builder.Services.AddOpenApi(options => options.AddDocumentTransformer<OAuthSecurityTransformer>());
+builder.Services.AddOpenApi(options =>
+{
+	options.AddDocumentTransformer<OAuthSecurityTransformer>();
+	options.AddSchemaTransformer<CamelCaseEnumParameterTransformer>();
+});
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 	.AddKeycloakBearer()

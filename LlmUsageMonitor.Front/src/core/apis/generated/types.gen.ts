@@ -289,7 +289,7 @@ export type GetHistoryData = {
     body?: never;
     path?: never;
     query?: {
-        provider?: Provider;
+        provider?: 'claude' | 'codex';
         windowId?: string;
         range?: string;
     };
@@ -308,7 +308,7 @@ export type GetHistoryResponse = GetHistoryResponses[keyof GetHistoryResponses];
 export type TriggerProviderData = {
     body?: never;
     path: {
-        provider: Provider;
+        provider: 'claude' | 'codex';
     };
     query?: never;
     url: '/api/providers/{provider}/trigger';
@@ -526,7 +526,7 @@ export type GetDashboardResponse = GetDashboardResponses[keyof GetDashboardRespo
 export type ConsumeResetCreditData = {
     body: ConsumeResetCreditRequest;
     path: {
-        provider: Provider;
+        provider: 'claude' | 'codex';
     };
     query?: never;
     url: '/api/providers/{provider}/reset-credits/consume';

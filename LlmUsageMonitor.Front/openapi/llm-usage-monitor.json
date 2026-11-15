@@ -1,5 +1,5 @@
 {
-  "openapi": "3.1.1",
+  "openapi": "3.2.0",
   "info": {
     "title": "LlmUsageMonitor.WebApi | v1",
     "version": "1.0.0"
@@ -16,7 +16,10 @@
             "name": "provider",
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/Provider"
+              "enum": [
+                "claude",
+                "codex"
+              ]
             }
           },
           {
@@ -60,7 +63,10 @@
             "in": "path",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/Provider"
+              "enum": [
+                "claude",
+                "codex"
+              ]
             }
           }
         ],
@@ -387,7 +393,10 @@
             "in": "path",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/Provider"
+              "enum": [
+                "claude",
+                "codex"
+              ]
             }
           }
         ],
@@ -1879,25 +1888,25 @@
   ],
   "tags": [
     {
+      "name": "Dashboard"
+    },
+    {
       "name": "History"
     },
     {
       "name": "Providers"
     },
     {
-      "name": "TriggerRuns"
+      "name": "ResetCredits"
     },
     {
       "name": "Settings"
     },
     {
-      "name": "Dashboard"
-    },
-    {
-      "name": "ResetCredits"
-    },
-    {
       "name": "TokenUsage"
+    },
+    {
+      "name": "TriggerRuns"
     }
   ]
 }
