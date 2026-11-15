@@ -13,13 +13,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Elyspio.Utils.Telemetry" Version="2.1.0"/>
+        <PackageReference Include="Elyspio.Utils.Telemetry" Version="3.0.0-preview.1"/>
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="11.0.0"/>
         <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="11.0.0"/>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="11.0.0"/>
         <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="11.0.0"/>
-        <!-- Prerelease, accepted: the Hangfire instrumentation has never shipped a stable version (contrib package). The 1.19
-             beta follows the OpenTelemetry 1.19 SDK that Elyspio.Utils.Telemetry brings. -->
+        <!-- Prerelease, accepted: the Hangfire instrumentation has never shipped a stable version (contrib package). The 1.21
+             beta follows the OpenTelemetry 1.21 SDK that Elyspio.Utils.Telemetry brings. -->
         <PackageReference Include="OpenTelemetry.Instrumentation.Hangfire" Version="1.21.0-beta.1"/>
         <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="11.0.0">
             <PrivateAssets>all</PrivateAssets>
