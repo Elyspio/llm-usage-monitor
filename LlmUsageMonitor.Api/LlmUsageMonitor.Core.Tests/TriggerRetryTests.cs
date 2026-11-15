@@ -120,11 +120,11 @@ public sealed class TriggerRetryTests
 	public async Task An_interrupted_manual_run_is_failed_and_never_retried()
 	{
 		var harness = new TestHarness();
-		var run = await harness.Triggers.RequestManual(Provider.Claude, Token);
+		var run = (await harness.Triggers.RequestManual(Provider.Claude, Token)).ShouldSucceed();
 
 		await harness.Triggers.RecoverInterrupted(Token);
 
-		var failed = await harness.Triggers.Get(run.Id, Token);
+		var failed = (await harness.Triggers.Get(run.Id, Token)).ShouldSucceed();
 		(failed.Status, failed.ErrorCode, failed.NextRetryAt).ShouldBe((TriggerStatus.Failed, ProviderErrorCode.Interrupted.ToStoredCode(), null));
 	}
 
@@ -133,11 +133,11 @@ public sealed class TriggerRetryTests
 	{
 		var harness = new TestHarness();
 		harness.ClaudeRunner.Failure = new OperationCanceledException();
-		var run = await harness.Triggers.RequestManual(Provider.Claude, Token);
+		var run = (await harness.Triggers.RequestManual(Provider.Claude, Token)).ShouldSucceed();
 
 		await Should.ThrowAsync<OperationCanceledException>(() => harness.Triggers.ExecuteManual(run.Id, Token));
 
-		var ended = await harness.Triggers.Get(run.Id, Token);
+		var ended = (await harness.Triggers.Get(run.Id, Token)).ShouldSucceed();
 		(ended.Status, ended.ErrorCode).ShouldBe((TriggerStatus.Failed, ProviderErrorCode.Cancelled.ToStoredCode()));
 		(await harness.Runs.GetRunning(Provider.Claude, Token)).ShouldBeNull();
 	}
@@ -152,24 +152,12 @@ public sealed class TriggerRetryTests
 		var first = harness.Triggers.RequestManual(Provider.Codex, Token);
 		var second = harness.Triggers.RequestManual(Provider.Codex, Token);
 		release.SetResult();
-		var outcomes = await Task.WhenAll(Capture(first), Capture(second));
+		var outcomes = await Task.WhenAll(first, second);
 
-		outcomes.Count(outcome => outcome is null).ShouldBe(1);
-		outcomes.OfType<ProviderException>().ShouldHaveSingleItem().Code.ShouldBe(ProviderErrorCode.CliBusy);
+		outcomes.Count(outcome => outcome.IsSuccess).ShouldBe(1);
+		outcomes.Single(outcome => outcome.IsFailure).ShouldFail().ShouldBeOfType<ProviderError>().ProviderCode.ShouldBe(ProviderErrorCode.CliBusy);
 		harness.Scheduler.EnqueuedTriggers.ShouldHaveSingleItem();
 		harness.Runs.All.ShouldHaveSingleItem();
 	}
 
-	private static async Task<Exception?> Capture(Task task)
-	{
-		try
-		{
-			await task;
-			return null;
-		}
-		catch (Exception exception)
-		{
-			return exception;
-		}
-	}
 }

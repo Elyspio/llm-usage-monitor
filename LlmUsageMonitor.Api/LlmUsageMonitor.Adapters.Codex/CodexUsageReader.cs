@@ -1,3 +1,4 @@
+using Elyspio.Utils.Results;
 using System.Text.Json;
 using LlmUsageMonitor.Abstractions.Data;
 using LlmUsageMonitor.Abstractions.Exceptions;
@@ -15,9 +16,12 @@ internal sealed class CodexUsageReader(IOptions<CodexOptions> options, ILogger<C
 {
 	public Provider Provider => Provider.Codex;
 
-	public async Task<IReadOnlyList<UsageWindow>> Read(CancellationToken cancellationToken) => (await ReadAccount(cancellationToken)).Windows;
+	public async Task<Result<IReadOnlyList<UsageWindow>, ProviderError>> Read(CancellationToken cancellationToken) =>
+		(await ReadAccount(cancellationToken)).Map(usage => usage.Windows);
 
-	public async Task<ProviderUsage> ReadAccount(CancellationToken cancellationToken)
+	public Task<Result<ProviderUsage, ProviderError>> ReadAccount(CancellationToken cancellationToken) => ProviderResult.Capture(() => ReadAccountOrThrow(cancellationToken));
+
+	private async Task<ProviderUsage> ReadAccountOrThrow(CancellationToken cancellationToken)
 	{
 		var settings = options.Value;
 		using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

@@ -1,35 +1,38 @@
+using Elyspio.Utils.Results;
 using LlmUsageMonitor.Abstractions.Data;
+using LlmUsageMonitor.Abstractions.Exceptions;
 
 namespace LlmUsageMonitor.Abstractions.Interfaces.Adapters;
 
 /// <summary>
-///     Reads the usage windows of a provider. Throws a <see cref="Exceptions.ProviderException" /> on failure.
+///     Reads the usage windows of a provider; a failure is a <see cref="ProviderError" />.
 /// </summary>
 public interface IUsageReader
 {
 	Provider Provider { get; }
 
-	Task<IReadOnlyList<UsageWindow>> Read(CancellationToken cancellationToken);
+	Task<Result<IReadOnlyList<UsageWindow>, ProviderError>> Read(CancellationToken cancellationToken);
 
 	/// <summary>Older adapters can expose windows alone; null credits never mean zero available credits.</summary>
-	async Task<ProviderUsage> ReadAccount(CancellationToken cancellationToken) => new(await Read(cancellationToken), null);
+	async Task<Result<ProviderUsage, ProviderError>> ReadAccount(CancellationToken cancellationToken) =>
+		(await Read(cancellationToken)).Map(windows => new ProviderUsage(windows, null));
 }
 
 /// <summary>Redeems an earned reset, with a durable idempotency key; never sends a model prompt.</summary>
 public interface IResetCreditConsumer
 {
 	Provider Provider { get; }
-	Task<ResetCreditResult> Consume(string creditId, string idempotencyKey, CancellationToken cancellationToken);
+	Task<Result<ResetCreditResult, ProviderError>> Consume(string creditId, string idempotencyKey, CancellationToken cancellationToken);
 }
 
 /// <summary>
-///     Sends the minimal prompt through the provider CLI. Throws a <see cref="Exceptions.ProviderException" /> on failure.
+///     Sends the minimal prompt through the provider CLI; a failure is a <see cref="ProviderError" />.
 /// </summary>
 public interface IPromptRunner
 {
 	Provider Provider { get; }
 
-	Task Run(string model, ReasoningEffort effort, CancellationToken cancellationToken);
+	Task<Result<Unit, ProviderError>> Run(string model, ReasoningEffort effort, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -38,10 +41,10 @@ public interface IPromptRunner
 public interface IClaudeSession
 {
 	/// <summary>Reads the expiry dates from the CLI credentials file.</summary>
-	Task<ClaudeTokenInfo> ReadToken(CancellationToken cancellationToken);
+	Task<Result<ClaudeTokenInfo, ProviderError>> ReadToken(CancellationToken cancellationToken);
 
 	/// <summary>Runs a free CLI command that refreshes the token when it expires within five minutes.</summary>
-	Task RefreshThroughCli(CancellationToken cancellationToken);
+	Task<Result<Unit, ProviderError>> RefreshThroughCli(CancellationToken cancellationToken);
 }
 
 public sealed record ClaudeTokenInfo(DateTimeOffset? ExpiresAt, DateTimeOffset? RefreshTokenExpiresAt);

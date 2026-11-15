@@ -1,5 +1,5 @@
 {
-  "openapi": "3.1.1",
+  "openapi": "3.2.0",
   "info": {
     "title": "LlmUsageMonitor.WebApi | v1",
     "version": "1.0.0"
@@ -16,7 +16,10 @@
             "name": "provider",
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/Provider"
+              "enum": [
+                "claude",
+                "codex"
+              ]
             }
           },
           {
@@ -44,6 +47,16 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -60,7 +73,10 @@
             "in": "path",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/Provider"
+              "enum": [
+                "claude",
+                "codex"
+              ]
             }
           }
         ],
@@ -342,6 +358,16 @@
           "204": {
             "description": "No Content"
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
           "502": {
             "description": "Bad Gateway",
             "content": {
@@ -387,7 +413,10 @@
             "in": "path",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/Provider"
+              "enum": [
+                "claude",
+                "codex"
+              ]
             }
           }
         ],
@@ -434,6 +463,16 @@
           },
           "409": {
             "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
             "content": {
               "application/json": {
                 "schema": {
@@ -1879,25 +1918,25 @@
   ],
   "tags": [
     {
+      "name": "Dashboard"
+    },
+    {
       "name": "History"
     },
     {
       "name": "Providers"
     },
     {
-      "name": "TriggerRuns"
+      "name": "ResetCredits"
     },
     {
       "name": "Settings"
     },
     {
-      "name": "Dashboard"
-    },
-    {
-      "name": "ResetCredits"
-    },
-    {
       "name": "TokenUsage"
+    },
+    {
+      "name": "TriggerRuns"
     }
   ]
 }

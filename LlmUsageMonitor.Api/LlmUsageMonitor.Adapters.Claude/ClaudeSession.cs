@@ -1,3 +1,4 @@
+using Elyspio.Utils.Results;
 using System.Text.Json;
 using LlmUsageMonitor.Abstractions.Exceptions;
 using LlmUsageMonitor.Abstractions.Helpers;
@@ -55,13 +56,21 @@ internal static class ClaudeCredentialsFile
 /// </summary>
 internal sealed class ClaudeSession(IOptions<ClaudeOptions> options, ILogger<ClaudeSession> logger) : IClaudeSession
 {
-	public async Task<ClaudeTokenInfo> ReadToken(CancellationToken cancellationToken)
-	{
-		var credentials = await ClaudeCredentialsFile.Read(options.Value.ResolveCredentialsPath(), cancellationToken);
-		return new(credentials.ExpiresAt, credentials.RefreshTokenExpiresAt);
-	}
+	public Task<Result<ClaudeTokenInfo, ProviderError>> ReadToken(CancellationToken cancellationToken) =>
+		ProviderResult.Capture(async () =>
+		{
+			var credentials = await ClaudeCredentialsFile.Read(options.Value.ResolveCredentialsPath(), cancellationToken);
+			return new ClaudeTokenInfo(credentials.ExpiresAt, credentials.RefreshTokenExpiresAt);
+		});
 
-	public async Task RefreshThroughCli(CancellationToken cancellationToken)
+	public Task<Result<Unit, ProviderError>> RefreshThroughCli(CancellationToken cancellationToken) =>
+		ProviderResult.Capture(async () =>
+		{
+			await RefreshThroughCliOrThrow(cancellationToken);
+			return Unit.Value;
+		});
+
+	private async Task RefreshThroughCliOrThrow(CancellationToken cancellationToken)
 	{
 		var settings = options.Value;
 		var result = await CliProcess.Run(settings.Executable, ["mcp", "list"], settings.ResolveWorkingDirectory(), TimeSpan.FromSeconds(settings.RefreshTimeoutSeconds), logger,

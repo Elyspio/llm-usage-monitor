@@ -45,14 +45,14 @@ public sealed class ProviderLockTests
 	public async Task A_manual_trigger_that_cannot_get_the_provider_lock_fails_as_busy()
 	{
 		var harness = new TestHarness();
-		var run = await harness.Triggers.RequestManual(Provider.Claude, Token);
+		var run = (await harness.Triggers.RequestManual(Provider.Claude, Token)).ShouldSucceed();
 		using var held = await harness.Locks.TryAcquire(Provider.Claude, TimeSpan.Zero, Token);
 
 		var execution = harness.Triggers.ExecuteManual(run.Id, Token);
 		harness.Time.Advance(ProviderLocks.JobWait);
 		await execution;
 
-		var failed = await harness.Triggers.Get(run.Id, Token);
+		var failed = (await harness.Triggers.Get(run.Id, Token)).ShouldSucceed();
 		failed.Status.ShouldBe(TriggerStatus.Failed);
 		failed.ErrorCode.ShouldBe(ProviderErrorCode.CliBusy.ToStoredCode());
 		harness.ClaudeRunner.Models.ShouldBeEmpty();

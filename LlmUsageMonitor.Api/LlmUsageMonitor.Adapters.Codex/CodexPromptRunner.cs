@@ -1,3 +1,4 @@
+using Elyspio.Utils.Results;
 using System.Text.Json;
 using LlmUsageMonitor.Abstractions.Data;
 using LlmUsageMonitor.Abstractions.Exceptions;
@@ -17,7 +18,14 @@ internal sealed class CodexPromptRunner(IOptions<CodexOptions> options, ILogger<
 
 	public Provider Provider => Provider.Codex;
 
-	public async Task Run(string model, ReasoningEffort effort, CancellationToken cancellationToken)
+	public Task<Result<Unit, ProviderError>> Run(string model, ReasoningEffort effort, CancellationToken cancellationToken) =>
+		ProviderResult.Capture(async () =>
+		{
+			await RunOrThrow(model, effort, cancellationToken);
+			return Unit.Value;
+		});
+
+	private async Task RunOrThrow(string model, ReasoningEffort effort, CancellationToken cancellationToken)
 	{
 		var settings = options.Value;
 		using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

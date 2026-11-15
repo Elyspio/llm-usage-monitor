@@ -1,3 +1,5 @@
+using Elyspio.Utils.Results;
+using LlmUsageMonitor.Abstractions.Exceptions;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -134,31 +136,32 @@ public sealed class FakeProvider(Provider provider) : IUsageReader, IPromptRunne
 		return Task.FromResult<IReadOnlyList<ModelPrice>>([]);
 	}
 
-	public Task<ClaudeTokenInfo> ReadToken(CancellationToken cancellationToken)
+	public Task<Result<ClaudeTokenInfo, ProviderError>> ReadToken(CancellationToken cancellationToken)
 	{
-		return Task.FromResult(new ClaudeTokenInfo(ExpiresAt, ExpiresAt.AddDays(30)));
+		return Task.FromResult<Result<ClaudeTokenInfo, ProviderError>>(new ClaudeTokenInfo(ExpiresAt, ExpiresAt.AddDays(30)));
 	}
 
-	public Task RefreshThroughCli(CancellationToken cancellationToken)
+	public Task<Result<Unit, ProviderError>> RefreshThroughCli(CancellationToken cancellationToken)
 	{
-		return Task.CompletedTask;
+		return Task.FromResult<Result<Unit, ProviderError>>(Unit.Value);
 	}
 
 	public Provider Provider => provider;
 
-	public Task Run(string model, ReasoningEffort effort, CancellationToken cancellationToken)
+	public Task<Result<Unit, ProviderError>> Run(string model, ReasoningEffort effort, CancellationToken cancellationToken)
 	{
 		lock (Prompts)
 		{
 			Prompts.Add(model);
 		}
 
-		return Task.CompletedTask;
+		return Task.FromResult<Result<Unit, ProviderError>>(Unit.Value);
 	}
 
-	public Task<IReadOnlyList<UsageWindow>> Read(CancellationToken cancellationToken)
+	public Task<Result<IReadOnlyList<UsageWindow>, ProviderError>> Read(CancellationToken cancellationToken)
 	{
 		Interlocked.Increment(ref _reads);
-		return Task.FromResult<IReadOnlyList<UsageWindow>>([new($"{provider}/session".ToLowerInvariant(), 40, DateTimeOffset.UtcNow.AddHours(2), 300)]);
+		IReadOnlyList<UsageWindow> windows = [new($"{provider}/session".ToLowerInvariant(), 40, DateTimeOffset.UtcNow.AddHours(2), 300)];
+		return Task.FromResult<Result<IReadOnlyList<UsageWindow>, ProviderError>>(new Ok<IReadOnlyList<UsageWindow>>(windows));
 	}
 }

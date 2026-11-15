@@ -13,7 +13,7 @@ public interface IHealthTracker
 {
 	Task<ProviderState> RecordSuccess(ProviderState state, DateTimeOffset now, CancellationToken cancellationToken);
 
-	Task<ProviderState> RecordFailure(ProviderState state, ProviderException exception, DateTimeOffset now, int readFailureThreshold, CancellationToken cancellationToken);
+	Task<ProviderState> RecordFailure(ProviderState state, ProviderError error, DateTimeOffset now, int readFailureThreshold, CancellationToken cancellationToken);
 
 	/// <summary>
 	///     Warns once, <paramref name="alertDays" /> days ahead, that the CLI login (refresh token) is about to expire: past it,
@@ -34,11 +34,11 @@ public sealed class HealthTracker(INotificationService notifications) : IHealthT
 		return state with { ConsecutiveFailures = 0, ConsecutiveRateLimits = 0, BackoffLevel = 0, BackoffUntil = null, ActiveAlerts = [] };
 	}
 
-	public async Task<ProviderState> RecordFailure(ProviderState state, ProviderException exception, DateTimeOffset now, int readFailureThreshold, CancellationToken cancellationToken)
+	public async Task<ProviderState> RecordFailure(ProviderState state, ProviderError error, DateTimeOffset now, int readFailureThreshold, CancellationToken cancellationToken)
 	{
-		var failure = new ProviderFailure(exception.Code, exception.Message, now);
+		var failure = new ProviderFailure(error.ProviderCode, error.Message, now);
 
-		if (exception.Code == ProviderErrorCode.RateLimited)
+		if (error.ProviderCode == ProviderErrorCode.RateLimited)
 		{
 			// No immediate retry: 15, then 30, then 60 minutes. A 429 is not a failed reading, but a streak of them alerts.
 			var level = Math.Min(state.BackoffLevel + 1, UsageRules.BackoffSteps.Count);
@@ -50,18 +50,18 @@ public sealed class HealthTracker(INotificationService notifications) : IHealthT
 				BackoffUntil = now + UsageRules.BackoffSteps[level - 1]
 			};
 			return limited.ConsecutiveRateLimits >= readFailureThreshold
-				? await Alert(limited, NotificationKind.ReadFailed, $"{limited.ConsecutiveRateLimits} lectures limitées (429) d'affilée : {exception.Message}", cancellationToken)
+				? await Alert(limited, NotificationKind.ReadFailed, $"{limited.ConsecutiveRateLimits} lectures limitées (429) d'affilée : {error.Message}", cancellationToken)
 				: limited;
 		}
 
 		var next = state with { LastFailure = failure, ConsecutiveFailures = state.ConsecutiveFailures + 1, ConsecutiveRateLimits = 0 };
-		NotificationKind? alert = exception.Code == ProviderErrorCode.AuthExpired
+		NotificationKind? alert = error.ProviderCode == ProviderErrorCode.AuthExpired
 			? NotificationKind.AuthExpired
 			: next.ConsecutiveFailures >= readFailureThreshold
 				? NotificationKind.ReadFailed
 				: null;
 
-		return alert is { } kind ? await Alert(next, kind, exception.Message, cancellationToken) : next;
+		return alert is { } kind ? await Alert(next, kind, error.Message, cancellationToken) : next;
 	}
 
 	public async Task<ProviderState> CheckCredentialExpiry(ProviderState state, DateTimeOffset now, int alertDays, CancellationToken cancellationToken)

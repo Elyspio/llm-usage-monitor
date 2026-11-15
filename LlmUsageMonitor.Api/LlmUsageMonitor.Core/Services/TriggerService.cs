@@ -1,3 +1,4 @@
+using Elyspio.Utils.Results;
 using LlmUsageMonitor.Abstractions.Data;
 using LlmUsageMonitor.Abstractions.Exceptions;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
@@ -67,7 +68,7 @@ public sealed class TriggerService(
 		}
 	}
 
-	public async Task<TriggerRun> RequestManual(Provider provider, CancellationToken cancellationToken)
+	public async Task<Result<TriggerRun>> RequestManual(Provider provider, CancellationToken cancellationToken)
 	{
 		// The check and the insert form one step: two simultaneous requests start a single run.
 		var gate = _requestGates[provider];
@@ -76,7 +77,7 @@ public sealed class TriggerService(
 		{
 			if (locks.IsBusy(provider) || await runs.GetRunning(provider, cancellationToken) is { })
 			{
-				throw new ProviderException(ProviderErrorCode.CliBusy, "A CLI process is already running for this provider.");
+				return new ProviderError(ProviderErrorCode.CliBusy, "A CLI process is already running for this provider.");
 			}
 
 			var settings = await settingsService.Get(cancellationToken);
@@ -92,8 +93,8 @@ public sealed class TriggerService(
 
 	public async Task ExecuteManual(string runId, CancellationToken cancellationToken)
 	{
-		var run = await Get(runId, cancellationToken);
-		if (run.Status != TriggerStatus.Running)
+		var run = await runs.Get(runId, cancellationToken);
+		if (run is not { Status: TriggerStatus.Running })
 		{
 			return;
 		}
@@ -114,9 +115,9 @@ public sealed class TriggerService(
 		}
 	}
 
-	public async Task<TriggerRun> Get(string runId, CancellationToken cancellationToken)
+	public async Task<Result<TriggerRun>> Get(string runId, CancellationToken cancellationToken)
 	{
-		return await runs.Get(runId, cancellationToken) ?? throw new ResourceNotFoundException($"Trigger run {runId} does not exist.");
+		return await runs.Get(runId, cancellationToken) is { } run ? run : new ResourceNotFound($"Trigger run {runId} does not exist.");
 	}
 
 	public async Task<int> RecoverInterrupted(CancellationToken cancellationToken)
@@ -145,13 +146,14 @@ public sealed class TriggerService(
 	{
 		try
 		{
-			await _runners[run.Provider].Run(run.Model, run.Effort ?? ReasoningEffort.None, cancellationToken);
+			var outcome = await _runners[run.Provider].Run(run.Model, run.Effort ?? ReasoningEffort.None, cancellationToken);
+			if (!outcome.TryGet(out _, out var error))
+			{
+				logger.LogWarning("{Provider} trigger failed: {Code} {Message}", run.Provider, error.ProviderCode, error.Message);
+				return await Fail(run, error.ProviderCode, error.Message);
+			}
+
 			return await runs.Complete(run.Id, TriggerStatus.Succeeded, time.GetUtcNow(), null, null, null, CancellationToken.None);
-		}
-		catch (ProviderException exception)
-		{
-			logger.LogWarning("{Provider} trigger failed: {Code} {Message}", run.Provider, exception.Code, exception.Message);
-			return await Fail(run, exception.Code, exception.Message);
 		}
 		catch (OperationCanceledException)
 		{

@@ -11,7 +11,7 @@ RUN pnpm install --frozen-lockfile
 COPY LlmUsageMonitor.Front/ ./
 RUN pnpm run build
 
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS api
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0 AS api
 ARG TARGETARCH
 # The release tag (docker-bake.hcl VERSION), shown by the SPA.
 ARG VERSION=0.0.0-dev

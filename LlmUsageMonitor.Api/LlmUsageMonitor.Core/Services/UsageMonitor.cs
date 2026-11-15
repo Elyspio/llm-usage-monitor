@@ -1,4 +1,5 @@
 using System.Globalization;
+using Elyspio.Utils.Results;
 using LlmUsageMonitor.Abstractions.Data;
 using LlmUsageMonitor.Abstractions.Exceptions;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
@@ -45,66 +46,36 @@ public sealed class UsageMonitor(
 		}
 
 		var settings = await settingsService.Get(cancellationToken);
-		string? cycleKey;
+		Result<ProviderState, ProviderError> outcome = state;
 		try
 		{
 			if (provider == Provider.Claude)
 			{
-				state = await keepAlive.EnsureFresh(state, cancellationToken);
+				outcome = await keepAlive.EnsureFresh(state, cancellationToken);
 			}
 
-			var account = await _readers[provider].ReadAccount(cancellationToken);
-			var windows = account.Windows;
-			if (windows.Count == 0)
+			if (outcome.TryGet(out var fresh, out _))
 			{
-				throw new ProviderException(ProviderErrorCode.NoUsageData, "The provider returned no percentage-based usage windows.");
+				state = fresh;
+				outcome = await Read(state, settings, updated => state = updated, cancellationToken);
 			}
-
-			// The refresh and the reading may take a while: the reading is dated when it is received.
-			var readAt = time.GetUtcNow();
-			var reading = new UsageReading(readAt, windows);
-			await snapshots.Add(provider, reading, cancellationToken);
-			await RecordResets(provider, state.LastReading, reading, cancellationToken);
-
-			var triggerWindow = reading.TriggerWindow;
-			var lastReset = triggerWindow is null ? null : await resets.GetLast(provider, triggerWindow.Id, cancellationToken);
-			cycleKey = UsageRules.CycleKey(state, reading, lastReset, readAt);
-
-			state = await health.RecordSuccess(state, readAt, cancellationToken) with
-			{
-				LastReading = reading,
-				ResetCredits = account.ResetCredits,
-				LastSuccessAt = readAt,
-				CurrentCycleKey = cycleKey
-			};
-			if (state.CreditResetRefreshPending)
-				state = state with { CreditResetWindowResetsAt = triggerWindow?.ResetsAt, CreditResetRefreshPending = false };
-			else if (triggerWindow?.UsedPercent > 0 || (state.CreditResetWindowResetsAt is { } suppressed && triggerWindow?.ResetsAt is { } actual && Math.Abs((actual - suppressed).TotalSeconds) > 60))
-				state = state with { CreditResetSuppressesTrigger = false };
-			state = SchedulePostResetCheck(state, reading, settings.Triggers.For(provider).AutoEnabled && !state.CreditResetSuppressesTrigger, readAt);
-			state = ScheduleCreditCheck(state, settings.ResetCredits.For(provider), readAt);
-			state = await health.CheckCredentialExpiry(state, readAt, settings.Notifications.CredentialExpiryAlertDays, cancellationToken);
-			await states.Save(state, cancellationToken);
 		}
 		// Any failure counts, not only the provider ones (storage, CLI process): the health, the alerts and the state follow.
 		catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
 		{
-			var failure = exception as ProviderException;
-			if (failure is null)
-			{
-				logger.LogError(exception, "{Provider} reading failed unexpectedly", provider);
-				failure = new(ProviderErrorCode.UnexpectedError, exception.Message, exception);
-			}
-			else
-			{
-				logger.LogWarning("{Provider} reading failed: {Code} {Message}", provider, failure.Code, failure.Message);
-			}
+			logger.LogError(exception, "{Provider} reading failed unexpectedly", provider);
+			outcome = new ProviderError(ProviderErrorCode.UnexpectedError, exception.Message);
+		}
 
+		if (!outcome.TryGet(out var read, out var failure))
+		{
+			logger.LogWarning("{Provider} reading failed: {Code} {Message}", provider, failure.ProviderCode, failure.Message);
 			state = await health.RecordFailure(state, failure, time.GetUtcNow(), settings.Notifications.ReadFailureThreshold, cancellationToken);
 			await states.Save(state, cancellationToken);
 			return;
 		}
 
+		var cycleKey = read.CurrentCycleKey;
 		if (await resetCredits.ProcessAutomatic(provider, cancellationToken)) return;
 		state = await states.Get(provider, cancellationToken);
 		if (cycleKey is { } && settings.Triggers.For(provider).AutoEnabled && !state.CreditResetSuppressesTrigger)
@@ -112,6 +83,54 @@ public sealed class UsageMonitor(
 		{
 			await automaticTrigger.Run(provider, cycleKey, cancellationToken);
 		}
+	}
+
+	/// <summary>
+	///     Reads the provider, stores the snapshot and the resets, then saves and returns the state with its cycle key.
+	///     <paramref name="track" /> receives the state as it advances: when a later step throws (the save, say), the failure is
+	///     recorded on the state that already holds the reading and the scheduled checks.
+	/// </summary>
+	private async Task<Result<ProviderState, ProviderError>> Read(ProviderState state, AppSettings settings, Action<ProviderState> track, CancellationToken cancellationToken)
+	{
+		var provider = state.Provider;
+		var read = await _readers[provider].ReadAccount(cancellationToken);
+		if (!read.TryGet(out var account, out var error)) return error;
+
+		var windows = account.Windows;
+		if (windows.Count == 0)
+		{
+			return new ProviderError(ProviderErrorCode.NoUsageData, "The provider returned no percentage-based usage windows.");
+		}
+
+		// The refresh and the reading may take a while: the reading is dated when it is received.
+		var readAt = time.GetUtcNow();
+		var reading = new UsageReading(readAt, windows);
+		await snapshots.Add(provider, reading, cancellationToken);
+		await RecordResets(provider, state.LastReading, reading, cancellationToken);
+
+		var triggerWindow = reading.TriggerWindow;
+		var lastReset = triggerWindow is null ? null : await resets.GetLast(provider, triggerWindow.Id, cancellationToken);
+		var cycleKey = UsageRules.CycleKey(state, reading, lastReset, readAt);
+
+		state = await health.RecordSuccess(state, readAt, cancellationToken) with
+		{
+			LastReading = reading,
+			ResetCredits = account.ResetCredits,
+			LastSuccessAt = readAt,
+			CurrentCycleKey = cycleKey
+		};
+		track(state);
+		if (state.CreditResetRefreshPending)
+			state = state with { CreditResetWindowResetsAt = triggerWindow?.ResetsAt, CreditResetRefreshPending = false };
+		else if (triggerWindow?.UsedPercent > 0 || (state.CreditResetWindowResetsAt is { } suppressed && triggerWindow?.ResetsAt is { } actual && Math.Abs((actual - suppressed).TotalSeconds) > 60))
+			state = state with { CreditResetSuppressesTrigger = false };
+		state = SchedulePostResetCheck(state, reading, settings.Triggers.For(provider).AutoEnabled && !state.CreditResetSuppressesTrigger, readAt);
+		state = ScheduleCreditCheck(state, settings.ResetCredits.For(provider), readAt);
+		state = await health.CheckCredentialExpiry(state, readAt, settings.Notifications.CredentialExpiryAlertDays, cancellationToken);
+		track(state);
+		await states.Save(state, cancellationToken);
+
+		return state;
 	}
 
 	private ProviderState ScheduleCreditCheck(ProviderState state, ProviderResetCreditSettings settings, DateTimeOffset now)

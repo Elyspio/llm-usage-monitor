@@ -289,12 +289,21 @@ export type GetHistoryData = {
     body?: never;
     path?: never;
     query?: {
-        provider?: Provider;
+        provider?: 'claude' | 'codex';
         windowId?: string;
         range?: string;
     };
     url: '/api/history';
 };
+
+export type GetHistoryErrors = {
+    /**
+     * Bad Request
+     */
+    400: ValidationProblemDetails;
+};
+
+export type GetHistoryError = GetHistoryErrors[keyof GetHistoryErrors];
 
 export type GetHistoryResponses = {
     /**
@@ -308,7 +317,7 @@ export type GetHistoryResponse = GetHistoryResponses[keyof GetHistoryResponses];
 export type TriggerProviderData = {
     body?: never;
     path: {
-        provider: Provider;
+        provider: 'claude' | 'codex';
     };
     query?: never;
     url: '/api/providers/{provider}/trigger';
@@ -491,6 +500,10 @@ export type SendTestNotificationData = {
 
 export type SendTestNotificationErrors = {
     /**
+     * Bad Request
+     */
+    400: ValidationProblemDetails;
+    /**
      * Bad Gateway
      */
     502: ProblemDetails;
@@ -526,7 +539,7 @@ export type GetDashboardResponse = GetDashboardResponses[keyof GetDashboardRespo
 export type ConsumeResetCreditData = {
     body: ConsumeResetCreditRequest;
     path: {
-        provider: Provider;
+        provider: 'claude' | 'codex';
     };
     query?: never;
     url: '/api/providers/{provider}/reset-credits/consume';
@@ -541,6 +554,10 @@ export type ConsumeResetCreditErrors = {
      * Conflict
      */
     409: ProblemDetails;
+    /**
+     * Bad Gateway
+     */
+    502: ProblemDetails;
 };
 
 export type ConsumeResetCreditError = ConsumeResetCreditErrors[keyof ConsumeResetCreditErrors];

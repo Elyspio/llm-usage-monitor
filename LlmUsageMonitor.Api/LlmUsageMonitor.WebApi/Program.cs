@@ -1,8 +1,6 @@
-using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Elyspio.Utils.Telemetry.Technical.Extensions;
-using Elyspio.Utils.Telemetry.Tracing.Builder;
+using Elyspio.Utils.Telemetry;
 using Hangfire;
 using LlmUsageMonitor.Abstractions.Configurations;
 using LlmUsageMonitor.Abstractions.Helpers;
@@ -14,32 +12,19 @@ using LlmUsageMonitor.Adapters.MongoDB;
 using LlmUsageMonitor.Adapters.Ntfy;
 using LlmUsageMonitor.Authorization;
 using LlmUsageMonitor.Core;
-using LlmUsageMonitor.Filters;
 using LlmUsageMonitor.Hosting;
 using LlmUsageMonitor.OpenApi;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using OpenTelemetry.Trace;
-using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddProductionHosting();
 
-// A single log pipeline: Serilog, levels from the "Serilog" section, one line per event on the console. No timestamp:
-// journald (on the LXC) and the Aspire dashboard date each line.
-const string consoleTemplate = "{Level:u3} {SourceContext}: {Message:lj}{NewLine}{Exception}";
-builder.Host.UseSerilogWithTelemetry((_, logger) => logger.WriteTo.Console(outputTemplate: consoleTemplate, formatProvider: CultureInfo.InvariantCulture));
-
-var telemetryEnabled = builder.Configuration.IsTelemetryEnabled(out var telemetryOptions);
-if (telemetryEnabled)
-{
-	new AppOpenTelemetryBuilder<Program>(telemetryOptions!, builder.Configuration)
-	{
-		Tracing = (tracing, _) => tracing.AddHangfireInstrumentation()
-	}.Build(builder.Services);
-	builder.Services.AddOpenTelemetryJsonConfiguration(builder.Configuration);
-}
+// Serilog on the console (levels from the "Serilog" section; no timestamp: journald and the Aspire dashboard date each
+// line). Traces, metrics and logs go over OTLP when OTEL_EXPORTER_OTLP_ENDPOINT is set (Aspire, appsettings on the LXC).
+builder.AddElyspioTelemetry(options => options.Tracing = tracing => tracing.AddHangfireInstrumentation());
 
 builder.AddModule<CoreModule>();
 builder.AddModule<MongoAdapterModule>();
@@ -54,7 +39,6 @@ var enumConverter = new JsonStringEnumConverter(JsonNamingPolicy.CamelCase);
 builder.Services.AddControllers(options =>
 	{
 		options.Filters.Add(new ProducesAttribute("application/json"));
-		options.Filters.Add<HttpExceptionFilter>();
 	})
 	.AddJsonOptions(options =>
 	{
@@ -68,7 +52,11 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 	options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
 });
 builder.Services.AddProblemDetails();
-builder.Services.AddOpenApi(options => options.AddDocumentTransformer<OAuthSecurityTransformer>());
+builder.Services.AddOpenApi(options =>
+{
+	options.AddDocumentTransformer<OAuthSecurityTransformer>();
+	options.AddSchemaTransformer<CamelCaseEnumParameterTransformer>();
+});
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 	.AddKeycloakBearer()
@@ -83,14 +71,9 @@ builder.Services.AddAuthorizationBuilder()
 var app = builder.Build();
 
 app.UseForwardedHeaders();
-// Unhandled errors become a 500 ProblemDetails; the application exceptions are mapped before, by HttpExceptionFilter.
+// Unhandled errors become a 500 ProblemDetails; the business errors are Result values mapped by the controllers (ToActionResult).
 app.UseExceptionHandler();
 app.UseContentSecurityPolicy();
-
-if (telemetryEnabled)
-{
-	app.UseOpenTelemetryJsonConfiguration();
-}
 
 // "/" serves index.html; the other client routes go through the SPA fallback (ProductionHosting.MapSpa).
 // Static files are served before the authorization: the published SPA and its assets are public.

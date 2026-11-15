@@ -1,3 +1,4 @@
+using Elyspio.Utils.Results;
 using System.Net;
 using System.Text.Json;
 using LlmUsageMonitor.Abstractions.Data;
@@ -17,9 +18,12 @@ internal sealed class ClaudeUsageReader(IHttpClientFactory httpClients, IOptions
 {
 	public Provider Provider => Provider.Claude;
 
-	public async Task<IReadOnlyList<UsageWindow>> Read(CancellationToken cancellationToken) => (await ReadAccount(cancellationToken)).Windows;
+	public async Task<Result<IReadOnlyList<UsageWindow>, ProviderError>> Read(CancellationToken cancellationToken) =>
+		(await ReadAccount(cancellationToken)).Map(usage => usage.Windows);
 
-	public async Task<ProviderUsage> ReadAccount(CancellationToken cancellationToken)
+	public Task<Result<ProviderUsage, ProviderError>> ReadAccount(CancellationToken cancellationToken) => ProviderResult.Capture(() => ReadAccountOrThrow(cancellationToken));
+
+	private async Task<ProviderUsage> ReadAccountOrThrow(CancellationToken cancellationToken)
 	{
 		var credentials = await ClaudeCredentialsFile.Read(options.Value.ResolveCredentialsPath(), cancellationToken);
 		if (credentials.ExpiresAt is { } expiresAt && expiresAt <= time.GetUtcNow())

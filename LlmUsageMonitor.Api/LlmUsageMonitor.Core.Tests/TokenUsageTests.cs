@@ -54,10 +54,10 @@ public sealed class TokenUsageTests
 	[Fact]
 	public async Task Upload_prices_known_models_including_dated_names_and_leaves_the_others_unpriced()
 	{
-		var result = await _service.Upload(Upload(
+		var result = (await _service.Upload(Upload(
 			Bucket("claude-opus-5", CurrentHour, new(1_000_000, 0, 0, 0)),
 			Bucket("claude-haiku-4-5-20251001", CurrentHour, new(1_000_000, 0, 0, 0)),
-			Bucket("<synthetic>", CurrentHour, new(0, 0, 0, 0))), Token);
+			Bucket("<synthetic>", CurrentHour, new(0, 0, 0, 0))), Token)).ShouldSucceed();
 
 		result.ShouldBe(new(3, 1));
 		_usage.Stored.Values.Single(bucket => bucket.Model == "claude-opus-5").Cost!.Usd.ShouldBe(5, 1e-9);
@@ -69,9 +69,9 @@ public sealed class TokenUsageTests
 	[Fact]
 	public async Task A_new_upload_of_the_same_hour_replaces_the_bucket()
 	{
-		await _service.Upload(Upload(Bucket("claude-opus-5", CurrentHour, new(100, 0, 0, 10))), Token);
-		await _service.Upload(Upload(Bucket("claude-opus-5", CurrentHour, new(300, 0, 0, 30))), Token);
-		await _service.Upload(Upload(Bucket("claude-opus-5", CurrentHour, new(300, 0, 0, 30))), Token);
+		(await _service.Upload(Upload(Bucket("claude-opus-5", CurrentHour, new(100, 0, 0, 10))), Token)).ShouldSucceed();
+		(await _service.Upload(Upload(Bucket("claude-opus-5", CurrentHour, new(300, 0, 0, 30))), Token)).ShouldSucceed();
+		(await _service.Upload(Upload(Bucket("claude-opus-5", CurrentHour, new(300, 0, 0, 30))), Token)).ShouldSucceed();
 
 		_usage.Stored.Values.ShouldHaveSingleItem().Tokens.ShouldBe(new(300, 0, 0, 30));
 	}
@@ -88,9 +88,9 @@ public sealed class TokenUsageTests
 			Bucket("claude-opus-5", CurrentHour, TokenCounts.Zero)
 		]);
 
-		var exception = await Should.ThrowAsync<RequestValidationException>(() => _service.Upload(upload, Token));
+		var exception = (await _service.Upload(upload, Token)).ShouldFail().ShouldBeOfType<RequestInvalid>();
 
-		exception.Errors.Keys.ShouldBe(["machineName", "buckets[0].hour", "buckets[1].hour", "buckets[2].model", "buckets[2].tokens", "buckets[4]"], ignoreOrder: true);
+		exception.Fields!.Keys.ShouldBe(["machineName", "buckets[0].hour", "buckets[1].hour", "buckets[2].model", "buckets[2].tokens", "buckets[4]"], ignoreOrder: true);
 		_usage.Stored.ShouldBeEmpty();
 	}
 
@@ -104,7 +104,7 @@ public sealed class TokenUsageTests
 			Bucket("claude-opus-5", new(2026, 9, 19, 10, 0, 0, TimeSpan.Zero), new(1_000_000, 0, 0, 0)),
 			Bucket("claude-opus-5", CurrentHour, new(0, 0, 0, 1_000))), Token);
 
-		var report = await _service.Get(TokenUsageRange.Last7Days, null, "Europe/Paris", Token);
+		var report = (await _service.Get(TokenUsageRange.Last7Days, null, "Europe/Paris", Token)).ShouldSucceed();
 
 		report.Step.ShouldBe(TokenUsageStep.Day);
 		report.From.ShouldBe(new DateTimeOffset(2026, 9, 19, 0, 0, 0, TimeSpan.FromHours(2)));
@@ -118,11 +118,11 @@ public sealed class TokenUsageTests
 	[Fact]
 	public async Task The_24_hour_report_is_hourly_and_can_be_filtered_by_workstation()
 	{
-		await _service.Upload(Upload(Bucket("claude-opus-5", CurrentHour.AddHours(-24), new(1, 0, 0, 0)), Bucket("claude-opus-5", CurrentHour.AddHours(-23), new(2, 0, 0, 0))), Token);
-		await _service.Upload(new("pc-2", "Laptop", [Bucket("claude-opus-5", CurrentHour, new(4, 0, 0, 0))]), Token);
+		(await _service.Upload(Upload(Bucket("claude-opus-5", CurrentHour.AddHours(-24), new(1, 0, 0, 0)), Bucket("claude-opus-5", CurrentHour.AddHours(-23), new(2, 0, 0, 0))), Token)).ShouldSucceed();
+		(await _service.Upload(new("pc-2", "Laptop", [Bucket("claude-opus-5", CurrentHour, new(4, 0, 0, 0))]), Token)).ShouldSucceed();
 
-		var all = await _service.Get(TokenUsageRange.Last24Hours, null, null, Token);
-		var laptop = await _service.Get(TokenUsageRange.Last24Hours, "pc-2", null, Token);
+		var all = (await _service.Get(TokenUsageRange.Last24Hours, null, null, Token)).ShouldSucceed();
+		var laptop = (await _service.Get(TokenUsageRange.Last24Hours, "pc-2", null, Token)).ShouldSucceed();
 
 		all.Step.ShouldBe(TokenUsageStep.Hour);
 		all.Rows.Select(row => (row.Start, row.Tokens.Input)).ShouldBe([(CurrentHour.AddHours(-23), 2L), (CurrentHour, 4L)]);
@@ -138,7 +138,7 @@ public sealed class TokenUsageTests
 			Bucket("claude-opus-5", new(2025, 3, 10, 23, 0, 0, TimeSpan.Zero), new(1, 0, 0, 0)),
 			Bucket("claude-opus-5", CurrentHour, new(2, 0, 0, 0))), Token);
 
-		var report = await _service.Get(TokenUsageRange.All, null, "Europe/Paris", Token);
+		var report = (await _service.Get(TokenUsageRange.All, null, "Europe/Paris", Token)).ShouldSucceed();
 
 		report.Step.ShouldBe(TokenUsageStep.Day);
 		report.From.ShouldBe(new DateTimeOffset(2025, 3, 11, 0, 0, 0, TimeSpan.FromHours(1)));
@@ -148,7 +148,7 @@ public sealed class TokenUsageTests
 	[Fact]
 	public async Task The_whole_history_without_usage_is_today()
 	{
-		var report = await _service.Get(TokenUsageRange.All, null, "Europe/Paris", Token);
+		var report = (await _service.Get(TokenUsageRange.All, null, "Europe/Paris", Token)).ShouldSucceed();
 
 		report.From.ShouldBe(new DateTimeOffset(2026, 9, 25, 0, 0, 0, TimeSpan.FromHours(2)));
 		report.Rows.ShouldBeEmpty();
@@ -157,9 +157,9 @@ public sealed class TokenUsageTests
 	[Fact]
 	public async Task Unpriced_tokens_are_counted_apart_from_the_cost()
 	{
-		await _service.Upload(Upload(Bucket("gpt-unknown", CurrentHour, new(10, 5, 0, 5))), Token);
+		(await _service.Upload(Upload(Bucket("gpt-unknown", CurrentHour, new(10, 5, 0, 5))), Token)).ShouldSucceed();
 
-		var row = (await _service.Get(TokenUsageRange.Last24Hours, null, null, Token)).Rows.ShouldHaveSingleItem();
+		var row = (await _service.Get(TokenUsageRange.Last24Hours, null, null, Token)).ShouldSucceed().Rows.ShouldHaveSingleItem();
 
 		row.CostUsd.ShouldBeNull();
 		row.CacheSavingsUsd.ShouldBeNull();
@@ -169,7 +169,7 @@ public sealed class TokenUsageTests
 	[Fact]
 	public async Task An_unknown_time_zone_is_a_validation_error()
 	{
-		await Should.ThrowAsync<RequestValidationException>(() => _service.Get(TokenUsageRange.Last7Days, null, "Mars/Olympus", Token));
+		(await _service.Get(TokenUsageRange.Last7Days, null, "Mars/Olympus", Token)).ShouldFail().ShouldBeOfType<RequestInvalid>();
 	}
 
 	[Fact]

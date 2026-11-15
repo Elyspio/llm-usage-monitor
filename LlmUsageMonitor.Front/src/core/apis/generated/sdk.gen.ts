@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ConsumeResetCreditData, ConsumeResetCreditErrors, ConsumeResetCreditResponses, GetDashboardData, GetDashboardResponses, GetHistoryData, GetHistoryResponses, GetNotificationSettingsData, GetNotificationSettingsResponses, GetPollingSettingsData, GetPollingSettingsResponses, GetResetCreditSettingsData, GetResetCreditSettingsResponses, GetTokenUsageData, GetTokenUsageErrors, GetTokenUsageResponses, GetTriggerRunData, GetTriggerRunErrors, GetTriggerRunResponses, GetTriggerSettingsData, GetTriggerSettingsResponses, SendTestNotificationData, SendTestNotificationErrors, SendTestNotificationResponses, TriggerProviderData, TriggerProviderErrors, TriggerProviderResponses, UpdateNotificationSettingsData, UpdateNotificationSettingsErrors, UpdateNotificationSettingsResponses, UpdatePollingSettingsData, UpdatePollingSettingsErrors, UpdatePollingSettingsResponses, UpdateResetCreditSettingsData, UpdateResetCreditSettingsErrors, UpdateResetCreditSettingsResponses, UpdateTriggerSettingsData, UpdateTriggerSettingsErrors, UpdateTriggerSettingsResponses, UploadTokenUsageData, UploadTokenUsageErrors, UploadTokenUsageResponses } from './types.gen';
+import type { ConsumeResetCreditData, ConsumeResetCreditErrors, ConsumeResetCreditResponses, GetDashboardData, GetDashboardResponses, GetHistoryData, GetHistoryErrors, GetHistoryResponses, GetNotificationSettingsData, GetNotificationSettingsResponses, GetPollingSettingsData, GetPollingSettingsResponses, GetResetCreditSettingsData, GetResetCreditSettingsResponses, GetTokenUsageData, GetTokenUsageErrors, GetTokenUsageResponses, GetTriggerRunData, GetTriggerRunErrors, GetTriggerRunResponses, GetTriggerSettingsData, GetTriggerSettingsResponses, SendTestNotificationData, SendTestNotificationErrors, SendTestNotificationResponses, TriggerProviderData, TriggerProviderErrors, TriggerProviderResponses, UpdateNotificationSettingsData, UpdateNotificationSettingsErrors, UpdateNotificationSettingsResponses, UpdatePollingSettingsData, UpdatePollingSettingsErrors, UpdatePollingSettingsResponses, UpdateResetCreditSettingsData, UpdateResetCreditSettingsErrors, UpdateResetCreditSettingsResponses, UpdateTriggerSettingsData, UpdateTriggerSettingsErrors, UpdateTriggerSettingsResponses, UploadTokenUsageData, UploadTokenUsageErrors, UploadTokenUsageResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -18,7 +18,7 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
     meta?: keyof ClientMeta extends never ? Record<string, unknown> : ClientMeta;
 };
 
-export const getHistory = <ThrowOnError extends boolean = false>(options?: Options<GetHistoryData, ThrowOnError>): RequestResult<GetHistoryResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetHistoryResponses, unknown, ThrowOnError>({
+export const getHistory = <ThrowOnError extends boolean = false>(options?: Options<GetHistoryData, ThrowOnError>): RequestResult<GetHistoryResponses, GetHistoryErrors, ThrowOnError> => (options?.client ?? client).get<GetHistoryResponses, GetHistoryErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/history',
     ...options

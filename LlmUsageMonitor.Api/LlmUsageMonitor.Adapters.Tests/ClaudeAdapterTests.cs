@@ -32,7 +32,7 @@ public sealed class ClaudeAdapterTests
 		using var cli = new FakeCli(Scenario());
 		var credentials = WriteCredentials(cli, ExpiresAt);
 
-		var token = await Session(cli, credentials).ReadToken(Token);
+		var token = (await Session(cli, credentials).ReadToken(Token)).ShouldSucceed();
 
 		token.ShouldBe(new ClaudeTokenInfo(ExpiresAt, RefreshTokenExpiresAt));
 	}
@@ -45,8 +45,8 @@ public sealed class ClaudeAdapterTests
 		var empty = Path.Combine(cli.Directory, "empty.json");
 		await File.WriteAllTextAsync(empty, """{"claudeAiOauth":{}}""", Token);
 
-		(await Should.ThrowAsync<ProviderException>(() => Session(cli, missing).ReadToken(Token))).Code.ShouldBe(ProviderErrorCode.CredentialsUnavailable);
-		(await Should.ThrowAsync<ProviderException>(() => Session(cli, empty).ReadToken(Token))).Code.ShouldBe(ProviderErrorCode.AuthRequired);
+		((await Session(cli, missing).ReadToken(Token)).ShouldFail().ShouldBeOfType<ProviderError>()).ProviderCode.ShouldBe(ProviderErrorCode.CredentialsUnavailable);
+		((await Session(cli, empty).ReadToken(Token)).ShouldFail().ShouldBeOfType<ProviderError>()).ProviderCode.ShouldBe(ProviderErrorCode.AuthRequired);
 	}
 
 	[Fact]
@@ -61,10 +61,10 @@ public sealed class ClaudeAdapterTests
 		}).ToJsonString(), Token);
 		var session = Session(cli, credentials);
 
-		await session.RefreshThroughCli(Token);
+		(await session.RefreshThroughCli(Token)).ShouldSucceed();
 
 		cli.Invocations.ShouldBe(["mcp list"]);
-		(await session.ReadToken(Token)).ExpiresAt.ShouldBe(refreshed);
+		(await session.ReadToken(Token)).ShouldSucceed().ExpiresAt.ShouldBe(refreshed);
 	}
 
 	[Fact]
@@ -76,9 +76,9 @@ public sealed class ClaudeAdapterTests
 			["--version"] = Command("9.9.9 (Claude Code)")
 		}));
 
-		var exception = await Should.ThrowAsync<ProviderException>(() => Session(cli, WriteCredentials(cli, ExpiresAt)).RefreshThroughCli(Token));
+		var exception = (await Session(cli, WriteCredentials(cli, ExpiresAt)).RefreshThroughCli(Token)).ShouldFail().ShouldBeOfType<ProviderError>();
 
-		exception.Code.ShouldBe(ProviderErrorCode.CliUnsupportedOption);
+		exception.ProviderCode.ShouldBe(ProviderErrorCode.CliUnsupportedOption);
 		exception.Message.ShouldContain("9.9.9 (Claude Code)");
 	}
 
@@ -95,7 +95,7 @@ public sealed class ClaudeAdapterTests
 	{
 		using var cli = new FakeCli(Scenario(new() { ["-p"] = Command("""{"type":"result","is_error":false,"result":"2"}""") }));
 
-		await Runner(cli).Run("claude-test", ReasoningEffort.High, Token);
+		(await Runner(cli).Run("claude-test", ReasoningEffort.High, Token)).ShouldSucceed();
 
 		var invocation = cli.Invocations.ShouldHaveSingleItem();
 		invocation.ShouldStartWith($"-p {ClaudePromptRunner.Prompt}");
@@ -112,7 +112,7 @@ public sealed class ClaudeAdapterTests
 	{
 		using var cli = new FakeCli(Scenario(new() { ["-p"] = Command("""{"type":"result","is_error":false,"result":"2"}""") }));
 
-		await Runner(cli).Run("claude-test", ReasoningEffort.None, Token);
+		(await Runner(cli).Run("claude-test", ReasoningEffort.None, Token)).ShouldSucceed();
 
 		var invocation = cli.Invocations.ShouldHaveSingleItem();
 		invocation.ShouldContain("--effort low");
@@ -124,9 +124,9 @@ public sealed class ClaudeAdapterTests
 	{
 		using var cli = new FakeCli(Scenario(new() { ["-p"] = Command("""{"type":"result","is_error":true,"result":"You've hit your limit · resets 5pm"}""", exitCode: 1) }));
 
-		var exception = await Should.ThrowAsync<ProviderException>(() => Runner(cli).Run("claude-test", ReasoningEffort.Low, Token));
+		var exception = (await Runner(cli).Run("claude-test", ReasoningEffort.Low, Token)).ShouldFail().ShouldBeOfType<ProviderError>();
 
-		exception.Code.ShouldBe(ProviderErrorCode.UsageLimit);
+		exception.ProviderCode.ShouldBe(ProviderErrorCode.UsageLimit);
 	}
 
 	[Fact]
@@ -136,7 +136,7 @@ public sealed class ClaudeAdapterTests
 		var handler = new StubHandler(HttpStatusCode.OK, await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "claude-usage.json"), Token));
 		var reader = Reader(cli, WriteCredentials(cli, ExpiresAt), handler);
 
-		var windows = await reader.Read(Token);
+		var windows = (await reader.Read(Token)).ShouldSucceed();
 
 		windows.ShouldBe(ClaudeUsageParser.Parse(Fixtures.Load("claude-usage.json")));
 		var request = handler.Requests.ShouldHaveSingleItem();
@@ -146,7 +146,7 @@ public sealed class ClaudeAdapterTests
 		// Without the CLI User-Agent the endpoint hides the earned resets ("ineligible_reason": "surface").
 		request.Headers.UserAgent.ToString().ShouldBe("claude-cli/9.9.9 (external, cli)");
 
-		await reader.Read(Token);
+		(await reader.Read(Token)).ShouldSucceed();
 
 		cli.Invocations.ShouldBe(["--version"]);
 	}
@@ -157,7 +157,7 @@ public sealed class ClaudeAdapterTests
 		using var cli = new FakeCli(Scenario(new() { ["--version"] = Command(stderr: "boom", exitCode: 1) }));
 		var handler = new StubHandler(HttpStatusCode.OK, await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "claude-usage.json"), Token));
 
-		await Reader(cli, WriteCredentials(cli, ExpiresAt), handler).Read(Token);
+		(await Reader(cli, WriteCredentials(cli, ExpiresAt), handler).Read(Token)).ShouldSucceed();
 
 		handler.Requests.ShouldHaveSingleItem().Headers.UserAgent.ToString().ShouldBe($"claude-cli/{ClaudeUserAgent.FallbackVersion} (external, cli)");
 	}
@@ -192,9 +192,9 @@ public sealed class ClaudeAdapterTests
 		using var cli = new FakeCli(Scenario());
 		var handler = new StubHandler(status, "{}");
 
-		var exception = await Should.ThrowAsync<ProviderException>(() => Reader(cli, WriteCredentials(cli, ExpiresAt), handler).Read(Token));
+		var exception = (await Reader(cli, WriteCredentials(cli, ExpiresAt), handler).Read(Token)).ShouldFail().ShouldBeOfType<ProviderError>();
 
-		exception.Code.ShouldBe(code);
+		exception.ProviderCode.ShouldBe(code);
 		// A 429 goes to the reading backoff: retrying would only extend the rate limiting.
 		handler.Requests.Count.ShouldBe(1);
 	}
@@ -204,9 +204,9 @@ public sealed class ClaudeAdapterTests
 	{
 		using var cli = new FakeCli(Scenario());
 
-		var exception = await Should.ThrowAsync<ProviderException>(() => Reader(cli, WriteCredentials(cli, ExpiresAt), new StubHandler(HttpStatusCode.OK, "<html>")).Read(Token));
+		var exception = (await Reader(cli, WriteCredentials(cli, ExpiresAt), new StubHandler(HttpStatusCode.OK, "<html>")).Read(Token)).ShouldFail().ShouldBeOfType<ProviderError>();
 
-		exception.Code.ShouldBe(ProviderErrorCode.InvalidResponse);
+		exception.ProviderCode.ShouldBe(ProviderErrorCode.InvalidResponse);
 	}
 
 	[Fact]
@@ -215,9 +215,9 @@ public sealed class ClaudeAdapterTests
 		using var cli = new FakeCli(Scenario());
 		var handler = new StubHandler(HttpStatusCode.OK, "{}");
 
-		var exception = await Should.ThrowAsync<ProviderException>(() => Reader(cli, WriteCredentials(cli, DateTimeOffset.UtcNow.AddMinutes(-1)), handler).Read(Token));
+		var exception = (await Reader(cli, WriteCredentials(cli, DateTimeOffset.UtcNow.AddMinutes(-1)), handler).Read(Token)).ShouldFail().ShouldBeOfType<ProviderError>();
 
-		exception.Code.ShouldBe(ProviderErrorCode.AuthExpired);
+		exception.ProviderCode.ShouldBe(ProviderErrorCode.AuthExpired);
 		handler.Requests.ShouldBeEmpty();
 	}
 

@@ -1,3 +1,5 @@
+using Elyspio.Utils.Results.AspNetCore;
+using Elyspio.Utils.Results;
 using LlmUsageMonitor.Abstractions.Data;
 using LlmUsageMonitor.Abstractions.Exceptions;
 using LlmUsageMonitor.Abstractions.Interfaces.Services;
@@ -14,15 +16,19 @@ public sealed class HistoryController(IHistoryService history) : ControllerBase
 {
 	/// <summary>Snapshots per window and triggers of the last 24 hours (<c>24h</c>) or 7 days (<c>7d</c>).</summary>
 	[HttpGet(Name = "GetHistory")]
-	public Task<UsageHistory> Get([FromQuery] Provider? provider, [FromQuery] string? windowId, [FromQuery] string range, CancellationToken cancellationToken)
+	[ProducesResponseType<UsageHistory>(StatusCodes.Status200OK)]
+	[ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+	public async Task<ActionResult<UsageHistory>> Get([FromQuery] Provider? provider, [FromQuery] string? windowId, [FromQuery] string range, CancellationToken cancellationToken)
 	{
-		var span = range switch
+		TimeSpan? span = range switch
 		{
 			"24h" => TimeSpan.FromHours(24),
 			"7d" => TimeSpan.FromDays(7),
-			_ => throw new RequestValidationException(new Dictionary<string, string[]> { ["range"] = ["Possible values: 24h, 7d."] })
+			_ => null
 		};
-		return history.Get(provider, windowId, span, cancellationToken);
+		if (span is not { } value) return new RequestInvalid("range", "Possible values: 24h, 7d.").ToActionResult();
+
+		return await history.Get(provider, windowId, value, cancellationToken);
 	}
 }
 
@@ -37,8 +43,8 @@ public sealed class ProvidersController(ITriggerService triggers) : ControllerBa
 	[ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
 	public async Task<IActionResult> Trigger(Provider provider, CancellationToken cancellationToken)
 	{
-		var run = await triggers.RequestManual(provider, cancellationToken);
-		return AcceptedAtRoute("GetTriggerRun", new { id = run.Id }, run);
+		var requested = await triggers.RequestManual(provider, cancellationToken);
+		return requested.TryGet(out var run, out var error) ? AcceptedAtRoute("GetTriggerRun", new { id = run.Id }, run) : error.ToActionResult();
 	}
 }
 
@@ -50,9 +56,9 @@ public sealed class TriggerRunsController(ITriggerService triggers) : Controller
 	[HttpGet("{id}", Name = "GetTriggerRun")]
 	[ProducesResponseType<TriggerRun>(StatusCodes.Status200OK)]
 	[ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-	public Task<TriggerRun> Get(string id, CancellationToken cancellationToken)
+	public async Task<ActionResult<TriggerRun>> Get(string id, CancellationToken cancellationToken)
 	{
-		return triggers.Get(id, cancellationToken);
+		return (await triggers.Get(id, cancellationToken)).ToActionResult();
 	}
 }
 
@@ -70,9 +76,9 @@ public sealed class SettingsController(ISettingsService settings, INotificationS
 	[HttpPut("polling", Name = "UpdatePollingSettings")]
 	[ProducesResponseType<PollingSettings>(StatusCodes.Status200OK)]
 	[ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
-	public Task<PollingSettings> UpdatePolling(PollingSettings polling, CancellationToken cancellationToken)
+	public async Task<ActionResult<PollingSettings>> UpdatePolling(PollingSettings polling, CancellationToken cancellationToken)
 	{
-		return settings.UpdatePolling(polling, cancellationToken);
+		return (await settings.UpdatePolling(polling, cancellationToken)).ToActionResult();
 	}
 
 	[HttpGet("triggers", Name = "GetTriggerSettings")]
@@ -84,9 +90,9 @@ public sealed class SettingsController(ISettingsService settings, INotificationS
 	[HttpPut("triggers", Name = "UpdateTriggerSettings")]
 	[ProducesResponseType<TriggerSettings>(StatusCodes.Status200OK)]
 	[ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
-	public Task<TriggerSettings> UpdateTriggers(TriggerSettings triggers, CancellationToken cancellationToken)
+	public async Task<ActionResult<TriggerSettings>> UpdateTriggers(TriggerSettings triggers, CancellationToken cancellationToken)
 	{
-		return settings.UpdateTriggers(triggers, cancellationToken);
+		return (await settings.UpdateTriggers(triggers, cancellationToken)).ToActionResult();
 	}
 
 	[HttpGet("notifications", Name = "GetNotificationSettings")]
@@ -98,17 +104,17 @@ public sealed class SettingsController(ISettingsService settings, INotificationS
 	[HttpPut("notifications", Name = "UpdateNotificationSettings")]
 	[ProducesResponseType<NotificationSettingsView>(StatusCodes.Status200OK)]
 	[ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
-	public Task<NotificationSettingsView> UpdateNotifications(NotificationSettingsUpdate update, CancellationToken cancellationToken)
+	public async Task<ActionResult<NotificationSettingsView>> UpdateNotifications(NotificationSettingsUpdate update, CancellationToken cancellationToken)
 	{
-		return settings.UpdateNotifications(update, cancellationToken);
+		return (await settings.UpdateNotifications(update, cancellationToken)).ToActionResult();
 	}
 
 	[HttpPost("notifications/test", Name = "SendTestNotification")]
 	[ProducesResponseType(StatusCodes.Status204NoContent)]
+	[ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
 	[ProducesResponseType<ProblemDetails>(StatusCodes.Status502BadGateway)]
 	public async Task<IActionResult> SendTest(CancellationToken cancellationToken)
 	{
-		await notifications.SendTest(cancellationToken);
-		return NoContent();
+		return (await notifications.SendTest(cancellationToken)).ToActionResult();
 	}
 }

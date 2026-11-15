@@ -1,3 +1,5 @@
+using Elyspio.Utils.Results;
+using LlmUsageMonitor.Abstractions.Exceptions;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -87,12 +89,13 @@ public sealed class ResetCreditApiAdapter : IUsageReader, IResetCreditConsumer
 {
 	public Provider Provider => Provider.Codex;
 	public int Consumes { get; private set; }
-	public Task<IReadOnlyList<UsageWindow>> Read(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<UsageWindow>>([new("codex/primary", Consumes == 0 ? 35 : 0, null, 10080)]);
-	public async Task<ProviderUsage> ReadAccount(CancellationToken cancellationToken) => new(await Read(cancellationToken), new(Consumes == 0 ? 1 : 0,
-		Consumes == 0 ? [new("credit", 1, DateTimeOffset.UtcNow.AddHours(1), DateTimeOffset.UtcNow.AddDays(-1), "Full reset", true, false, [])] : []));
-	public Task<ResetCreditResult> Consume(string creditId, string idempotencyKey, CancellationToken cancellationToken)
+	public Task<Result<IReadOnlyList<UsageWindow>, ProviderError>> Read(CancellationToken cancellationToken)
+		=> Task.FromResult<Result<IReadOnlyList<UsageWindow>, ProviderError>>(new Ok<IReadOnlyList<UsageWindow>>([new("codex/primary", Consumes == 0 ? 35 : 0, null, 10080)]));
+	public async Task<Result<ProviderUsage, ProviderError>> ReadAccount(CancellationToken cancellationToken) => (await Read(cancellationToken)).Map(windows => new ProviderUsage(windows, new(Consumes == 0 ? 1 : 0,
+		Consumes == 0 ? [new("credit", 1, DateTimeOffset.UtcNow.AddHours(1), DateTimeOffset.UtcNow.AddDays(-1), "Full reset", true, false, [])] : [])));
+	public Task<Result<ResetCreditResult, ProviderError>> Consume(string creditId, string idempotencyKey, CancellationToken cancellationToken)
 	{
 		Consumes++;
-		return Task.FromResult(new ResetCreditResult(true, "reset"));
+		return Task.FromResult<Result<ResetCreditResult, ProviderError>>(new ResetCreditResult(true, "reset"));
 	}
 }

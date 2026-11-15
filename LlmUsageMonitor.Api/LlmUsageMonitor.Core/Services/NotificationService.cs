@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using LlmUsageMonitor.Abstractions.Configurations;
 using LlmUsageMonitor.Abstractions.Data;
+using Elyspio.Utils.Results;
 using LlmUsageMonitor.Abstractions.Exceptions;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
 using LlmUsageMonitor.Abstractions.Interfaces.Repositories;
@@ -43,12 +44,12 @@ public sealed class NotificationService(
 		}
 	}
 
-	public async Task SendTest(CancellationToken cancellationToken)
+	public async Task<Result<Unit>> SendTest(CancellationToken cancellationToken)
 	{
 		var settings = (await settingsService.Get(cancellationToken)).Notifications;
 		if (string.IsNullOrWhiteSpace(settings.Topic))
 		{
-			throw new RequestValidationException(new Dictionary<string, string[]> { ["topic"] = ["Set a topic before sending a test."] });
+			return new RequestInvalid("topic", "Set a topic before sending a test.");
 		}
 
 		var message = new NotificationMessage("LLM Usage Monitor : test", "Les notifications fonctionnent.", NotificationPriority.Default, ["test_tube"], appConfig.Value.PublicUrl);
@@ -59,8 +60,10 @@ public sealed class NotificationService(
 		catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
 		{
 			await SaveSendFailure(new(time.GetUtcNow(), exception.Message), cancellationToken);
-			throw new ProviderException(ProviderErrorCode.NotificationFailed, exception.Message, exception);
+			return new ProviderError(ProviderErrorCode.NotificationFailed, exception.Message);
 		}
+
+		return Unit.Value;
 	}
 
 	private async Task Deliver(NotificationMessage message, NotificationSettings settings, CancellationToken cancellationToken)

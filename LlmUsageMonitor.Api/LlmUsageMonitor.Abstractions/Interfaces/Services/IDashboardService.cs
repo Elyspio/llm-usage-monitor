@@ -1,4 +1,6 @@
+using Elyspio.Utils.Results;
 using LlmUsageMonitor.Abstractions.Data;
+using LlmUsageMonitor.Abstractions.Exceptions;
 
 namespace LlmUsageMonitor.Abstractions.Interfaces.Services;
 
@@ -29,13 +31,13 @@ public interface IUsageMonitor
 
 public interface ITriggerService
 {
-	/// <summary>Records a manual run and queues it. Throws <c>CLI_BUSY</c> when a CLI process already runs for the provider.</summary>
-	Task<TriggerRun> RequestManual(Provider provider, CancellationToken cancellationToken);
+	/// <summary>Records a manual run and queues it. Fails with <c>CLI_BUSY</c> when a CLI process already runs for the provider.</summary>
+	Task<Result<TriggerRun>> RequestManual(Provider provider, CancellationToken cancellationToken);
 
 	/// <summary>Runs a queued manual run.</summary>
 	Task ExecuteManual(string runId, CancellationToken cancellationToken);
 
-	Task<TriggerRun> Get(string runId, CancellationToken cancellationToken);
+	Task<Result<TriggerRun>> Get(string runId, CancellationToken cancellationToken);
 
 	/// <summary>
 	///     On start: fails the runs a previous process left running (<c>INTERRUPTED</c>); an automatic one may be retried at
@@ -51,9 +53,9 @@ public interface IClaudeKeepAlive
 {
 	/// <summary>
 	///     Refreshes the token if needed, then returns the state with the up-to-date expiry and the next keep-alive scheduled
-	///     four minutes before it. Throws a <c>ProviderException</c> coded <c>AuthExpired</c> when the token cannot be refreshed.
+	///     four minutes before it. Fails with <c>AuthExpired</c> when the token cannot be refreshed.
 	/// </summary>
-	Task<ProviderState> EnsureFresh(ProviderState state, CancellationToken cancellationToken);
+	Task<Result<ProviderState, ProviderError>> EnsureFresh(ProviderState state, CancellationToken cancellationToken);
 
 	/// <summary>The scheduled job: refreshes the token and records the outcome in the provider health.</summary>
 	Task Run(CancellationToken cancellationToken);
@@ -63,21 +65,21 @@ public interface ISettingsService
 {
 	Task<AppSettings> Get(CancellationToken cancellationToken);
 
-	Task<PollingSettings> UpdatePolling(PollingSettings polling, CancellationToken cancellationToken);
+	Task<Result<PollingSettings>> UpdatePolling(PollingSettings polling, CancellationToken cancellationToken);
 
-	Task<TriggerSettings> UpdateTriggers(TriggerSettings triggers, CancellationToken cancellationToken);
+	Task<Result<TriggerSettings>> UpdateTriggers(TriggerSettings triggers, CancellationToken cancellationToken);
 
-	Task<ResetCreditSettings> UpdateResetCredits(ResetCreditSettings settings, CancellationToken cancellationToken);
+	Task<Result<ResetCreditSettings>> UpdateResetCredits(ResetCreditSettings settings, CancellationToken cancellationToken);
 
 	Task<NotificationSettingsView> GetNotifications(CancellationToken cancellationToken);
 
-	Task<NotificationSettingsView> UpdateNotifications(NotificationSettingsUpdate update, CancellationToken cancellationToken);
+	Task<Result<NotificationSettingsView>> UpdateNotifications(NotificationSettingsUpdate update, CancellationToken cancellationToken);
 }
 
 /// <summary>Serializes redemption with provider reads, persists attempts before I/O, and refreshes the quotas.</summary>
 public interface IResetCreditService
 {
-	Task<ResetCreditRun> ConsumeManual(Provider provider, ConsumeResetCreditRequest request, CancellationToken cancellationToken);
+	Task<Result<ResetCreditRun>> ConsumeManual(Provider provider, ConsumeResetCreditRequest request, CancellationToken cancellationToken);
 	/// <summary>Called by polling while already holding the provider lock. Returns true when prompting must be skipped.</summary>
 	Task<bool> ProcessAutomatic(Provider provider, CancellationToken cancellationToken);
 }
@@ -87,11 +89,11 @@ public interface IResetCreditService
 /// </summary>
 public interface ITokenUsageService
 {
-	/// <summary>Validates, prices and stores the buckets, then records the workstation. Throws a <c>RequestValidationException</c> on invalid input.</summary>
-	Task<TokenUsageUploadResult> Upload(TokenUsageUpload upload, CancellationToken cancellationToken);
+	/// <summary>Validates, prices and stores the buckets, then records the workstation. Fails with <see cref="RequestInvalid" /> on invalid input.</summary>
+	Task<Result<TokenUsageUploadResult>> Upload(TokenUsageUpload upload, CancellationToken cancellationToken);
 
 	/// <summary>Returns the usage of the period, grouped by hour or by day of <paramref name="timeZone" /> (IANA id, UTC when omitted).</summary>
-	Task<TokenUsageReport> Get(TokenUsageRange range, string? machineId, string? timeZone, CancellationToken cancellationToken);
+	Task<Result<TokenUsageReport>> Get(TokenUsageRange range, string? machineId, string? timeZone, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -109,6 +111,6 @@ public interface INotificationService
 	/// </summary>
 	Task<NotificationOutcome> Notify(NotificationKind kind, Provider provider, string detail, CancellationToken cancellationToken);
 
-	/// <summary>Sends a test message and throws when delivery fails.</summary>
-	Task SendTest(CancellationToken cancellationToken);
+	/// <summary>Sends a test message; fails with <c>NOTIFICATION_FAILED</c> when delivery fails.</summary>
+	Task<Result<Unit>> SendTest(CancellationToken cancellationToken);
 }

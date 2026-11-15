@@ -1,3 +1,4 @@
+using Elyspio.Utils.Results;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -13,7 +14,10 @@ namespace LlmUsageMonitor.Adapters.Claude;
 internal sealed class ClaudeResetCreditConsumer(IHttpClientFactory clients, IOptions<ClaudeOptions> options) : IResetCreditConsumer
 {
 	public Provider Provider => Provider.Claude;
-	public async Task<ResetCreditResult> Consume(string creditId, string idempotencyKey, CancellationToken cancellationToken)
+	public Task<Result<ResetCreditResult, ProviderError>> Consume(string creditId, string idempotencyKey, CancellationToken cancellationToken) =>
+		ProviderResult.Capture(() => ConsumeOrThrow(creditId, idempotencyKey, cancellationToken));
+
+	private async Task<ResetCreditResult> ConsumeOrThrow(string creditId, string idempotencyKey, CancellationToken cancellationToken)
 	{
 		var settings = options.Value;
 		var credentials = await ClaudeCredentialsFile.Read(settings.ResolveCredentialsPath(), cancellationToken);

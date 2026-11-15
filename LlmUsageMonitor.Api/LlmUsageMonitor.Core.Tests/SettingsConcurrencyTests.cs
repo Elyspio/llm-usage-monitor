@@ -17,7 +17,7 @@ public sealed class SettingsConcurrencyTests
 		// The delivery fails between the read and the write of the settings save.
 		harness.SettingsRepository.AfterNextFind = () => harness.Notifications.Notify(NotificationKind.TriggerFailed, Provider.Codex, "boom", Token);
 
-		await harness.Settings.UpdateNotifications(new("https://ntfy.example", "topic_2", null, NotificationEventsByProvider.Default, 5, 10), Token);
+		(await harness.Settings.UpdateNotifications(new("https://ntfy.example", "topic_2", null, NotificationEventsByProvider.Default, 5, 10), Token)).ShouldSucceed();
 
 		var saved = harness.SettingsRepository.Stored!.Notifications;
 		(saved.Url, saved.Topic, saved.ReadFailureThreshold, saved.CredentialExpiryAlertDays).ShouldBe(("https://ntfy.example", "topic_2", 5, 10));

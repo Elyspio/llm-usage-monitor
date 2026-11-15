@@ -53,7 +53,10 @@ public sealed class PollRobustnessTests
 
 		await harness.Monitor.Poll(Provider.Codex, Token);
 
-		harness.States.Stored[Provider.Codex].LastFailure!.Code.ShouldBe(ProviderErrorCode.UnexpectedError);
+		var state = harness.States.Stored[Provider.Codex];
+		state.LastFailure!.Code.ShouldBe(ProviderErrorCode.UnexpectedError);
+		// The reading was received and its snapshot stored: the recorded failure keeps it.
+		state.LastReading!.Windows.ShouldHaveSingleItem().UsedPercent.ShouldBe(10);
 	}
 
 	[Fact]
