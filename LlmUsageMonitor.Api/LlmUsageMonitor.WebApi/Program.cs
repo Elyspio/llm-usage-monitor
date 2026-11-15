@@ -71,7 +71,7 @@ builder.Services.AddAuthorizationBuilder()
 var app = builder.Build();
 
 app.UseForwardedHeaders();
-// Unhandled errors become a 500 ProblemDetails; the business errors are Result values mapped by the controllers (ResultActions).
+// Unhandled errors become a 500 ProblemDetails; the business errors are Result values mapped by the controllers (ToActionResult).
 app.UseExceptionHandler();
 app.UseContentSecurityPolicy();
 
