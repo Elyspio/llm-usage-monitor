@@ -1,3 +1,4 @@
+using Elyspio.Utils.Results;
 using LlmUsageMonitor.Abstractions.Configurations;
 using LlmUsageMonitor.Abstractions.Data;
 using LlmUsageMonitor.Abstractions.Exceptions;
@@ -365,17 +366,17 @@ internal sealed class FakeScheduler : IJobScheduler
 internal sealed class FakeReader(Provider provider) : IUsageReader
 {
 	public ResetCreditBalance? Credits { get; set; }
-	public async Task<ProviderUsage> ReadAccount(CancellationToken cancellationToken) => new(await Read(cancellationToken), Credits);
+	public async Task<Result<ProviderUsage, ProviderError>> ReadAccount(CancellationToken cancellationToken) => (await Read(cancellationToken)).Map(windows => new ProviderUsage(windows, Credits));
 	public Func<IReadOnlyList<UsageWindow>> Respond { get; set; } = () => [];
 
 	public int Calls { get; private set; }
 
 	public Provider Provider => provider;
 
-	public Task<IReadOnlyList<UsageWindow>> Read(CancellationToken cancellationToken)
+	public Task<Result<IReadOnlyList<UsageWindow>, ProviderError>> Read(CancellationToken cancellationToken)
 	{
 		Calls++;
-		return Task.FromResult(Respond());
+		return ProviderResult.Capture(() => Task.FromResult(Respond()));
 	}
 }
 
@@ -405,10 +406,10 @@ internal sealed class FakeCreditConsumer(Provider provider) : IResetCreditConsum
 	public Provider Provider => provider;
 	public List<(string CreditId, string Key)> Calls { get; } = [];
 	public Func<string, string, ResetCreditResult> Respond { get; set; } = (_, _) => new(true, "reset");
-	public Task<ResetCreditResult> Consume(string creditId, string idempotencyKey, CancellationToken cancellationToken)
+	public Task<Result<ResetCreditResult, ProviderError>> Consume(string creditId, string idempotencyKey, CancellationToken cancellationToken)
 	{
 		Calls.Add((creditId, idempotencyKey));
-		return Task.FromResult(Respond(creditId, idempotencyKey));
+		return ProviderResult.Capture(() => Task.FromResult(Respond(creditId, idempotencyKey)));
 	}
 }
 
@@ -425,12 +426,12 @@ internal sealed class FakeRunner(Provider provider) : IPromptRunner
 
 	public Provider Provider => provider;
 
-	public Task Run(string model, ReasoningEffort effort, CancellationToken cancellationToken)
+	public Task<Result<Unit, ProviderError>> Run(string model, ReasoningEffort effort, CancellationToken cancellationToken)
 	{
 		Models.Add(model);
 		Efforts.Add(effort);
 		var failure = Outcomes.TryDequeue(out var next) ? next : Failure;
-		return failure is null ? Task.CompletedTask : Task.FromException(failure);
+		return ProviderResult.Capture(() => failure is null ? Task.FromResult(Unit.Value) : Task.FromException<Unit>(failure));
 	}
 }
 
@@ -445,16 +446,19 @@ internal sealed class FakeSession : IClaudeSession
 
 	public int Refreshes { get; private set; }
 
-	public Task<ClaudeTokenInfo> ReadToken(CancellationToken cancellationToken)
+	public Task<Result<ClaudeTokenInfo, ProviderError>> ReadToken(CancellationToken cancellationToken)
 	{
-		return Task.FromResult(new ClaudeTokenInfo(ExpiresAt, RefreshTokenExpiresAt));
+		return ProviderResult.Capture(() => Task.FromResult(new ClaudeTokenInfo(ExpiresAt, RefreshTokenExpiresAt)));
 	}
 
-	public Task RefreshThroughCli(CancellationToken cancellationToken)
+	public Task<Result<Unit, ProviderError>> RefreshThroughCli(CancellationToken cancellationToken)
 	{
 		Refreshes++;
-		ExpiresAt = OnRefresh(ExpiresAt);
-		return Task.CompletedTask;
+		return ProviderResult.Capture(() =>
+		{
+			ExpiresAt = OnRefresh(ExpiresAt);
+			return Task.FromResult(Unit.Value);
+		});
 	}
 }
 

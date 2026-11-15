@@ -1,3 +1,4 @@
+using Elyspio.Utils.Results;
 using LlmUsageMonitor.Abstractions.Data;
 using LlmUsageMonitor.Abstractions.Exceptions;
 using LlmUsageMonitor.Abstractions.Interfaces.Services;
@@ -19,18 +20,20 @@ public sealed class TokenUsageController(ITokenUsageService tokenUsage) : Contro
 	[HttpGet(Name = "GetTokenUsage")]
 	[ProducesResponseType<TokenUsageReport>(StatusCodes.Status200OK)]
 	[ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
-	public Task<TokenUsageReport> Get([FromQuery] string range, [FromQuery] string? machineId, [FromQuery] string? timeZone, CancellationToken cancellationToken)
+	public async Task<ActionResult<TokenUsageReport>> Get([FromQuery] string range, [FromQuery] string? machineId, [FromQuery] string? timeZone, CancellationToken cancellationToken)
 	{
-		var period = range switch
+		TokenUsageRange? period = range switch
 		{
 			"24h" => TokenUsageRange.Last24Hours,
 			"7d" => TokenUsageRange.Last7Days,
 			"30d" => TokenUsageRange.Last30Days,
 			"90d" => TokenUsageRange.Last90Days,
 			"all" => TokenUsageRange.All,
-			_ => throw new RequestValidationException(new Dictionary<string, string[]> { ["range"] = ["Possible values: 24h, 7d, 30d, 90d, all."] })
+			_ => null
 		};
-		return tokenUsage.Get(period, machineId, timeZone, cancellationToken);
+		if (period is not { } value) return new RequestInvalid("range", "Possible values: 24h, 7d, 30d, 90d, all.").ToActionResult();
+
+		return (await tokenUsage.Get(value, machineId, timeZone, cancellationToken)).ToActionResult();
 	}
 
 	/// <summary>
@@ -39,8 +42,8 @@ public sealed class TokenUsageController(ITokenUsageService tokenUsage) : Contro
 	[HttpPost(Name = "UploadTokenUsage")]
 	[ProducesResponseType<TokenUsageUploadResult>(StatusCodes.Status200OK)]
 	[ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
-	public Task<TokenUsageUploadResult> Upload(TokenUsageUpload upload, CancellationToken cancellationToken)
+	public async Task<ActionResult<TokenUsageUploadResult>> Upload(TokenUsageUpload upload, CancellationToken cancellationToken)
 	{
-		return tokenUsage.Upload(upload, cancellationToken);
+		return (await tokenUsage.Upload(upload, cancellationToken)).ToActionResult();
 	}
 }

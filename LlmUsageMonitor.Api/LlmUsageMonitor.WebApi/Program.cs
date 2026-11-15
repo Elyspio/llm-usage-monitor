@@ -12,7 +12,6 @@ using LlmUsageMonitor.Adapters.MongoDB;
 using LlmUsageMonitor.Adapters.Ntfy;
 using LlmUsageMonitor.Authorization;
 using LlmUsageMonitor.Core;
-using LlmUsageMonitor.Filters;
 using LlmUsageMonitor.Hosting;
 using LlmUsageMonitor.OpenApi;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -40,7 +39,6 @@ var enumConverter = new JsonStringEnumConverter(JsonNamingPolicy.CamelCase);
 builder.Services.AddControllers(options =>
 	{
 		options.Filters.Add(new ProducesAttribute("application/json"));
-		options.Filters.Add<HttpExceptionFilter>();
 	})
 	.AddJsonOptions(options =>
 	{
@@ -73,7 +71,7 @@ builder.Services.AddAuthorizationBuilder()
 var app = builder.Build();
 
 app.UseForwardedHeaders();
-// Unhandled errors become a 500 ProblemDetails; the application exceptions are mapped before, by HttpExceptionFilter.
+// Unhandled errors become a 500 ProblemDetails; the business errors are Result values mapped by the controllers (ResultActions).
 app.UseExceptionHandler();
 app.UseContentSecurityPolicy();
 

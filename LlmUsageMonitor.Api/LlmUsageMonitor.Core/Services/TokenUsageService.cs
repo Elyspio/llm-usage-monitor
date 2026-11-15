@@ -1,4 +1,5 @@
 using LlmUsageMonitor.Abstractions.Data;
+using Elyspio.Utils.Results;
 using LlmUsageMonitor.Abstractions.Exceptions;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
 using LlmUsageMonitor.Abstractions.Interfaces.Repositories;
@@ -14,10 +15,10 @@ public sealed class TokenUsageService(
 	IModelPriceRepository prices,
 	TimeProvider time) : ITokenUsageService
 {
-	public async Task<TokenUsageUploadResult> Upload(TokenUsageUpload upload, CancellationToken cancellationToken)
+	public async Task<Result<TokenUsageUploadResult>> Upload(TokenUsageUpload upload, CancellationToken cancellationToken)
 	{
 		var now = time.GetUtcNow();
-		Validate(upload, now);
+		if (Validate(upload, now) is { } invalid) return invalid;
 
 		var models = upload.Buckets.SelectMany(bucket => TokenPricing.Candidates(bucket.Model)).ToHashSet(StringComparer.Ordinal);
 		var known = (await prices.Find(models, cancellationToken)).ToDictionary(price => price.Model, StringComparer.Ordinal);
@@ -38,12 +39,12 @@ public sealed class TokenUsageService(
 
 		await machines.Save(new(upload.MachineId, upload.MachineName.Trim(), now), cancellationToken);
 
-		return new(buckets.Count, buckets.Count(bucket => bucket.Cost is null));
+		return new TokenUsageUploadResult(buckets.Count, buckets.Count(bucket => bucket.Cost is null));
 	}
 
-	public async Task<TokenUsageReport> Get(TokenUsageRange range, string? machineId, string? timeZone, CancellationToken cancellationToken)
+	public async Task<Result<TokenUsageReport>> Get(TokenUsageRange range, string? machineId, string? timeZone, CancellationToken cancellationToken)
 	{
-		var zone = FindTimeZone(timeZone);
+		if (FindTimeZone(timeZone) is not { } zone) return new RequestInvalid("timeZone", "IANA time zone expected, for example Europe/Paris.");
 		var to = time.GetUtcNow();
 		var (from, step) = Period(range, to, zone);
 
@@ -73,7 +74,7 @@ public sealed class TokenUsageService(
 
 		var known = (await machines.GetAll(cancellationToken)).OrderBy(machine => machine.Name, StringComparer.OrdinalIgnoreCase).ToList();
 
-		return new(from, to, step, zone.Id, rows, known);
+		return new TokenUsageReport(from, to, step, zone.Id, rows, known);
 	}
 
 	/// <summary>
@@ -122,7 +123,8 @@ public sealed class TokenUsageService(
 		return tokens.Input + tokens.CacheRead + tokens.CacheWrite + tokens.Output;
 	}
 
-	private static TimeZoneInfo FindTimeZone(string? timeZone)
+	/// <summary>The zone of the IANA id, UTC when omitted, null when unknown.</summary>
+	private static TimeZoneInfo? FindTimeZone(string? timeZone)
 	{
 		if (string.IsNullOrEmpty(timeZone))
 		{
@@ -135,11 +137,11 @@ public sealed class TokenUsageService(
 		}
 		catch (Exception exception) when (exception is TimeZoneNotFoundException or InvalidTimeZoneException)
 		{
-			throw new RequestValidationException(new Dictionary<string, string[]> { ["timeZone"] = ["IANA time zone expected, for example Europe/Paris."] });
+			return null;
 		}
 	}
 
-	private static void Validate(TokenUsageUpload upload, DateTimeOffset now)
+	private static RequestInvalid? Validate(TokenUsageUpload upload, DateTimeOffset now)
 	{
 		var errors = new Dictionary<string, string[]>();
 
@@ -156,7 +158,7 @@ public sealed class TokenUsageService(
 		if (upload.Buckets.Count > TokenUsageUpload.MaxBuckets)
 		{
 			errors["buckets"] = [$"{TokenUsageUpload.MaxBuckets} buckets at most per upload."];
-			throw new RequestValidationException(errors);
+			return new RequestInvalid(errors);
 		}
 
 		var seen = new HashSet<(Provider, string, DateTimeOffset)>();
@@ -186,10 +188,7 @@ public sealed class TokenUsageService(
 			}
 		}
 
-		if (errors.Count > 0)
-		{
-			throw new RequestValidationException(errors);
-		}
+		return errors.Count > 0 ? new RequestInvalid(errors) : null;
 	}
 }
 

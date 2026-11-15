@@ -15,9 +15,9 @@ public sealed class SettingsServiceTests
 	{
 		var harness = new TestHarness();
 
-		var exception = await Should.ThrowAsync<RequestValidationException>(() => harness.Settings.UpdatePolling(new(0, 61), Token));
+		var exception = (await harness.Settings.UpdatePolling(new(0, 61), Token)).ShouldFail().ShouldBeOfType<RequestInvalid>();
 
-		exception.Errors.Keys.ShouldBe(["claudeIntervalMinutes", "codexIntervalMinutes"], true);
+		exception.Fields!.Keys.ShouldBe(["claudeIntervalMinutes", "codexIntervalMinutes"], true);
 	}
 
 	[Fact]
@@ -25,10 +25,10 @@ public sealed class SettingsServiceTests
 	{
 		var harness = new TestHarness();
 
-		var exception = await Should.ThrowAsync<RequestValidationException>(() => harness.Settings.UpdatePolling(new(45, 7), Token));
+		var exception = (await harness.Settings.UpdatePolling(new(45, 7), Token)).ShouldFail().ShouldBeOfType<RequestInvalid>();
 
-		exception.Errors.Keys.ShouldBe(["claudeIntervalMinutes", "codexIntervalMinutes"], true);
-		exception.Errors["claudeIntervalMinutes"].ShouldBe([SettingsService.IntervalDivisorMessage]);
+		exception.Fields!.Keys.ShouldBe(["claudeIntervalMinutes", "codexIntervalMinutes"], true);
+		exception.Fields!["claudeIntervalMinutes"].ShouldBe([SettingsService.IntervalDivisorMessage]);
 	}
 
 	[Theory]
@@ -47,7 +47,7 @@ public sealed class SettingsServiceTests
 	{
 		var harness = new TestHarness();
 
-		await harness.Settings.UpdatePolling(new(5, 1), Token);
+		(await harness.Settings.UpdatePolling(new(5, 1), Token)).ShouldSucceed();
 
 		harness.Scheduler.PollIntervals[Provider.Claude].ShouldBe(5);
 		harness.Scheduler.PollIntervals[Provider.Codex].ShouldBe(1);
@@ -60,7 +60,7 @@ public sealed class SettingsServiceTests
 		var harness = new TestHarness();
 		await harness.States.Save(new(Provider.Codex) { PendingResetCheck = new("job-42", TestHarness.Start.AddHours(1)) }, Token);
 
-		await harness.Settings.UpdateTriggers(new(new(true, "haiku", ReasoningEffort.None), new(false, " gpt-5.6-luna ", ReasoningEffort.None)), Token);
+		(await harness.Settings.UpdateTriggers(new(new(true, "haiku", ReasoningEffort.None), new(false, " gpt-5.6-luna ", ReasoningEffort.None)), Token)).ShouldSucceed();
 
 		harness.Scheduler.Deleted.ShouldBe(["job-42"]);
 		harness.States.Stored[Provider.Codex].PendingResetCheck.ShouldBeNull();
@@ -72,10 +72,9 @@ public sealed class SettingsServiceTests
 	{
 		var harness = new TestHarness();
 
-		var exception = await Should.ThrowAsync<RequestValidationException>(() =>
-			harness.Settings.UpdateTriggers(new(new(true, " ", ReasoningEffort.None), new(true, "luna", ReasoningEffort.None)), Token));
+		var exception = (await harness.Settings.UpdateTriggers(new(new(true, " ", ReasoningEffort.None), new(true, "luna", ReasoningEffort.None)), Token)).ShouldFail().ShouldBeOfType<RequestInvalid>();
 
-		exception.Errors.Keys.ShouldBe(["claude.model"]);
+		exception.Fields!.Keys.ShouldBe(["claude.model"]);
 	}
 
 	[Fact]
@@ -84,11 +83,11 @@ public sealed class SettingsServiceTests
 		var harness = new TestHarness();
 		var events = NotificationEventsByProvider.Default;
 
-		var set = await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "secret", events, 3, 7), Token);
+		var set = (await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "secret", events, 3, 7), Token)).ShouldSucceed();
 		harness.SettingsRepository.Stored!.Notifications.ProtectedToken.ShouldBe("protected:secret");
-		var kept = await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", null, events, 3, 7), Token);
+		var kept = (await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", null, events, 3, 7), Token)).ShouldSucceed();
 		harness.SettingsRepository.Stored!.Notifications.ProtectedToken.ShouldBe("protected:secret");
-		var removed = await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "", events, 3, 7), Token);
+		var removed = (await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "", events, 3, 7), Token)).ShouldSucceed();
 
 		(set.TokenDefined, kept.TokenDefined, removed.TokenDefined).ShouldBe((true, true, false));
 		harness.SettingsRepository.Stored!.Notifications.ProtectedToken.ShouldBeNull();
@@ -99,12 +98,11 @@ public sealed class SettingsServiceTests
 	{
 		var harness = new TestHarness();
 		var events = NotificationEventsByProvider.Default;
-		await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "secret", events, 3, 7), Token);
+		(await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "secret", events, 3, 7), Token)).ShouldSucceed();
 
-		var exception = await Should.ThrowAsync<RequestValidationException>(() =>
-			harness.Settings.UpdateNotifications(new("https://ntfy.example.org", "topic_1", null, events, 3, 7), Token));
+		var exception = (await harness.Settings.UpdateNotifications(new("https://ntfy.example.org", "topic_1", null, events, 3, 7), Token)).ShouldFail().ShouldBeOfType<RequestInvalid>();
 
-		exception.Errors.Keys.ShouldBe(["token"]);
+		exception.Fields!.Keys.ShouldBe(["token"]);
 		harness.SettingsRepository.Stored!.Notifications.Url.ShouldBe("https://ntfy.sh");
 		harness.SettingsRepository.Stored!.Notifications.ProtectedToken.ShouldBe("protected:secret");
 	}
@@ -114,11 +112,11 @@ public sealed class SettingsServiceTests
 	{
 		var harness = new TestHarness();
 		var events = NotificationEventsByProvider.Default;
-		await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "secret", events, 3, 7), Token);
+		(await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "secret", events, 3, 7), Token)).ShouldSucceed();
 
-		var reentered = await harness.Settings.UpdateNotifications(new("https://ntfy.example.org", "topic_1", "other", events, 3, 7), Token);
+		var reentered = (await harness.Settings.UpdateNotifications(new("https://ntfy.example.org", "topic_1", "other", events, 3, 7), Token)).ShouldSucceed();
 		harness.SettingsRepository.Stored!.Notifications.ProtectedToken.ShouldBe("protected:other");
-		var removed = await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "", events, 3, 7), Token);
+		var removed = (await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "", events, 3, 7), Token)).ShouldSucceed();
 
 		(reentered.TokenDefined, removed.TokenDefined).ShouldBe((true, false));
 		harness.SettingsRepository.Stored!.Notifications.Url.ShouldBe("https://ntfy.sh");
@@ -129,9 +127,9 @@ public sealed class SettingsServiceTests
 	{
 		var harness = new TestHarness();
 		var events = NotificationEventsByProvider.Default;
-		await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "secret", events, 3, 7), Token);
+		(await harness.Settings.UpdateNotifications(new("https://ntfy.sh", "topic_1", "secret", events, 3, 7), Token)).ShouldSucceed();
 
-		var kept = await harness.Settings.UpdateNotifications(new(" https://NTFY.sh/ ", "topic_1", null, events, 3, 7), Token);
+		var kept = (await harness.Settings.UpdateNotifications(new(" https://NTFY.sh/ ", "topic_1", null, events, 3, 7), Token)).ShouldSucceed();
 
 		kept.TokenDefined.ShouldBeTrue();
 		harness.SettingsRepository.Stored!.Notifications.ProtectedToken.ShouldBe("protected:secret");
@@ -146,11 +144,11 @@ public sealed class SettingsServiceTests
 	{
 		var harness = new TestHarness();
 		var events = NotificationEventsByProvider.Default;
-		await harness.Settings.UpdateNotifications(new(saved, "topic_1", "secret", events, 3, 7), Token);
+		(await harness.Settings.UpdateNotifications(new(saved, "topic_1", "secret", events, 3, 7), Token)).ShouldSucceed();
 
-		var exception = await Should.ThrowAsync<RequestValidationException>(() => harness.Settings.UpdateNotifications(new(updated, "topic_1", null, events, 3, 7), Token));
+		var exception = (await harness.Settings.UpdateNotifications(new(updated, "topic_1", null, events, 3, 7), Token)).ShouldFail().ShouldBeOfType<RequestInvalid>();
 
-		exception.Errors.Keys.ShouldBe(["token"]);
+		exception.Fields!.Keys.ShouldBe(["token"]);
 	}
 
 	[Fact]
@@ -190,10 +188,9 @@ public sealed class SettingsServiceTests
 	{
 		var harness = new TestHarness();
 
-		var exception = await Should.ThrowAsync<RequestValidationException>(() =>
-			harness.Settings.UpdateNotifications(new("ftp://ntfy", "bad topic!", null, NotificationEventsByProvider.Default, 21, 0), Token));
+		var exception = (await harness.Settings.UpdateNotifications(new("ftp://ntfy", "bad topic!", null, NotificationEventsByProvider.Default, 21, 0), Token)).ShouldFail().ShouldBeOfType<RequestInvalid>();
 
-		exception.Errors.Keys.ShouldBe(["url", "topic", "readFailureThreshold", "credentialExpiryAlertDays"], true);
+		exception.Fields!.Keys.ShouldBe(["url", "topic", "readFailureThreshold", "credentialExpiryAlertDays"], true);
 	}
 
 	[Fact]
@@ -236,11 +233,11 @@ public sealed class TriggerServiceTests
 	{
 		var harness = new TestHarness();
 
-		var run = await harness.Triggers.RequestManual(Provider.Codex, Token);
+		var run = (await harness.Triggers.RequestManual(Provider.Codex, Token)).ShouldSucceed();
 		harness.Scheduler.EnqueuedTriggers.ShouldBe([run.Id]);
 		await harness.Triggers.ExecuteManual(run.Id, Token);
 
-		var completed = await harness.Triggers.Get(run.Id, Token);
+		var completed = (await harness.Triggers.Get(run.Id, Token)).ShouldSucceed();
 		completed.Manual.ShouldBeTrue();
 		completed.Status.ShouldBe(TriggerStatus.Succeeded);
 		harness.CodexRunner.Models.ShouldBe(["gpt-5.6-luna"]);
@@ -254,10 +251,10 @@ public sealed class TriggerServiceTests
 		var harness = new TestHarness();
 		harness.CodexRunner.Failure = new ProviderException(ProviderErrorCode.AuthExpired, "no");
 
-		var run = await harness.Triggers.RequestManual(Provider.Codex, Token);
+		var run = (await harness.Triggers.RequestManual(Provider.Codex, Token)).ShouldSucceed();
 		await harness.Triggers.ExecuteManual(run.Id, Token);
 
-		(await harness.Triggers.Get(run.Id, Token)).Status.ShouldBe(TriggerStatus.Failed);
+		(await harness.Triggers.Get(run.Id, Token)).ShouldSucceed().Status.ShouldBe(TriggerStatus.Failed);
 		harness.Scheduler.EnqueuedPolls.ShouldBeEmpty();
 	}
 
@@ -265,9 +262,9 @@ public sealed class TriggerServiceTests
 	public async Task The_prompt_runs_at_the_effort_of_the_settings_and_records_it()
 	{
 		var harness = new TestHarness();
-		await harness.Settings.UpdateTriggers(new(new(true, "haiku", ReasoningEffort.None), new(true, "gpt-5.6-luna", ReasoningEffort.Ultra)), Token);
+		(await harness.Settings.UpdateTriggers(new(new(true, "haiku", ReasoningEffort.None), new(true, "gpt-5.6-luna", ReasoningEffort.Ultra)), Token)).ShouldSucceed();
 
-		var run = await harness.Triggers.RequestManual(Provider.Codex, Token);
+		var run = (await harness.Triggers.RequestManual(Provider.Codex, Token)).ShouldSucceed();
 		await harness.Triggers.ExecuteManual(run.Id, Token);
 
 		run.Effort.ShouldBe(ReasoningEffort.Ultra);
@@ -279,28 +276,27 @@ public sealed class TriggerServiceTests
 	{
 		var harness = new TestHarness();
 
-		var exception = await Should.ThrowAsync<RequestValidationException>(() =>
-			harness.Settings.UpdateTriggers(new(new(true, "haiku", ReasoningEffort.Ultra), new(true, "luna", ReasoningEffort.Ultra)), Token));
+		var exception = (await harness.Settings.UpdateTriggers(new(new(true, "haiku", ReasoningEffort.Ultra), new(true, "luna", ReasoningEffort.Ultra)), Token)).ShouldFail().ShouldBeOfType<RequestInvalid>();
 
-		exception.Errors.Keys.ShouldBe(["claude.effort"]);
+		exception.Fields!.Keys.ShouldBe(["claude.effort"]);
 	}
 
 	[Fact]
 	public async Task A_second_manual_trigger_while_one_runs_is_refused_as_busy()
 	{
 		var harness = new TestHarness();
-		await harness.Triggers.RequestManual(Provider.Claude, Token);
+		(await harness.Triggers.RequestManual(Provider.Claude, Token)).ShouldSucceed();
 
-		var exception = await Should.ThrowAsync<ProviderException>(() => harness.Triggers.RequestManual(Provider.Claude, Token));
+		var exception = (await harness.Triggers.RequestManual(Provider.Claude, Token)).ShouldFail().ShouldBeOfType<ProviderError>();
 
-		exception.Code.ShouldBe(ProviderErrorCode.CliBusy);
+		exception.ProviderCode.ShouldBe(ProviderErrorCode.CliBusy);
 	}
 
 	[Fact]
 	public async Task The_dashboard_shows_every_provider_with_its_settings_and_recent_runs()
 	{
 		var harness = new TestHarness();
-		await harness.Triggers.RequestManual(Provider.Codex, Token);
+		(await harness.Triggers.RequestManual(Provider.Codex, Token)).ShouldSucceed();
 		var dashboard = new DashboardService(harness.States, harness.Runs, harness.Settings, harness.Time, harness.CreditRuns);
 
 		var snapshot = await dashboard.GetDashboard(Token);

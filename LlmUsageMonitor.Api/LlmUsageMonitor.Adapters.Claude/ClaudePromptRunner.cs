@@ -1,3 +1,4 @@
+using Elyspio.Utils.Results;
 using System.Text.Json;
 using LlmUsageMonitor.Abstractions.Data;
 using LlmUsageMonitor.Abstractions.Exceptions;
@@ -18,7 +19,14 @@ internal sealed class ClaudePromptRunner(IOptions<ClaudeOptions> options, ILogge
 
 	public Provider Provider => Provider.Claude;
 
-	public async Task Run(string model, ReasoningEffort effort, CancellationToken cancellationToken)
+	public Task<Result<Unit, ProviderError>> Run(string model, ReasoningEffort effort, CancellationToken cancellationToken) =>
+		ProviderResult.Capture(async () =>
+		{
+			await RunOrThrow(model, effort, cancellationToken);
+			return Unit.Value;
+		});
+
+	private async Task RunOrThrow(string model, ReasoningEffort effort, CancellationToken cancellationToken)
 	{
 		var settings = options.Value;
 		string[] arguments =

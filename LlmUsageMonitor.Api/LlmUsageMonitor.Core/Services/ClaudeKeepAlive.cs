@@ -1,3 +1,5 @@
+using Elyspio.Utils.Telemetry;
+using Elyspio.Utils.Results;
 using LlmUsageMonitor.Abstractions.Data;
 using LlmUsageMonitor.Abstractions.Exceptions;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
@@ -24,33 +26,34 @@ public sealed class ClaudeKeepAlive(
 	public static readonly TimeSpan RefreshWindow = TimeSpan.FromMinutes(5);
 	public static readonly TimeSpan ScheduleLead = TimeSpan.FromMinutes(4);
 
-	public async Task<ProviderState> EnsureFresh(ProviderState state, CancellationToken cancellationToken)
+	public async Task<Result<ProviderState, ProviderError>> EnsureFresh(ProviderState state, CancellationToken cancellationToken)
 	{
-		return ScheduleNext(state, await Refresh(cancellationToken));
+		return (await Refresh(cancellationToken)).Map(token => ScheduleNext(state, token));
 	}
 
-	/// <summary>Refreshes the token if needed and returns its up-to-date expiry. Throws a <c>ProviderException</c> coded <c>AuthExpired</c> when it cannot.</summary>
-	private async Task<ClaudeTokenInfo> Refresh(CancellationToken cancellationToken)
+	/// <summary>Refreshes the token if needed and returns its up-to-date expiry; <c>AuthExpired</c> when it cannot.</summary>
+	private async Task<Result<ClaudeTokenInfo, ProviderError>> Refresh(CancellationToken cancellationToken)
 	{
-		var token = await session.ReadToken(cancellationToken);
-		if (token.ExpiresAt is not { } expiresAt || expiresAt - time.GetUtcNow() >= RefreshWindow)
-		{
-			return token;
-		}
+		using var trace = logger.Trace();
+
+		var read = await session.ReadToken(cancellationToken);
+		if (!read.TryGet(out var token, out var error)) return trace.Fail<ProviderError>(error);
+		if (token.ExpiresAt is not { } expiresAt || expiresAt - time.GetUtcNow() >= RefreshWindow) return token;
 
 		// One retry: the refresh may lose a race with another CLI process that holds the refresh lock.
 		for (var attempt = 0; attempt < 2 && token.ExpiresAt <= expiresAt; attempt++)
 		{
-			logger.LogInformation("Claude token expires at {ExpiresAt}: refreshing through the CLI", expiresAt);
-			await session.RefreshThroughCli(cancellationToken);
-			token = await session.ReadToken(cancellationToken);
+			trace.LogInformation("Claude token expires at {ExpiresAt}: refreshing through the CLI", expiresAt);
+			if (!(await session.RefreshThroughCli(cancellationToken)).TryGet(out _, out error)) return trace.Fail<ProviderError>(error);
+			if (!(await session.ReadToken(cancellationToken)).TryGet(out token, out error)) return trace.Fail<ProviderError>(error);
 		}
 
 		if (token.ExpiresAt is not { } refreshed || refreshed - time.GetUtcNow() < RefreshWindow)
 		{
-			throw new ProviderException(ProviderErrorCode.AuthExpired, "The Claude CLI could not refresh its login. Run `claude auth login` on the service host.");
+			return trace.Fail<ProviderError>(new ProviderError(ProviderErrorCode.AuthExpired, "The Claude CLI could not refresh its login. Run `claude auth login` on the service host."));
 		}
 
+		trace.Exit($"expires at {token.ExpiresAt}");
 		return token;
 	}
 
@@ -66,15 +69,10 @@ public sealed class ClaudeKeepAlive(
 
 		var state = await states.Get(Provider.Claude, cancellationToken);
 		var settings = await settingsService.Get(cancellationToken);
-		try
-		{
-			state = await EnsureFresh(state, cancellationToken);
-			state = await health.CheckCredentialExpiry(state, time.GetUtcNow(), settings.Notifications.CredentialExpiryAlertDays, cancellationToken);
-		}
-		catch (ProviderException exception)
-		{
-			state = await health.RecordFailure(state, exception, time.GetUtcNow(), settings.Notifications.ReadFailureThreshold, cancellationToken);
-		}
+		var fresh = await EnsureFresh(state, cancellationToken);
+		state = fresh.TryGet(out var refreshed, out var error)
+			? await health.CheckCredentialExpiry(refreshed, time.GetUtcNow(), settings.Notifications.CredentialExpiryAlertDays, cancellationToken)
+			: await health.RecordFailure(state, error, time.GetUtcNow(), settings.Notifications.ReadFailureThreshold, cancellationToken);
 
 		await states.Save(state, cancellationToken);
 	}

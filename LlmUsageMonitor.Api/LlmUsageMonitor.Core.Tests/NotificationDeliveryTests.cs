@@ -40,9 +40,9 @@ public sealed class NotificationDeliveryTests
 		var harness = new TestHarness();
 		harness.Sender.Failure = HttpTimeout();
 
-		var exception = await Should.ThrowAsync<ProviderException>(() => harness.Notifications.SendTest(Token));
+		var exception = (await harness.Notifications.SendTest(Token)).ShouldFail().ShouldBeOfType<ProviderError>();
 
-		exception.Code.ShouldBe(ProviderErrorCode.NotificationFailed);
+		exception.ProviderCode.ShouldBe(ProviderErrorCode.NotificationFailed);
 		harness.SettingsRepository.Stored!.Notifications.LastSendFailure.ShouldNotBeNull();
 	}
 

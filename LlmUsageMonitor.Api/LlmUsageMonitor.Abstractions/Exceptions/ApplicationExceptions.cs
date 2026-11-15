@@ -1,11 +1,40 @@
+using Elyspio.Utils.Results;
+
 namespace LlmUsageMonitor.Abstractions.Exceptions;
 
 /// <summary>
-///     A failure reported by a provider adapter (reading, prompt or CLI), with a stable code shown to the user.
+///     A failure reported by a provider adapter (reading, prompt, reset or CLI), with a stable code shown to the user and
+///     stored with the runs. 409 when the provider is busy, 502 otherwise; <see cref="Error.Code" /> is the stored form
+///     (<c>AUTH_EXPIRED</c>), also the <c>code</c> of the problem details.
+/// </summary>
+public sealed record ProviderError(ProviderErrorCode ProviderCode, string Message)
+	: Failure(ProviderCode == ProviderErrorCode.CliBusy ? 409 : 502, ProviderCode.ToStoredCode(), Message);
+
+/// <summary>
+///     Unwinds a <see cref="ProviderError" /> out of the parsers and CLI helpers of an adapter. It never leaves the
+///     adapter: every entry point returns it as a value through <see cref="ProviderResult.Capture{T}" />.
 /// </summary>
 public sealed class ProviderException(ProviderErrorCode code, string message, Exception? innerException = null) : Exception(message, innerException)
 {
 	public ProviderErrorCode Code { get; } = code;
+
+	public ProviderError Error => new(Code, Message);
+}
+
+public static class ProviderResult
+{
+	/// <summary>Runs an adapter call and returns its <see cref="ProviderException" /> as a failure. Other exceptions (bugs, cancellation) propagate.</summary>
+	public static async Task<Result<T, ProviderError>> Capture<T>(Func<Task<T>> call)
+	{
+		try
+		{
+			return await call();
+		}
+		catch (ProviderException exception)
+		{
+			return exception.Error;
+		}
+	}
 }
 
 /// <summary>
@@ -59,12 +88,17 @@ public static class ProviderErrorCodeStorage
 	}
 }
 
-/// <summary>
-///     Invalid input, reported as a 400 with one message per field.
-/// </summary>
-public sealed class RequestValidationException(IDictionary<string, string[]> errors) : Exception("The request is invalid.")
+/// <summary>Invalid input, reported as a 400 with one message per field.</summary>
+public sealed record RequestInvalid : Invalid
 {
-	public IDictionary<string, string[]> Errors { get; } = errors;
+	public RequestInvalid(IReadOnlyDictionary<string, string[]> errors) : base("request.invalid", "The request is invalid.")
+	{
+		Fields = errors;
+	}
+
+	public RequestInvalid(string field, string message) : this(new Dictionary<string, string[]> { [field] = [message] })
+	{
+	}
 }
 
-public sealed class ResourceNotFoundException(string message) : Exception(message);
+public sealed record ResourceNotFound(string Message) : NotFound("resource.not-found", Message);

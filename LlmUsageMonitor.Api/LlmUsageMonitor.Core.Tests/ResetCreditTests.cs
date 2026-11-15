@@ -61,8 +61,8 @@ public sealed class ResetCreditTests
 		var h = Harness(false);
 		h.CodexReader.Credits = new(1, [Credit("undated") with { ExpiresAt = null }]);
 		var request = new ConsumeResetCreditRequest("undated", Guid.NewGuid().ToString());
-		var first = await h.Credits.ConsumeManual(Provider.Codex, request, Token);
-		(await h.Credits.ConsumeManual(Provider.Codex, request, Token)).ShouldBe(first);
+		var first = (await h.Credits.ConsumeManual(Provider.Codex, request, Token)).ShouldSucceed();
+		(await h.Credits.ConsumeManual(Provider.Codex, request, Token)).ShouldSucceed().ShouldBe(first);
 		h.CodexConsumer.Calls.Count.ShouldBe(1);
 		h.CodexRunner.Models.ShouldBeEmpty();
 	}
@@ -113,7 +113,7 @@ public sealed class ResetCreditTests
 	{
 		var h = new TestHarness();
 		(await h.Settings.Get(Token)).ResetCredits.ShouldBe(ResetCreditSettings.Default);
-		await Should.ThrowAsync<RequestValidationException>(() => h.Settings.UpdateResetCredits(new(new(true, 0), new(false, 60)), Token));
+		(await h.Settings.UpdateResetCredits(new(new(true, 0), new(false, 60)), Token)).ShouldFail().ShouldBeOfType<RequestInvalid>();
 	}
 
 	[Fact]
@@ -150,17 +150,17 @@ public sealed class ResetCreditTests
 		h.CodexConsumer.Respond = (_, _) => new(false, "unavailable", true);
 		await h.Monitor.Poll(Provider.Codex, Token);
 		var pending = h.CreditRuns.All.ShouldHaveSingleItem();
-		await h.Settings.UpdateResetCredits(ResetCreditSettings.Default, Token);
+		(await h.Settings.UpdateResetCredits(ResetCreditSettings.Default, Token)).ShouldSucceed();
 		h.Time.Advance(TimeSpan.FromMinutes(2));
 		await h.Monitor.Poll(Provider.Codex, Token);
 		h.CodexConsumer.Calls.Count.ShouldBe(1);
 		h.CodexConsumer.Respond = (_, _) => new(true, "alreadyRedeemed");
-		await Should.ThrowAsync<ProviderException>(() => h.Credits.ConsumeManual(Provider.Codex, new("retry", Guid.NewGuid().ToString()), Token));
+		(await h.Credits.ConsumeManual(Provider.Codex, new("retry", Guid.NewGuid().ToString()), Token)).ShouldFail().ShouldBeOfType<ProviderError>();
 		var request = new ConsumeResetCreditRequest("retry", pending.Id);
-		var result = await h.Credits.ConsumeManual(Provider.Codex, request, Token);
+		var result = (await h.Credits.ConsumeManual(Provider.Codex, request, Token)).ShouldSucceed();
 		result.Status.ShouldBe(ResetCreditRunStatus.Succeeded);
 		result.Manual.ShouldBeTrue();
-		(await h.Credits.ConsumeManual(Provider.Codex, request, Token)).ShouldBe(result);
+		(await h.Credits.ConsumeManual(Provider.Codex, request, Token)).ShouldSucceed().ShouldBe(result);
 		h.CodexConsumer.Calls.Select(call => call.Key).ShouldBe([pending.Id, pending.Id]);
 	}
 
@@ -171,7 +171,7 @@ public sealed class ResetCreditTests
 		h.CodexReader.Credits = new(1, [Credit("retry", 3)]);
 		h.CodexConsumer.Respond = (_, _) => new(false, "unavailable", true);
 		await h.Monitor.Poll(Provider.Codex, Token);
-		await h.Settings.UpdateResetCredits(ResetCreditSettings.Default, Token);
+		(await h.Settings.UpdateResetCredits(ResetCreditSettings.Default, Token)).ShouldSucceed();
 		h.Time.Advance(TimeSpan.FromMinutes(4));
 		await h.Monitor.Poll(Provider.Codex, Token);
 		h.CreditRuns.All.ShouldHaveSingleItem().Status.ShouldBe(ResetCreditRunStatus.Failed);

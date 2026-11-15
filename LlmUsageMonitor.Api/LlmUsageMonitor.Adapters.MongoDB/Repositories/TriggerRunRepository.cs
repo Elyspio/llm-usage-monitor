@@ -1,5 +1,4 @@
 using LlmUsageMonitor.Abstractions.Data;
-using LlmUsageMonitor.Abstractions.Exceptions;
 using LlmUsageMonitor.Abstractions.Interfaces.Repositories;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -72,7 +71,7 @@ internal sealed class TriggerRunRepository(IMongoDatabase database) : ITriggerRu
 			update,
 			new() { ReturnDocument = ReturnDocument.After },
 			cancellationToken);
-		return document?.ToDomain() ?? throw new ResourceNotFoundException($"Trigger run {id} does not exist.");
+		return document?.ToDomain() ?? throw new InvalidOperationException($"Trigger run {id} does not exist.");
 	}
 
 	public async Task<TriggerRun?> Get(string id, CancellationToken cancellationToken)
@@ -142,6 +141,6 @@ internal sealed class TriggerRunRepository(IMongoDatabase database) : ITriggerRu
 	{
 		return ObjectId.TryParse(id, out var objectId)
 			? objectId
-			: throw new ResourceNotFoundException($"Trigger run {id} does not exist.");
+			: throw new InvalidOperationException($"Trigger run {id} is not a valid identifier.");
 	}
 }

@@ -1,3 +1,4 @@
+using Elyspio.Utils.Results;
 using LlmUsageMonitor.Abstractions.Data;
 using LlmUsageMonitor.Abstractions.Exceptions;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
@@ -10,7 +11,10 @@ namespace LlmUsageMonitor.Adapters.Codex;
 internal sealed class CodexResetCreditConsumer(IOptions<CodexOptions> options, ILogger<CodexResetCreditConsumer> logger) : IResetCreditConsumer
 {
 	public Provider Provider => Provider.Codex;
-	public async Task<ResetCreditResult> Consume(string creditId, string idempotencyKey, CancellationToken cancellationToken)
+	public Task<Result<ResetCreditResult, ProviderError>> Consume(string creditId, string idempotencyKey, CancellationToken cancellationToken) =>
+		ProviderResult.Capture(() => ConsumeOrThrow(creditId, idempotencyKey, cancellationToken));
+
+	private async Task<ResetCreditResult> ConsumeOrThrow(string creditId, string idempotencyKey, CancellationToken cancellationToken)
 	{
 		using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 		timeout.CancelAfter(TimeSpan.FromSeconds(options.Value.ReadTimeoutSeconds));

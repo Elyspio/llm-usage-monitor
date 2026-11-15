@@ -13,6 +13,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Elyspio.Utils.Results.AspNetCore" Version="1.0.0-preview.1"/>
         <PackageReference Include="Elyspio.Utils.Telemetry" Version="3.0.0-preview.1"/>
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="11.0.0"/>
         <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="11.0.0"/>

@@ -296,6 +296,15 @@ export type GetHistoryData = {
     url: '/api/history';
 };
 
+export type GetHistoryErrors = {
+    /**
+     * Bad Request
+     */
+    400: ValidationProblemDetails;
+};
+
+export type GetHistoryError = GetHistoryErrors[keyof GetHistoryErrors];
+
 export type GetHistoryResponses = {
     /**
      * OK
@@ -491,6 +500,10 @@ export type SendTestNotificationData = {
 
 export type SendTestNotificationErrors = {
     /**
+     * Bad Request
+     */
+    400: ValidationProblemDetails;
+    /**
      * Bad Gateway
      */
     502: ProblemDetails;
@@ -541,6 +554,10 @@ export type ConsumeResetCreditErrors = {
      * Conflict
      */
     409: ProblemDetails;
+    /**
+     * Bad Gateway
+     */
+    502: ProblemDetails;
 };
 
 export type ConsumeResetCreditError = ConsumeResetCreditErrors[keyof ConsumeResetCreditErrors];

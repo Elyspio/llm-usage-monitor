@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Elyspio.Utils.Results;
 using LlmUsageMonitor.Abstractions.Configurations;
 using LlmUsageMonitor.Abstractions.Data;
 using LlmUsageMonitor.Abstractions.Exceptions;
@@ -40,12 +41,12 @@ public sealed partial class SettingsService(
 		return await repository.Find(cancellationToken) ?? throw new InvalidOperationException("The settings could not be initialized.");
 	}
 
-	public async Task<PollingSettings> UpdatePolling(PollingSettings polling, CancellationToken cancellationToken)
+	public async Task<Result<PollingSettings>> UpdatePolling(PollingSettings polling, CancellationToken cancellationToken)
 	{
 		var errors = new Dictionary<string, string[]>();
 		ValidateInterval(errors, "claudeIntervalMinutes", polling.ClaudeIntervalMinutes);
 		ValidateInterval(errors, "codexIntervalMinutes", polling.CodexIntervalMinutes);
-		ThrowIfAny(errors);
+		if (errors.Count > 0) return new RequestInvalid(errors);
 
 		await Get(cancellationToken);
 		await repository.SavePolling(polling, cancellationToken);
@@ -53,14 +54,14 @@ public sealed partial class SettingsService(
 		return polling;
 	}
 
-	public async Task<TriggerSettings> UpdateTriggers(TriggerSettings triggers, CancellationToken cancellationToken)
+	public async Task<Result<TriggerSettings>> UpdateTriggers(TriggerSettings triggers, CancellationToken cancellationToken)
 	{
 		var errors = new Dictionary<string, string[]>();
 		ValidateModel(errors, "claude.model", triggers.Claude.Model);
 		ValidateModel(errors, "codex.model", triggers.Codex.Model);
 		ValidateEffort(errors, "claude.effort", triggers.Claude.Effort, Provider.Claude);
 		ValidateEffort(errors, "codex.effort", triggers.Codex.Effort, Provider.Codex);
-		ThrowIfAny(errors);
+		if (errors.Count > 0) return new RequestInvalid(errors);
 
 		var normalized = new TriggerSettings(triggers.Claude with { Model = triggers.Claude.Model.Trim() }, triggers.Codex with { Model = triggers.Codex.Model.Trim() });
 		await Get(cancellationToken);
@@ -76,20 +77,21 @@ public sealed partial class SettingsService(
 		return ToView((await Get(cancellationToken)).Notifications);
 	}
 
-	public async Task<ResetCreditSettings> UpdateResetCredits(ResetCreditSettings settings, CancellationToken cancellationToken)
+	public async Task<Result<ResetCreditSettings>> UpdateResetCredits(ResetCreditSettings settings, CancellationToken cancellationToken)
 	{
 		var errors = new Dictionary<string, string[]>();
 		foreach (var provider in Enum.GetValues<Provider>())
 			if (settings.For(provider).BeforeExpiryMinutes is < 1 or > 10080)
 				errors[$"{provider.ToString().ToLowerInvariant()}.beforeExpiryMinutes"] = ["Between 1 and 10080 minutes."];
-		ThrowIfAny(errors);
+		if (errors.Count > 0) return new RequestInvalid(errors);
+
 		await Get(cancellationToken);
 		await repository.SaveResetCredits(settings, cancellationToken);
 		foreach (var provider in Enum.GetValues<Provider>()) scheduler.EnqueuePoll(provider);
 		return settings;
 	}
 
-	public async Task<NotificationSettingsView> UpdateNotifications(NotificationSettingsUpdate update, CancellationToken cancellationToken)
+	public async Task<Result<NotificationSettingsView>> UpdateNotifications(NotificationSettingsUpdate update, CancellationToken cancellationToken)
 	{
 		var errors = new Dictionary<string, string[]>();
 		if (!Uri.TryCreate(update.Url, UriKind.Absolute, out var url) || (url.Scheme != Uri.UriSchemeHttp && url.Scheme != Uri.UriSchemeHttps))
@@ -120,7 +122,7 @@ public sealed partial class SettingsService(
 			errors["token"] = [TokenForNewServerMessage];
 		}
 
-		ThrowIfAny(errors);
+		if (errors.Count > 0) return new RequestInvalid(errors);
 
 		var protectedToken = update.Token switch
 		{
@@ -211,14 +213,6 @@ public sealed partial class SettingsService(
 		if (!effort.IsSupportedBy(provider))
 		{
 			errors[field] = [$"Effort not available for {provider}."];
-		}
-	}
-
-	private static void ThrowIfAny(Dictionary<string, string[]> errors)
-	{
-		if (errors.Count > 0)
-		{
-			throw new RequestValidationException(errors);
 		}
 	}
 

@@ -40,7 +40,7 @@ public sealed class ResetCreditAdapterTests
 		using var cli = new FakeCli(Scenario(rpc: new() { ["account/rateLimitResetCredit/consume"] = new JsonObject { ["result"] = new JsonObject { ["outcome"] = outcome } } }));
 		var consumer = new CodexResetCreditConsumer(Options.Create(new CodexOptions { Executable = Executable, WorkingDirectory = cli.Directory }), NullLogger<CodexResetCreditConsumer>.Instance);
 		var key = Guid.NewGuid().ToString();
-		(await consumer.Consume("selected-credit", key, Token)).Succeeded.ShouldBe(succeeded);
+		(await consumer.Consume("selected-credit", key, Token)).ShouldSucceed().Succeeded.ShouldBe(succeeded);
 		cli.Messages.Select(message => message.GetProperty("method").GetString()).ShouldBe(["initialize", "initialized", "account/rateLimitResetCredit/consume"]);
 		var parameters = cli.Messages.Last().GetProperty("params");
 		parameters.GetProperty("creditId").GetString().ShouldBe("selected-credit");
@@ -85,7 +85,7 @@ public sealed class ResetCreditAdapterTests
 		services.AddHttpClient(ClaudeAdapterModule.HttpClientName).ConfigurePrimaryHttpMessageHandler(() => handler);
 		await using var provider = services.BuildServiceProvider();
 		var key = Guid.NewGuid().ToString();
-		var result = await provider.GetRequiredService<IResetCreditConsumer>().Consume("grant_1", key, Token);
+		var result = (await provider.GetRequiredService<IResetCreditConsumer>().Consume("grant_1", key, Token)).ShouldSucceed();
 		result.Succeeded.ShouldBe(succeeded);
 		result.Retryable.ShouldBe(retryable);
 		var request = handler.Requests.ShouldHaveSingleItem();

@@ -15,8 +15,9 @@ public sealed class ResetCreditsController(IResetCreditService credits, ISetting
 	[ProducesResponseType<ResetCreditRun>(StatusCodes.Status200OK)]
 	[ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
 	[ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
-	public Task<ResetCreditRun> Consume(Provider provider, ConsumeResetCreditRequest request, CancellationToken cancellationToken)
-		=> credits.ConsumeManual(provider, request, cancellationToken);
+	[ProducesResponseType<ProblemDetails>(StatusCodes.Status502BadGateway)]
+	public async Task<ActionResult<ResetCreditRun>> Consume(Provider provider, ConsumeResetCreditRequest request, CancellationToken cancellationToken)
+		=> (await credits.ConsumeManual(provider, request, cancellationToken)).ToActionResult();
 
 	[HttpGet("api/settings/reset-credits", Name = "GetResetCreditSettings")]
 	public async Task<ResetCreditSettings> Get(CancellationToken cancellationToken) => (await settings.Get(cancellationToken)).ResetCredits;
@@ -24,5 +25,6 @@ public sealed class ResetCreditsController(IResetCreditService credits, ISetting
 	[HttpPut("api/settings/reset-credits", Name = "UpdateResetCreditSettings")]
 	[ProducesResponseType<ResetCreditSettings>(StatusCodes.Status200OK)]
 	[ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
-	public Task<ResetCreditSettings> Update(ResetCreditSettings update, CancellationToken cancellationToken) => settings.UpdateResetCredits(update, cancellationToken);
+	public async Task<ActionResult<ResetCreditSettings>> Update(ResetCreditSettings update, CancellationToken cancellationToken)
+		=> (await settings.UpdateResetCredits(update, cancellationToken)).ToActionResult();
 }

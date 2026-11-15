@@ -24,7 +24,7 @@ public sealed class CodexAdapterTests
 	{
 		using var cli = new FakeCli(Scenario(rpc: new() { ["account/rateLimits/read"] = new JsonObject { ["result"] = Fixture("codex-rate-limits.json") } }));
 
-		var windows = await Reader(cli).Read(Token);
+		var windows = (await Reader(cli).Read(Token)).ShouldSucceed();
 
 		windows.ShouldBe(CodexUsageParser.Parse(Fixtures.Load("codex-rate-limits.json")));
 		cli.Invocations.ShouldBe(["app-server --listen stdio://"]);
@@ -40,9 +40,9 @@ public sealed class CodexAdapterTests
 			["account/read"] = new JsonObject { ["result"] = Fixture("codex-account-signed-out.json") }
 		}));
 
-		var exception = await Should.ThrowAsync<ProviderException>(() => Reader(cli).Read(Token));
+		var exception = (await Reader(cli).Read(Token)).ShouldFail().ShouldBeOfType<ProviderError>();
 
-		exception.Code.ShouldBe(ProviderErrorCode.AuthExpired);
+		exception.ProviderCode.ShouldBe(ProviderErrorCode.AuthExpired);
 		Methods(cli).ShouldContain("account/read");
 	}
 
@@ -52,9 +52,9 @@ public sealed class CodexAdapterTests
 		using var cli = new FakeCli(Scenario(rpc: new() { ["account/rateLimits/read"] = new JsonObject { ["silent"] = true } }));
 		var watch = Stopwatch.StartNew();
 
-		var exception = await Should.ThrowAsync<ProviderException>(() => Reader(cli, readTimeoutSeconds: 1).Read(Token));
+		var exception = (await Reader(cli, readTimeoutSeconds: 1).Read(Token)).ShouldFail().ShouldBeOfType<ProviderError>();
 
-		exception.Code.ShouldBe(ProviderErrorCode.Timeout);
+		exception.ProviderCode.ShouldBe(ProviderErrorCode.Timeout);
 		watch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(10));
 	}
 
@@ -67,9 +67,9 @@ public sealed class CodexAdapterTests
 			["--version"] = Command("codex-cli 9.9.9")
 		}));
 
-		var exception = await Should.ThrowAsync<ProviderException>(() => Reader(cli).Read(Token));
+		var exception = (await Reader(cli).Read(Token)).ShouldFail().ShouldBeOfType<ProviderError>();
 
-		exception.Code.ShouldBe(ProviderErrorCode.CliUnsupportedOption);
+		exception.ProviderCode.ShouldBe(ProviderErrorCode.CliUnsupportedOption);
 		exception.Message.ShouldContain("codex-cli 9.9.9");
 	}
 
@@ -79,9 +79,9 @@ public sealed class CodexAdapterTests
 		using var cli = new FakeCli(Scenario());
 		var options = new CodexOptions { Executable = Path.Combine(cli.Directory, "missing-codex"), WorkingDirectory = cli.Directory };
 
-		var exception = await Should.ThrowAsync<ProviderException>(() => new CodexUsageReader(Options.Create(options), NullLogger<CodexUsageReader>.Instance).Read(Token));
+		var exception = (await new CodexUsageReader(Options.Create(options), NullLogger<CodexUsageReader>.Instance).Read(Token)).ShouldFail();
 
-		exception.Code.ShouldBe(ProviderErrorCode.CliUnavailable);
+		exception.ProviderCode.ShouldBe(ProviderErrorCode.CliUnavailable);
 		exception.Message.ShouldContain("Codex:Executable");
 	}
 
@@ -90,7 +90,7 @@ public sealed class CodexAdapterTests
 	{
 		using var cli = new FakeCli(Scenario(rpc: PromptRpc(new JsonObject { ["status"] = "completed" })));
 
-		await Runner(cli).Run("gpt-test", ReasoningEffort.None, Token);
+		(await Runner(cli).Run("gpt-test", ReasoningEffort.None, Token)).ShouldSucceed();
 
 		Methods(cli).ShouldBe(["initialize", "initialized", "thread/start", "turn/start"]);
 		var thread = cli.Messages.Single(message => message.GetProperty("method").GetString() == "thread/start").GetProperty("params");
@@ -110,9 +110,9 @@ public sealed class CodexAdapterTests
 		var failed = new JsonObject { ["status"] = "failed", ["error"] = new JsonObject { ["message"] = "You've hit your usage limit.", ["codexErrorInfo"] = "usageLimitExceeded" } };
 		using var cli = new FakeCli(Scenario(rpc: PromptRpc(failed)));
 
-		var exception = await Should.ThrowAsync<ProviderException>(() => Runner(cli).Run("gpt-test", ReasoningEffort.Low, Token));
+		var exception = (await Runner(cli).Run("gpt-test", ReasoningEffort.Low, Token)).ShouldFail().ShouldBeOfType<ProviderError>();
 
-		exception.Code.ShouldBe(ProviderErrorCode.UsageLimit);
+		exception.ProviderCode.ShouldBe(ProviderErrorCode.UsageLimit);
 		exception.Message.ShouldBe("You've hit your usage limit.");
 	}
 
