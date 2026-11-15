@@ -3,7 +3,7 @@
     <!-- Contracts only: no ASP.NET Core, the modules and helpers need the Microsoft.Extensions abstractions alone (provided by
          the SDK since .NET 11). The packages every module needs are referenced here and flow to them through the project reference. -->
     <ItemGroup>
-        <PackageReference Include="Elyspio.Utils.Results" Version="1.0.0-preview.2"/>
+        <PackageReference Include="Elyspio.Utils.Results" Version="1.0.0-preview.3"/>
         <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="11.0.0"/>
     </ItemGroup>
 

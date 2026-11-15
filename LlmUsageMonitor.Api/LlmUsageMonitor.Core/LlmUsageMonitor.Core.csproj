@@ -5,7 +5,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Elyspio.Utils.Telemetry" Version="3.0.0-preview.2"/>
+        <PackageReference Include="Elyspio.Utils.Telemetry" Version="3.0.0-preview.3"/>
         <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="11.0.0"/>
         <PackageReference Include="Scrutor" Version="7.0.0"/>
     </ItemGroup>
