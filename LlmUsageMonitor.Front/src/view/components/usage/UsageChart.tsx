@@ -23,7 +23,7 @@ export function describeUsageChart(points: ChartPoint[], step: TokenUsageStep, m
 export const UsageChart = ({ points, step, metric }: { points: ChartPoint[]; step: TokenUsageStep; metric: UsageMetric }) => {
 	const title = `${metric === "cost" ? "Cost" : "Tokens"} per ${step === "hour" ? "hour" : "day"}`;
 	return (
-		<Paper component="section" aria-label={title} variant="outlined" sx={{ p: 2.5, height: "100%" }}>
+		<Paper component="section" aria-label={title} variant="outlined" sx={{ p: 2, height: "100%" }}>
 			<Typography variant="h6" component="h2">
 				{title}
 			</Typography>
@@ -33,7 +33,7 @@ export const UsageChart = ({ points, step, metric }: { points: ChartPoint[]; ste
 				))}
 			</Box>
 			<LineChart
-				height={280}
+				height={260}
 				skipAnimation
 				grid={{ horizontal: true }}
 				slotProps={{ legend: { position: { vertical: "top", horizontal: "end" } } }}

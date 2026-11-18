@@ -1,9 +1,15 @@
-import type { Provider, TokenCounts, TokenUsageReport, TokenUsageRow } from "@/core/apis/generated/types.gen";
+import type { Provider, TokenCostByType, TokenCounts, TokenUsageReport, TokenUsageRow } from "@/core/apis/generated/types.gen";
 import { providers } from "@/core/dashboard";
 import { locale } from "@/core/format";
 
 export type UsageRange = "24h" | "7d" | "30d" | "90d" | "all";
 export type UsageMetric = "cost" | "tokens";
+
+/** The token types, in the order of a request: what is read, what the cache serves and stores, what is written. */
+export const tokenTypes = ["input", "cacheRead", "cacheWrite", "output"] as const satisfies readonly (keyof TokenCounts)[];
+export type TokenType = (typeof tokenTypes)[number];
+
+export const tokenTypeLabel: Record<TokenType, string> = { input: "Input", cacheRead: "Cache read", cacheWrite: "Cache write", output: "Output" };
 
 export const totalTokens = (tokens: TokenCounts) => tokens.input + tokens.cacheRead + tokens.cacheWrite + tokens.output;
 
@@ -35,6 +41,8 @@ export type UsageSummary = {
 	unpricedShare: number;
 	providers: ProviderSummary[];
 	tokens: TokenCounts;
+	/** The cost of the priced rows by token type; it adds up to the total cost. */
+	costByType: TokenCostByType;
 	chart: ChartPoint[];
 	models: ModelLine[];
 	days: DayLine[];
@@ -77,6 +85,7 @@ export function summarize(report: TokenUsageReport, metric: UsageMetric): UsageS
 	for (const start of steps(report)) byStep.set(stepKey(start), { start, amounts: emptyAmounts(), perProvider: { claude: 0, codex: 0 } });
 
 	const tokens: TokenCounts = { input: 0, cacheRead: 0, cacheWrite: 0, output: 0 };
+	const costByType: TokenCostByType = { input: 0, cacheRead: 0, cacheWrite: 0, output: 0 };
 	for (const row of report.rows) {
 		byProvider.set(row.provider, add(byProvider.get(row.provider)!, row));
 
@@ -94,6 +103,7 @@ export function summarize(report: TokenUsageReport, metric: UsageMetric): UsageS
 		tokens.cacheRead += row.tokens.cacheRead;
 		tokens.cacheWrite += row.tokens.cacheWrite;
 		tokens.output += row.tokens.output;
+		for (const type of tokenTypes) costByType[type] += row.costByType?.[type] ?? 0;
 	}
 
 	const orderedSteps = [...byStep.values()].sort((a, b) => a.start - b.start);
@@ -107,6 +117,7 @@ export function summarize(report: TokenUsageReport, metric: UsageMetric): UsageS
 		unpricedShare: total.tokens > 0 ? total.unpricedTokens / total.tokens : 0,
 		providers: providers.map((provider) => ({ ...byProvider.get(provider)!, provider, share: share(byProvider.get(provider)!) })),
 		tokens,
+		costByType,
 		chart: orderedSteps.map((step) => ({ start: step.start, ...step.perProvider })),
 		models,
 		days: orderedSteps

@@ -165,6 +165,13 @@ export type ResetCreditSettings = {
     codex: ProviderResetCreditSettings;
 };
 
+export type TokenCostByType = {
+    input: number;
+    cacheRead: number;
+    cacheWrite: number;
+    output: number;
+};
+
 export type TokenCounts = {
     input: number;
     cacheRead: number;
@@ -195,6 +202,7 @@ export type TokenUsageRow = {
     tokens: TokenCounts;
     costUsd: null | number;
     cacheSavingsUsd: null | number;
+    costByType: null | TokenCostByType;
     unpricedTokens: number;
 };
 

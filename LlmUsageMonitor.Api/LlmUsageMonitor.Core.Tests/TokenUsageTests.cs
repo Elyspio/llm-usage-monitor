@@ -155,6 +155,45 @@ public sealed class TokenUsageTests
 	}
 
 	[Fact]
+	public void The_split_by_type_follows_the_current_prices_and_adds_up_to_the_stored_cost()
+	{
+		// Opus at today's prices costs 5 + 5 + 6.25 + 2.5 = 18.75; the stored cost dates from cheaper prices.
+		var split = TokenPricing.Split(new(1_000_000, 10_000_000, 1_000_000, 100_000), 7.5, Opus);
+
+		split.Input.ShouldBe(2, 1e-9);
+		split.CacheRead.ShouldBe(2, 1e-9);
+		split.CacheWrite.ShouldBe(2.5, 1e-9);
+		split.Output.ShouldBe(1, 1e-9);
+	}
+
+	[Fact]
+	public void Without_a_current_price_the_split_follows_the_token_counts()
+	{
+		var split = TokenPricing.Split(new(1, 0, 0, 3), 8, null);
+
+		split.ShouldBe(new(2, 0, 0, 6));
+		TokenPricing.Split(TokenCounts.Zero, 0, Opus).ShouldBe(TokenCostByType.Zero);
+	}
+
+	[Fact]
+	public async Task The_report_splits_the_cost_of_each_row_by_token_type()
+	{
+		await _service.Upload(Upload(
+			Bucket("claude-opus-5", CurrentHour, new(1_000_000, 10_000_000, 1_000_000, 100_000)),
+			Bucket("claude-opus-5", CurrentHour.AddHours(-1), new(0, 0, 0, 100_000)),
+			Bucket("gpt-unknown", CurrentHour, new(10, 5, 0, 5))), Token);
+
+		var rows = (await _service.Get(TokenUsageRange.Last7Days, null, "Europe/Paris", Token)).ShouldSucceed().Rows;
+
+		var opus = rows.Single(row => row.Model == "claude-opus-5").CostByType.ShouldNotBeNull();
+		opus.Input.ShouldBe(5, 1e-9);
+		opus.CacheRead.ShouldBe(5, 1e-9);
+		opus.CacheWrite.ShouldBe(6.25, 1e-9);
+		opus.Output.ShouldBe(5, 1e-9);
+		rows.Single(row => row.Model == "gpt-unknown").CostByType.ShouldBeNull();
+	}
+
+	[Fact]
 	public async Task Unpriced_tokens_are_counted_apart_from_the_cost()
 	{
 		(await _service.Upload(Upload(Bucket("gpt-unknown", CurrentHour, new(10, 5, 0, 5))), Token)).ShouldSucceed();

@@ -27,6 +27,7 @@ const report: TokenUsageReport = {
 			tokens: { input: 1_000, cacheRead: 2_000_000, cacheWrite: 0, output: 5_000 },
 			costUsd: 141.47,
 			cacheSavingsUsd: 9,
+			costByType: { input: 5, cacheRead: 1, cacheWrite: 0, output: 135.47 },
 			unpricedTokens: 0,
 		},
 		{
@@ -36,6 +37,7 @@ const report: TokenUsageReport = {
 			tokens: { input: 0, cacheRead: 0, cacheWrite: 0, output: 0 },
 			costUsd: null,
 			cacheSavingsUsd: null,
+			costByType: null,
 			unpricedTokens: 0,
 		},
 	],
@@ -56,6 +58,15 @@ describe("UsagePage", () => {
 		const total = await screen.findByRole("region", { name: "Total" });
 		expect(within(total).getAllByText(/141\.47/).length).toBeGreaterThan(0);
 		expect(within(total).getByText("Codex")).toBeTruthy();
+
+		const byType = within(total).getByRole("region", { name: "Cost by type" });
+		expect(within(byType).getByText("Output").nextElementSibling?.textContent).toMatch(/135\.47/);
+		expect(within(byType).getByText(/Cache saved/).textContent).toMatch(/9\.00/);
+
+		fireEvent.click(screen.getByRole("button", { name: "Tokens" }));
+		const tokensByType = within(total).getByRole("region", { name: "Tokens by type" });
+		expect(within(tokensByType).getByText("Cache read").nextElementSibling?.textContent).toMatch(/^2\s?M$/i);
+		fireEvent.click(screen.getByRole("button", { name: "Cost" }));
 
 		const breakdown = screen.getByRole("region", { name: "Usage by model" });
 		expect(within(breakdown).getByText("claude-opus-5")).toBeTruthy();
