@@ -71,6 +71,10 @@ describe("UsagePage", () => {
 		const breakdown = screen.getByRole("region", { name: "Usage by model" });
 		expect(within(breakdown).getByText("claude-opus-5")).toBeTruthy();
 		expect(within(breakdown).getByText("Unpriced")).toBeTruthy();
+		const opus = within(breakdown).getByText("claude-opus-5").closest("tr")!;
+		expect(opus.textContent).toMatch(/135\.47/);
+		const synthetic = within(breakdown).getByText("<synthetic>").closest("tr")!;
+		expect(within(synthetic).getAllByText("—")).toHaveLength(5);
 
 		expect(requests[0].searchParams.get("range")).toBe("7d");
 		expect(requests[0].searchParams.get("timeZone")).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);

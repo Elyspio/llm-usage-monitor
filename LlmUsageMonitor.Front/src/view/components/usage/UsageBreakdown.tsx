@@ -1,9 +1,10 @@
 import { Box, Paper, Stack, Table, TableBody, TableCell, TableHead, TableRow, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import { useState } from "react";
 import { locale } from "@/core/format";
-import { fmtShare, fmtTokens, fmtUsd, type DayLine, type ModelLine, type UsageMetric } from "@/core/usage";
+import { fmtMetric, fmtShare, fmtTokens, fmtUsd, tokenTypeLabel, tokenTypes, type DayLine, type ModelLine, type UsageMetric } from "@/core/usage";
 import { providerColor } from "@/core/dashboard";
 import { ProviderLogo } from "@components/dashboard/ProviderLogo";
+import { TokenTypeBar, tokenTypeColor } from "@components/usage/TokenTypeBreakdown";
 
 type Breakdown = "model" | "day";
 
@@ -11,7 +12,10 @@ const dayFormat = new Intl.DateTimeFormat(locale, { weekday: "short", day: "nume
 
 const numeric = { textAlign: "right", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" } as const;
 
-/** Cost, share and tokens by model or by day; a model without price shows "Unpriced". */
+/**
+ * Cost, share and tokens by model or by day, each split by token type in the chosen metric; a model without price shows
+ * "Unpriced" and no cost split.
+ */
 export const UsageBreakdown = ({ models, days, metric }: { models: ModelLine[]; days: DayLine[]; metric: UsageMetric }) => {
 	const [breakdown, setBreakdown] = useState<Breakdown>("model");
 	const lines = breakdown === "model" ? models : days;
@@ -34,31 +38,51 @@ export const UsageBreakdown = ({ models, days, metric }: { models: ModelLine[]; 
 							<TableCell>{breakdown === "model" ? "Model" : "Day"}</TableCell>
 							<TableCell sx={numeric}>Cost</TableCell>
 							<TableCell sx={numeric}>{metric === "cost" ? "Cost share" : "Token share"}</TableCell>
+							<TableCell sx={{ width: 140 }}>{metric === "cost" ? "Cost split" : "Token split"}</TableCell>
+							{tokenTypes.map((type) => (
+								<TableCell key={type} sx={numeric}>
+									<Box
+										aria-hidden="true"
+										component="span"
+										sx={{ display: "inline-block", width: 8, height: 8, borderRadius: "2px", bgcolor: tokenTypeColor[type], mr: 0.75 }}
+									/>
+									{tokenTypeLabel[type]}
+								</TableCell>
+							))}
 							<TableCell sx={numeric}>Tokens</TableCell>
 						</TableRow>
 					</TableHead>
 					<TableBody>
-						{lines.map((line) => (
-							<TableRow key={"model" in line ? `${line.provider}:${line.model}` : line.start}>
-								<TableCell>
-									{"model" in line ? (
-										<Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
-											<ProviderLogo provider={line.provider} sx={{ fontSize: 16, color: providerColor[line.provider] }} />
-											<Typography variant="body2" sx={{ fontFamily: "IBM Plex Mono", fontSize: "0.8rem" }}>
-												{line.model}
-											</Typography>
-										</Stack>
-									) : (
-										dayFormat.format(line.start)
-									)}
-								</TableCell>
-								<TableCell sx={{ ...numeric, fontWeight: line.priced ? 700 : 400, color: line.priced ? "text.primary" : "text.secondary" }}>
-									{line.priced ? fmtUsd(line.cost) : "Unpriced"}
-								</TableCell>
-								<TableCell sx={{ ...numeric, color: "text.secondary" }}>{line.priced || metric === "tokens" ? fmtShare(line.share) : "—"}</TableCell>
-								<TableCell sx={numeric}>{fmtTokens(line.tokens)}</TableCell>
-							</TableRow>
-						))}
+						{lines.map((line) => {
+							const split = metric === "cost" ? (line.priced ? line.costByType : null) : line.tokensByType;
+							return (
+								<TableRow key={"model" in line ? `${line.provider}:${line.model}` : line.start}>
+									<TableCell>
+										{"model" in line ? (
+											<Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
+												<ProviderLogo provider={line.provider} sx={{ fontSize: 16, color: providerColor[line.provider] }} />
+												<Typography variant="body2" sx={{ fontFamily: "IBM Plex Mono", fontSize: "0.8rem" }}>
+													{line.model}
+												</Typography>
+											</Stack>
+										) : (
+											dayFormat.format(line.start)
+										)}
+									</TableCell>
+									<TableCell sx={{ ...numeric, fontWeight: line.priced ? 700 : 400, color: line.priced ? "text.primary" : "text.secondary" }}>
+										{line.priced ? fmtUsd(line.cost) : "Unpriced"}
+									</TableCell>
+									<TableCell sx={{ ...numeric, color: "text.secondary" }}>{line.priced || metric === "tokens" ? fmtShare(line.share) : "—"}</TableCell>
+									<TableCell>{split && <TokenTypeBar values={split} height={6} />}</TableCell>
+									{tokenTypes.map((type) => (
+										<TableCell key={type} sx={{ ...numeric, color: "text.secondary" }}>
+											{split ? fmtMetric(split[type], metric) : "—"}
+										</TableCell>
+									))}
+									<TableCell sx={numeric}>{fmtTokens(line.tokens)}</TableCell>
+								</TableRow>
+							);
+						})}
 					</TableBody>
 				</Table>
 			</Box>

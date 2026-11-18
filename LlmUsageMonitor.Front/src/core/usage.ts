@@ -13,10 +13,36 @@ export const tokenTypeLabel: Record<TokenType, string> = { input: "Input", cache
 
 export const totalTokens = (tokens: TokenCounts) => tokens.input + tokens.cacheRead + tokens.cacheWrite + tokens.output;
 
-/** Cost, cache savings and tokens of a set of rows; the unpriced tokens are counted in the tokens, never in the cost. */
-export type Amounts = { cost: number; savings: number; tokens: number; unpricedTokens: number; priced: boolean };
+/**
+ * Cost, cache savings and tokens of a set of rows, in total and by token type; the unpriced tokens are counted in the
+ * tokens, never in the cost.
+ */
+export type Amounts = {
+	cost: number;
+	savings: number;
+	tokens: number;
+	unpricedTokens: number;
+	priced: boolean;
+	/** The cost of the priced rows by token type; it adds up to `cost`. */
+	costByType: TokenCostByType;
+	/** The tokens by type; they add up to `tokens`. */
+	tokensByType: TokenCounts;
+};
 
-const emptyAmounts = (): Amounts => ({ cost: 0, savings: 0, tokens: 0, unpricedTokens: 0, priced: false });
+const emptyAmounts = (): Amounts => ({
+	cost: 0,
+	savings: 0,
+	tokens: 0,
+	unpricedTokens: 0,
+	priced: false,
+	costByType: { input: 0, cacheRead: 0, cacheWrite: 0, output: 0 },
+	tokensByType: { input: 0, cacheRead: 0, cacheWrite: 0, output: 0 },
+});
+
+const addByType = (sum: Record<TokenType, number>, values: Record<TokenType, number> | null): Record<TokenType, number> =>
+	values
+		? { input: sum.input + values.input, cacheRead: sum.cacheRead + values.cacheRead, cacheWrite: sum.cacheWrite + values.cacheWrite, output: sum.output + values.output }
+		: sum;
 
 function add(amounts: Amounts, row: TokenUsageRow): Amounts {
 	return {
@@ -25,6 +51,8 @@ function add(amounts: Amounts, row: TokenUsageRow): Amounts {
 		tokens: amounts.tokens + totalTokens(row.tokens),
 		unpricedTokens: amounts.unpricedTokens + row.unpricedTokens,
 		priced: amounts.priced || row.costUsd != null,
+		costByType: addByType(amounts.costByType, row.costByType),
+		tokensByType: addByType(amounts.tokensByType, row.tokens),
 	};
 }
 
@@ -40,9 +68,6 @@ export type UsageSummary = {
 	/** Share of the tokens left out of the cost because their model has no price, from 0 to 1. */
 	unpricedShare: number;
 	providers: ProviderSummary[];
-	tokens: TokenCounts;
-	/** The cost of the priced rows by token type; it adds up to the total cost. */
-	costByType: TokenCostByType;
 	chart: ChartPoint[];
 	models: ModelLine[];
 	days: DayLine[];
@@ -84,8 +109,6 @@ export function summarize(report: TokenUsageReport, metric: UsageMetric): UsageS
 	const byStep = new Map<string, { start: number; amounts: Amounts; perProvider: Record<Provider, number> }>();
 	for (const start of steps(report)) byStep.set(stepKey(start), { start, amounts: emptyAmounts(), perProvider: { claude: 0, codex: 0 } });
 
-	const tokens: TokenCounts = { input: 0, cacheRead: 0, cacheWrite: 0, output: 0 };
-	const costByType: TokenCostByType = { input: 0, cacheRead: 0, cacheWrite: 0, output: 0 };
 	for (const row of report.rows) {
 		byProvider.set(row.provider, add(byProvider.get(row.provider)!, row));
 
@@ -98,12 +121,6 @@ export function summarize(report: TokenUsageReport, metric: UsageMetric): UsageS
 		step.amounts = add(step.amounts, row);
 		step.perProvider[row.provider] += metric === "cost" ? (row.costUsd ?? 0) : totalTokens(row.tokens);
 		byStep.set(stepKey(start), step);
-
-		tokens.input += row.tokens.input;
-		tokens.cacheRead += row.tokens.cacheRead;
-		tokens.cacheWrite += row.tokens.cacheWrite;
-		tokens.output += row.tokens.output;
-		for (const type of tokenTypes) costByType[type] += row.costByType?.[type] ?? 0;
 	}
 
 	const orderedSteps = [...byStep.values()].sort((a, b) => a.start - b.start);
@@ -116,8 +133,6 @@ export function summarize(report: TokenUsageReport, metric: UsageMetric): UsageS
 		total,
 		unpricedShare: total.tokens > 0 ? total.unpricedTokens / total.tokens : 0,
 		providers: providers.map((provider) => ({ ...byProvider.get(provider)!, provider, share: share(byProvider.get(provider)!) })),
-		tokens,
-		costByType,
 		chart: orderedSteps.map((step) => ({ start: step.start, ...step.perProvider })),
 		models,
 		days: orderedSteps

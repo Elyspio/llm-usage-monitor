@@ -41,7 +41,7 @@ describe("usage report", () => {
 		expect(summary.total.cost).toBe(90);
 		expect(summary.total.savings).toBe(45);
 		expect(summary.unpricedShare).toBeCloseTo(0.25);
-		expect(summary.costByType).toEqual({ input: 9, cacheRead: 81, cacheWrite: 0, output: 0 });
+		expect(summary.total.costByType).toEqual({ input: 9, cacheRead: 81, cacheWrite: 0, output: 0 });
 		expect(summary.providers.map((provider) => [provider.provider, provider.cost, provider.share])).toEqual([
 			["claude", 80, 80 / 90],
 			["codex", 10, 10 / 90],
@@ -60,6 +60,8 @@ describe("usage report", () => {
 
 		expect(summary.models.map((model) => model.model)).toEqual(["claude-opus-5", "gpt-6-sol", "<synthetic>"]);
 		expect(summary.models[2].priced).toBe(false);
+		expect(summary.models[0].costByType).toEqual({ input: 8, cacheRead: 72, cacheWrite: 0, output: 0 });
+		expect(summary.models[0].tokensByType).toEqual({ input: 200, cacheRead: 2000, cacheWrite: 0, output: 0 });
 		expect(summary.days.map((line) => new Date(line.start).getDate())).toEqual([22, 19]);
 	});
 
