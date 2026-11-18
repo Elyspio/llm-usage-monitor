@@ -55,6 +55,10 @@ public sealed class TokenUsageService(
 			from = buckets.Count > 0 ? StepStart(buckets.Min(bucket => bucket.Hour), step, zone) : LocalMidnight(TimeZoneInfo.ConvertTime(to, zone).Date, zone);
 		}
 
+		// The current prices split the stored costs by token type.
+		var models = buckets.Where(bucket => bucket.Cost is { }).SelectMany(bucket => TokenPricing.Candidates(bucket.Model)).ToHashSet(StringComparer.Ordinal);
+		var known = (await prices.Find(models, cancellationToken)).ToDictionary(price => price.Model, StringComparer.Ordinal);
+
 		var rows = buckets
 			.GroupBy(bucket => (Start: StepStart(bucket.Hour, step, zone), bucket.Provider, bucket.Model))
 			.Select(group =>
@@ -67,14 +71,17 @@ public sealed class TokenUsageService(
 					group.Aggregate(TokenCounts.Zero, (total, bucket) => total.Add(bucket.Tokens)),
 					priced.Count > 0 ? priced.Sum(bucket => bucket.Cost!.Usd) : null,
 					priced.Count > 0 ? priced.Sum(bucket => bucket.Cost!.CacheSavingsUsd) : null,
+					priced.Count > 0
+						? priced.Aggregate(TokenCostByType.Zero, (total, bucket) => total.Add(TokenPricing.Split(bucket.Tokens, bucket.Cost!.Usd, TokenPricing.Resolve(bucket.Model, known))))
+						: null,
 					group.Where(bucket => bucket.Cost is null).Sum(bucket => Total(bucket.Tokens)));
 			})
 			.OrderBy(row => row.Start).ThenBy(row => row.Provider).ThenBy(row => row.Model, StringComparer.Ordinal)
 			.ToList();
 
-		var known = (await machines.GetAll(cancellationToken)).OrderBy(machine => machine.Name, StringComparer.OrdinalIgnoreCase).ToList();
+		var machineList = (await machines.GetAll(cancellationToken)).OrderBy(machine => machine.Name, StringComparer.OrdinalIgnoreCase).ToList();
 
-		return new TokenUsageReport(from, to, step, zone.Id, rows, known);
+		return new TokenUsageReport(from, to, step, zone.Id, rows, machineList);
 	}
 
 	/// <summary>

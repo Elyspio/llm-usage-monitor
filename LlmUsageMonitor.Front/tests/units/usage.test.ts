@@ -11,6 +11,7 @@ const row = (start: string, provider: TokenUsageRow["provider"], model: string, 
 	tokens: { input, cacheRead: input * 10, cacheWrite: 0, output: 0 },
 	costUsd,
 	cacheSavingsUsd: costUsd == null ? null : costUsd / 2,
+	costByType: costUsd == null ? null : { input: costUsd / 10, cacheRead: costUsd - costUsd / 10, cacheWrite: 0, output: 0 },
 	unpricedTokens: costUsd == null ? input * 11 : 0,
 });
 
@@ -40,6 +41,7 @@ describe("usage report", () => {
 		expect(summary.total.cost).toBe(90);
 		expect(summary.total.savings).toBe(45);
 		expect(summary.unpricedShare).toBeCloseTo(0.25);
+		expect(summary.costByType).toEqual({ input: 9, cacheRead: 81, cacheWrite: 0, output: 0 });
 		expect(summary.providers.map((provider) => [provider.provider, provider.cost, provider.share])).toEqual([
 			["claude", 80, 80 / 90],
 			["codex", 10, 10 / 90],

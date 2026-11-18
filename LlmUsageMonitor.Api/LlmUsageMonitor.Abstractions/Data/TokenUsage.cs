@@ -56,6 +56,19 @@ public sealed record TokenUsageBucket(string MachineId, Provider Provider, strin
 public sealed record TokenCost(double Usd, double CacheSavingsUsd);
 
 /// <summary>
+///     A cost split by token type; the four amounts add up to the cost.
+/// </summary>
+public sealed record TokenCostByType(double Input, double CacheRead, double CacheWrite, double Output)
+{
+	public static readonly TokenCostByType Zero = new(0, 0, 0, 0);
+
+	public TokenCostByType Add(TokenCostByType other)
+	{
+		return new(Input + other.Input, CacheRead + other.CacheRead, CacheWrite + other.CacheWrite, Output + other.Output);
+	}
+}
+
+/// <summary>
 ///     The per-token prices of a model, from the LiteLLM price table.
 /// </summary>
 /// <param name="Model">The model name.</param>
@@ -103,6 +116,7 @@ public enum TokenUsageStep
 /// <param name="Tokens">All the tokens of the step, priced or not.</param>
 /// <param name="CostUsd">The cost of the priced buckets, or <c>null</c> when none is priced.</param>
 /// <param name="CacheSavingsUsd">The cache savings of the priced buckets, or <c>null</c> when none is priced.</param>
+/// <param name="CostByType">The cost split by token type, or <c>null</c> when none is priced.</param>
 /// <param name="UnpricedTokens">The tokens of the buckets without a price, left out of the cost.</param>
 public sealed record TokenUsageRow(
 	DateTimeOffset Start,
@@ -111,6 +125,7 @@ public sealed record TokenUsageRow(
 	TokenCounts Tokens,
 	double? CostUsd,
 	double? CacheSavingsUsd,
+	TokenCostByType? CostByType,
 	long UnpricedTokens);
 
 /// <summary>

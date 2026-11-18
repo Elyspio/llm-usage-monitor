@@ -7,6 +7,7 @@ import { locale } from "@/core/format";
 import { browserTimeZone, fmtMetric, fmtShare, fmtTokens, fmtUsd, rangeLabel, summarize, type UsageMetric, type UsageRange } from "@/core/usage";
 import { ProviderLogo } from "@components/dashboard/ProviderLogo";
 import { QueryError } from "@components/QueryError";
+import { TokenTypeBreakdown } from "@components/usage/TokenTypeBreakdown";
 import { UsageBreakdown } from "@components/usage/UsageBreakdown";
 import { UsageChart } from "@components/usage/UsageChart";
 
@@ -34,15 +35,15 @@ export const UsagePage = () => {
 		: "";
 
 	return (
-		<Stack spacing={3}>
+		<Stack spacing={2}>
 			<Typography variant="overline" component="h1" aria-label="Usage" sx={{ color: "text.secondary" }}>
 				03 / Usage
 			</Typography>
-			<Stack direction={{ xs: "column", lg: "row" }} spacing={2} sx={{ justifyContent: "space-between", alignItems: { lg: "flex-end" } }}>
+			<Stack direction={{ xs: "column", lg: "row" }} spacing={1} sx={{ justifyContent: "space-between", alignItems: { lg: "flex-end" } }}>
 				<Typography variant="body2" sx={{ color: "text.secondary" }}>
 					{period}
 				</Typography>
-				<Stack direction="row" spacing={1.5} useFlexGap sx={{ flexWrap: "wrap", alignItems: "center", opacity: isFetching && !isPending ? 0.7 : 1 }}>
+				<Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", alignItems: "center", opacity: isFetching && !isPending ? 0.7 : 1 }}>
 					<TextField select label="Workstation" value={machineId} onChange={(event) => setMachineId(event.target.value)} sx={{ minWidth: 180 }}>
 						<MenuItem value={ALL_MACHINES}>All workstations</MenuItem>
 						{data?.machines.map((machine) => (
@@ -71,25 +72,25 @@ export const UsagePage = () => {
 			) : !data || !summary ? (
 				<QueryError query={usage} subject="the usage" />
 			) : summary.total.tokens === 0 ? (
-				<Paper variant="outlined" sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
+				<Paper variant="outlined" sx={{ p: 3, textAlign: "center", color: "text.secondary" }}>
 					No usage received over the period. Workstations upload their Claude Code and Codex logs through the collector of the media-tools app.
 				</Paper>
 			) : (
 				<>
-					<Grid container spacing={3}>
+					<Grid container spacing={2}>
 						<Grid size={{ xs: 12, lg: 4 }}>
-							<Paper component="section" aria-label="Total" variant="outlined" sx={{ p: 2.5, height: "100%" }}>
-								<Typography sx={{ fontSize: "2.75rem", fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.1 }}>
+							<Paper component="section" aria-label="Total" variant="outlined" sx={{ p: 2, height: "100%" }}>
+								<Typography sx={{ fontSize: "2.5rem", fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.1 }}>
 									{metric === "cost" ? fmtUsd(summary.total.cost) : fmtTokens(summary.total.tokens)}
 								</Typography>
-								<Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
+								<Typography variant="body2" sx={{ color: "text.secondary" }}>
 									{metric === "cost"
 										? summary.unpricedShare > 0
 											? `API equivalent · excluding ${fmtShare(summary.unpricedShare)} of unpriced tokens`
 											: "API equivalent"
 										: "Tokens processed"}
 								</Typography>
-								<Stack spacing={2.5} sx={{ mt: 3 }}>
+								<Stack spacing={1} sx={{ mt: 2 }}>
 									{summary.providers.map((provider) => (
 										<Box key={provider.provider}>
 											<Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
@@ -106,34 +107,15 @@ export const UsagePage = () => {
 										</Box>
 									))}
 								</Stack>
+								<Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: "divider" }}>
+									<TokenTypeBreakdown values={metric === "cost" ? summary.costByType : summary.tokens} metric={metric} savings={summary.total.savings} />
+								</Box>
 							</Paper>
 						</Grid>
 						<Grid size={{ xs: 12, lg: 8 }}>
 							<UsageChart points={summary.chart} step={data.step} metric={metric} />
 						</Grid>
 					</Grid>
-
-					<Paper component="section" aria-label="Totals" variant="outlined" sx={{ p: 2.5 }}>
-						<Typography variant="h6" component="h2" sx={{ mb: 2 }}>
-							Totals
-						</Typography>
-						<Grid container spacing={2}>
-							{[
-								["Tokens processed", fmtTokens(summary.total.tokens)],
-								["Cached input", fmtTokens(summary.tokens.cacheRead)],
-								["Uncached input", fmtTokens(summary.tokens.input + summary.tokens.cacheWrite)],
-								["Output", fmtTokens(summary.tokens.output)],
-								["Cache savings", fmtUsd(summary.total.savings)],
-							].map(([label, value]) => (
-								<Grid key={label} size={{ xs: 6, sm: 4, md: "grow" }}>
-									<Typography variant="body2" sx={{ color: "text.secondary" }}>
-										{label}
-									</Typography>
-									<Typography sx={{ fontSize: "1.25rem", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{value}</Typography>
-								</Grid>
-							))}
-						</Grid>
-					</Paper>
 
 					<UsageBreakdown models={summary.models} days={summary.days} metric={metric} />
 				</>

@@ -44,6 +44,28 @@ public static partial class TokenPricing
 		return new(usd, savings);
 	}
 
+	/// <summary>
+	///     Splits the stored cost of <paramref name="tokens" /> by token type, in proportion to what each type costs at
+	///     <paramref name="price" />, so the split always adds up to the stored cost even after a price change. Without a
+	///     price (the model left the table), the split follows the token counts.
+	/// </summary>
+	public static TokenCostByType Split(TokenCounts tokens, double usd, ModelPrice? price)
+	{
+		var weights = price is { }
+			? new TokenCostByType(
+				tokens.Input * price.InputPerToken,
+				tokens.CacheRead * (price.CacheReadPerToken ?? price.InputPerToken),
+				tokens.CacheWrite * (price.CacheWritePerToken ?? price.InputPerToken),
+				tokens.Output * price.OutputPerToken)
+			: new TokenCostByType(tokens.Input, tokens.CacheRead, tokens.CacheWrite, tokens.Output);
+
+		var total = weights.Input + weights.CacheRead + weights.CacheWrite + weights.Output;
+		if (total <= 0) return TokenCostByType.Zero;
+
+		var scale = usd / total;
+		return new(weights.Input * scale, weights.CacheRead * scale, weights.CacheWrite * scale, weights.Output * scale);
+	}
+
 	[GeneratedRegex(@"-\d{8}$")]
 	private static partial Regex DateSuffix();
 }

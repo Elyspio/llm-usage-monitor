@@ -17,7 +17,7 @@ export const UsageBreakdown = ({ models, days, metric }: { models: ModelLine[]; 
 	const lines = breakdown === "model" ? models : days;
 
 	return (
-		<Paper component="section" aria-label="Usage by model" variant="outlined" sx={{ p: 2.5 }}>
+		<Paper component="section" aria-label="Usage by model" variant="outlined" sx={{ p: 2 }}>
 			<Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
 				<Typography variant="h6" component="h2">
 					Usage by model
@@ -28,7 +28,7 @@ export const UsageBreakdown = ({ models, days, metric }: { models: ModelLine[]; 
 				</ToggleButtonGroup>
 			</Stack>
 			<Box sx={{ overflowX: "auto" }}>
-				<Table size="small">
+				<Table size="small" sx={{ "& .MuiTableCell-root": { py: 0.75 } }}>
 					<TableHead>
 						<TableRow>
 							<TableCell>{breakdown === "model" ? "Model" : "Day"}</TableCell>

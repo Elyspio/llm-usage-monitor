@@ -1398,6 +1398,33 @@
           }
         }
       },
+      "TokenCostByType": {
+        "required": [
+          "input",
+          "cacheRead",
+          "cacheWrite",
+          "output"
+        ],
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": "number",
+            "format": "double"
+          },
+          "cacheRead": {
+            "type": "number",
+            "format": "double"
+          },
+          "cacheWrite": {
+            "type": "number",
+            "format": "double"
+          },
+          "output": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "TokenCounts": {
         "required": [
           "input",
@@ -1496,6 +1523,7 @@
           "tokens",
           "costUsd",
           "cacheSavingsUsd",
+          "costByType",
           "unpricedTokens"
         ],
         "type": "object",
@@ -1526,6 +1554,16 @@
               "number"
             ],
             "format": "double"
+          },
+          "costByType": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TokenCostByType"
+              }
+            ]
           },
           "unpricedTokens": {
             "type": "integer",
