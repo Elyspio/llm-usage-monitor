@@ -2,12 +2,22 @@ import { Box, Stack, Typography } from "@mui/material";
 import { fmtMetric, fmtUsd, tokenTypeLabel, tokenTypes, type TokenType, type UsageMetric } from "@/core/usage";
 
 /** A grey ramp, kept apart from the provider colours: the brightest type is the output, the costliest per token. */
-const tokenTypeColor: Record<TokenType, string> = { input: "#71717a", cacheRead: "#52525b", cacheWrite: "#a1a1aa", output: "#f4f4f5" };
+export const tokenTypeColor: Record<TokenType, string> = { input: "#71717a", cacheRead: "#52525b", cacheWrite: "#a1a1aa", output: "#f4f4f5" };
+
+/** A segmented bar of the token types; a type at zero takes no segment. */
+export const TokenTypeBar = ({ values, height = 8 }: { values: Record<TokenType, number>; height?: number }) => (
+	<Stack direction="row" aria-hidden="true" sx={{ gap: height > 4 ? "3px" : "2px", height }}>
+		{tokenTypes
+			.filter((type) => values[type] > 0)
+			.map((type) => (
+				<Box key={type} sx={{ flex: `${values[type]} 1 0`, minWidth: height / 2, borderRadius: `${height / 2}px`, bgcolor: tokenTypeColor[type] }} />
+			))}
+	</Stack>
+);
 
 /** The cost or the tokens of the period split by token type: a segmented bar and its legend. */
 export const TokenTypeBreakdown = ({ values, metric, savings }: { values: Record<TokenType, number>; metric: UsageMetric; savings: number }) => {
 	const title = metric === "cost" ? "Cost by type" : "Tokens by type";
-	const shown = tokenTypes.filter((type) => values[type] > 0);
 
 	return (
 		<Box component="section" aria-label={title}>
@@ -24,11 +34,7 @@ export const TokenTypeBreakdown = ({ values, metric, savings }: { values: Record
 					</Typography>
 				)}
 			</Stack>
-			<Stack direction="row" aria-hidden="true" sx={{ gap: "3px", height: 8 }}>
-				{shown.map((type) => (
-					<Box key={type} sx={{ flex: `${values[type]} 1 0`, minWidth: 4, borderRadius: "4px", bgcolor: tokenTypeColor[type] }} />
-				))}
-			</Stack>
+			<TokenTypeBar values={values} />
 			<Box component="ul" sx={{ listStyle: "none", m: 0, p: 0, mt: 1, display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", columnGap: 3 }}>
 				{tokenTypes.map((type) => (
 					<Box component="li" key={type} sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>

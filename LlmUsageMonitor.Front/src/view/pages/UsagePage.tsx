@@ -108,7 +108,11 @@ export const UsagePage = () => {
 									))}
 								</Stack>
 								<Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: "divider" }}>
-									<TokenTypeBreakdown values={metric === "cost" ? summary.costByType : summary.tokens} metric={metric} savings={summary.total.savings} />
+									<TokenTypeBreakdown
+										values={metric === "cost" ? summary.total.costByType : summary.total.tokensByType}
+										metric={metric}
+										savings={summary.total.savings}
+									/>
 								</Box>
 							</Paper>
 						</Grid>
