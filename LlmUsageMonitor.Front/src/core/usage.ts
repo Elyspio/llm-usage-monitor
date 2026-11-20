@@ -142,6 +142,41 @@ export function summarize(report: TokenUsageReport, metric: UsageMetric): UsageS
 	};
 }
 
+/** A column of the usage table: the line label (model or day), an amount, or a token type in the chosen metric. */
+export type LineSortKey = "label" | "cost" | "share" | "tokens" | TokenType;
+export type SortDirection = "asc" | "desc";
+export type LineSort = { key: LineSortKey; direction: SortDirection };
+
+/** The direction of a first click: the label reads from A or the oldest day, an amount from the largest. */
+export const firstDirection = (key: LineSortKey): SortDirection => (key === "label" ? "asc" : "desc");
+
+/** The value a line sorts on; null where the table shows "—", which stays last in both directions. */
+function sortValue(line: ModelLine | DayLine, key: LineSortKey, metric: UsageMetric): string | number | null {
+	switch (key) {
+		case "label":
+			return "model" in line ? line.model : line.start;
+		case "cost":
+			return line.priced ? line.cost : null;
+		case "share":
+			return line.priced || metric === "tokens" ? line.share : null;
+		case "tokens":
+			return line.tokens;
+		default:
+			return metric === "cost" ? (line.priced ? line.costByType[key] : null) : line.tokensByType[key];
+	}
+}
+
+/** The lines sorted on a column; equal lines keep their order. */
+export function sortLines<T extends ModelLine | DayLine>(lines: T[], { key, direction }: LineSort, metric: UsageMetric): T[] {
+	const sign = direction === "asc" ? 1 : -1;
+	return [...lines].sort((a, b) => {
+		const x = sortValue(a, key, metric);
+		const y = sortValue(b, key, metric);
+		if (x == null || y == null) return x == null ? (y == null ? 0 : 1) : -1;
+		return sign * (typeof x === "string" ? x.localeCompare(y as string, locale) : x - (y as number));
+	});
+}
+
 const usdFormat = new Intl.NumberFormat(locale, { style: "currency", currency: "USD", currencyDisplay: "narrowSymbol" });
 const compactFormat = new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 2 });
 const percentFormat = new Intl.NumberFormat(locale, { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1 });

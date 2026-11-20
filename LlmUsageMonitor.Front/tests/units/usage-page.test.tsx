@@ -76,6 +76,17 @@ describe("UsagePage", () => {
 		const synthetic = within(breakdown).getByText("<synthetic>").closest("tr")!;
 		expect(within(synthetic).getAllByText("—")).toHaveLength(5);
 
+		const modelOrder = () =>
+			within(breakdown)
+				.getAllByRole("row")
+				.slice(1)
+				.map((row) => (row as HTMLTableRowElement).cells[0].textContent);
+		fireEvent.click(within(breakdown).getByRole("button", { name: "Sort by Model" }));
+		expect(modelOrder()[0]).toBe("<synthetic>");
+		fireEvent.click(within(breakdown).getByRole("button", { name: "Sort by Model" }));
+		expect(modelOrder().at(-1)).toBe("<synthetic>");
+		expect(within(breakdown).getByRole("columnheader", { name: /Model/ }).getAttribute("aria-sort")).toBe("descending");
+
 		expect(requests[0].searchParams.get("range")).toBe("7d");
 		expect(requests[0].searchParams.get("timeZone")).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
 		expect(requests[0].searchParams.has("machineId")).toBe(false);

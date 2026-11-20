@@ -1,7 +1,21 @@
-import { Box, Paper, Stack, Table, TableBody, TableCell, TableHead, TableRow, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
-import { useState } from "react";
+import { Box, Paper, Stack, Table, TableBody, TableCell, TableHead, TableRow, TableSortLabel, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
+import { useState, type ReactNode } from "react";
 import { locale } from "@/core/format";
-import { fmtMetric, fmtShare, fmtTokens, fmtUsd, tokenTypeLabel, tokenTypes, type DayLine, type ModelLine, type UsageMetric } from "@/core/usage";
+import {
+	firstDirection,
+	fmtMetric,
+	fmtShare,
+	fmtTokens,
+	fmtUsd,
+	sortLines,
+	tokenTypeLabel,
+	tokenTypes,
+	type DayLine,
+	type LineSort,
+	type LineSortKey,
+	type ModelLine,
+	type UsageMetric,
+} from "@/core/usage";
 import { providerColor } from "@/core/dashboard";
 import { ProviderLogo } from "@components/dashboard/ProviderLogo";
 import { TokenTypeBar, tokenTypeColor } from "@components/usage/TokenTypeBreakdown";
@@ -12,13 +26,47 @@ const dayFormat = new Intl.DateTimeFormat(locale, { weekday: "short", day: "nume
 
 const numeric = { textAlign: "right", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" } as const;
 
+/** A header cell that sorts the table on its column: a first click uses the column's natural direction, the next ones flip it. */
+const SortableCell = ({
+	column,
+	label,
+	marker,
+	sort,
+	onSort,
+}: {
+	column: LineSortKey;
+	label: string;
+	marker?: ReactNode;
+	sort: LineSort | null;
+	onSort: (sort: LineSort) => void;
+}) => {
+	const active = sort?.key === column;
+	const direction = active ? sort.direction : firstDirection(column);
+	return (
+		<TableCell sx={column === "label" ? undefined : numeric} sortDirection={active ? direction : false}>
+			<TableSortLabel
+				active={active}
+				direction={direction}
+				onClick={() => onSort({ key: column, direction: active ? (direction === "asc" ? "desc" : "asc") : direction })}
+				aria-label={`Sort by ${label}`}
+				sx={column === "label" ? undefined : { flexDirection: "row-reverse" }}
+			>
+				{marker}
+				{label}
+			</TableSortLabel>
+		</TableCell>
+	);
+};
+
 /**
  * Cost, share and tokens by model or by day, each split by token type in the chosen metric; a model without price shows
- * "Unpriced" and no cost split.
+ * "Unpriced" and no cost split. Every column but the split sorts the table; unsorted, it keeps the order of the summary.
  */
 export const UsageBreakdown = ({ models, days, metric }: { models: ModelLine[]; days: DayLine[]; metric: UsageMetric }) => {
 	const [breakdown, setBreakdown] = useState<Breakdown>("model");
-	const lines = breakdown === "model" ? models : days;
+	const [sort, setSort] = useState<LineSort | null>(null);
+	const unsorted: (ModelLine | DayLine)[] = breakdown === "model" ? models : days;
+	const lines = sort ? sortLines(unsorted, sort, metric) : unsorted;
 
 	return (
 		<Paper component="section" aria-label="Usage by model" variant="outlined" sx={{ p: 2 }}>
@@ -35,21 +83,27 @@ export const UsageBreakdown = ({ models, days, metric }: { models: ModelLine[]; 
 				<Table size="small" sx={{ "& .MuiTableCell-root": { py: 0.75 } }}>
 					<TableHead>
 						<TableRow>
-							<TableCell>{breakdown === "model" ? "Model" : "Day"}</TableCell>
-							<TableCell sx={numeric}>Cost</TableCell>
-							<TableCell sx={numeric}>{metric === "cost" ? "Cost share" : "Token share"}</TableCell>
+							<SortableCell column="label" label={breakdown === "model" ? "Model" : "Day"} sort={sort} onSort={setSort} />
+							<SortableCell column="cost" label="Cost" sort={sort} onSort={setSort} />
+							<SortableCell column="share" label={metric === "cost" ? "Cost share" : "Token share"} sort={sort} onSort={setSort} />
 							<TableCell sx={{ width: 140 }}>{metric === "cost" ? "Cost split" : "Token split"}</TableCell>
 							{tokenTypes.map((type) => (
-								<TableCell key={type} sx={numeric}>
-									<Box
-										aria-hidden="true"
-										component="span"
-										sx={{ display: "inline-block", width: 8, height: 8, borderRadius: "2px", bgcolor: tokenTypeColor[type], mr: 0.75 }}
-									/>
-									{tokenTypeLabel[type]}
-								</TableCell>
+								<SortableCell
+									key={type}
+									column={type}
+									label={tokenTypeLabel[type]}
+									marker={
+										<Box
+											aria-hidden="true"
+											component="span"
+											sx={{ display: "inline-block", flexShrink: 0, width: 8, height: 8, borderRadius: "2px", bgcolor: tokenTypeColor[type], mr: 0.75 }}
+										/>
+									}
+									sort={sort}
+									onSort={setSort}
+								/>
 							))}
-							<TableCell sx={numeric}>Tokens</TableCell>
+							<SortableCell column="tokens" label="Tokens" sort={sort} onSort={setSort} />
 						</TableRow>
 					</TableHead>
 					<TableBody>

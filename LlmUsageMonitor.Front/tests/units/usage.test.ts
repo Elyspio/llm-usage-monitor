@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { TokenUsageReport, TokenUsageRow } from "@/core/apis/generated/types.gen";
-import { steps, summarize } from "@/core/usage";
+import { sortLines, steps, summarize } from "@/core/usage";
 
 const day = (date: number) => new Date(2026, 8, date).toISOString();
 
@@ -67,5 +67,15 @@ describe("usage report", () => {
 
 	it("measures the chart in tokens when asked", () => {
 		expect(summarize(report, "tokens").chart[0]).toMatchObject({ claude: 1100, codex: 1100 });
+	});
+	it("sorts the lines on a column, the lines without a value last in both directions", () => {
+		const { models } = summarize(report, "cost");
+		const names = (lines: typeof models) => lines.map((line) => line.model);
+
+		expect(names(sortLines(models, { key: "label", direction: "asc" }, "cost"))).toEqual(["<synthetic>", "claude-opus-5", "gpt-6-sol"]);
+		expect(names(sortLines(models, { key: "cost", direction: "asc" }, "cost"))).toEqual(["gpt-6-sol", "claude-opus-5", "<synthetic>"]);
+		expect(names(sortLines(models, { key: "cost", direction: "desc" }, "cost"))).toEqual(["claude-opus-5", "gpt-6-sol", "<synthetic>"]);
+		expect(names(sortLines(models, { key: "input", direction: "desc" }, "tokens"))).toEqual(["claude-opus-5", "gpt-6-sol", "<synthetic>"]);
+		expect(names(sortLines(models, { key: "input", direction: "asc" }, "tokens"))).toEqual(["gpt-6-sol", "<synthetic>", "claude-opus-5"]);
 	});
 });
