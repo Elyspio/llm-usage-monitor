@@ -1,8 +1,8 @@
 import { Box, Stack, Typography } from "@mui/material";
 import { fmtMetric, fmtUsd, tokenTypeLabel, tokenTypes, type TokenType, type UsageMetric } from "@/core/usage";
 
-/** A grey ramp, kept apart from the provider colours: the brightest type is the output, the costliest per token. */
-export const tokenTypeColor: Record<TokenType, string> = { input: "#71717a", cacheRead: "#52525b", cacheWrite: "#a1a1aa", output: "#f4f4f5" };
+/** Cool pastel hues, kept apart from the provider, primary and warning colours; the output stays the brightest, the costliest per token. */
+export const tokenTypeColor: Record<TokenType, string> = { input: "#7dd3fc", cacheRead: "#818cf8", cacheWrite: "#e879f9", output: "#f4f4f5" };
 
 /** A segmented bar of the token types; a type at zero takes no segment. */
 export const TokenTypeBar = ({ values, height = 8 }: { values: Record<TokenType, number>; height?: number }) => (
