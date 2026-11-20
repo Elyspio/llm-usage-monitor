@@ -101,9 +101,9 @@ export function NotificationSection({ settings }: { settings: NotificationSettin
 				</SaveBar>
 			}
 		>
-			<Grid container spacing={{ xs: 2.5, lg: 4 }}>
+			<Grid container spacing={{ xs: 2, lg: 3 }}>
 				<Grid size={{ xs: 12, lg: 5 }}>
-					<Stack spacing={2.5} sx={{ alignItems: "flex-start", "& > .MuiTextField-root": { width: 320, maxWidth: "100%" } }}>
+					<Stack spacing={1.5} sx={{ alignItems: "flex-start", "& > .MuiTextField-root": { width: "100%", maxWidth: 420 } }}>
 						<Typography variant="overline" sx={{ color: "text.secondary" }}>
 							Destination
 						</Typography>
@@ -169,7 +169,7 @@ export function NotificationSection({ settings }: { settings: NotificationSettin
 					</Stack>
 				</Grid>
 				<Grid size={{ xs: 12, lg: 7 }}>
-					<Stack spacing={1.5}>
+					<Stack spacing={0.75}>
 						<Typography variant="overline" sx={{ color: "text.secondary" }}>
 							Events
 						</Typography>

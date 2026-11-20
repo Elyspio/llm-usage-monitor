@@ -12,21 +12,21 @@ const dateLabel = (value: number) => new Date(value).toLocaleDateString(locale, 
 export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard[]; now: number }) => {
 	const { groups, ticks, mondays, position, start, end } = toTimeline(providers, now);
 	return (
-		<Paper component="section" aria-label="Quota timeline" variant="outlined" sx={{ p: { xs: 2, md: 3.5 }, overflow: "hidden" }}>
+		<Paper component="section" aria-label="Quota timeline" variant="outlined" sx={{ p: 2, overflow: "hidden" }}>
 			<Typography variant="overline" sx={{ display: { md: "none" }, color: "text.secondary" }}>
 				Timeline · {dateLabel(start)} → {dateLabel(end - 1)}
 			</Typography>
-			<Box sx={{ display: { xs: "none", md: "grid" }, gridTemplateColumns: columns, gap: 3, alignItems: "end", mb: 0.5, pt: 3 }}>
+			<Box sx={{ display: { xs: "none", md: "grid" }, gridTemplateColumns: columns, gap: 2, alignItems: "end", mb: 0.5, pt: 2.25 }}>
 				<Typography variant="overline" sx={{ color: "text.secondary" }}>
 					Window
 				</Typography>
-				<Box sx={{ position: "relative", height: 34, borderBottom: 1, borderColor: "divider" }}>
+				<Box sx={{ position: "relative", height: 28, borderBottom: 1, borderColor: "divider" }}>
 					{mondays.map((monday) => (
 						<Typography
 							key={monday}
 							variant="overline"
 							title="Monday"
-							sx={{ position: "absolute", left: `${position(monday)}%`, top: -25, transform: "translateX(-50%)", color: "surface.monday" }}
+							sx={{ position: "absolute", left: `${position(monday)}%`, top: -18, transform: "translateX(-50%)", lineHeight: 1.4, color: "surface.monday" }}
 						>
 							M
 						</Typography>
@@ -37,8 +37,9 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 						sx={{
 							position: "absolute",
 							left: `${position(now)}%`,
-							top: -25,
+							top: -18,
 							transform: "translateX(-50%)",
+							lineHeight: 1.4,
 							px: 0.5,
 							bgcolor: "background.paper",
 							color: "primary.main",
@@ -47,8 +48,8 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 						Now
 					</Typography>
 					{ticks.map((tick) => (
-						<Box key={tick} sx={{ position: "absolute", left: `${position(tick)}%`, bottom: 0, height: 8, borderLeft: 1, borderColor: "divider" }}>
-							<Typography variant="caption" sx={{ ...mono, position: "absolute", bottom: 13, color: "text.secondary" }}>
+						<Box key={tick} sx={{ position: "absolute", left: `${position(tick)}%`, bottom: 0, height: 6, borderLeft: 1, borderColor: "divider" }}>
+							<Typography variant="caption" sx={{ ...mono, position: "absolute", bottom: 8, color: "text.secondary" }}>
 								{new Date(tick).getDate()}
 							</Typography>
 						</Box>
@@ -58,12 +59,12 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 					Remaining
 				</Typography>
 			</Box>
-			{groups.length === 0 && <Typography sx={{ py: 5, color: "text.secondary" }}>No data. Waiting for a first reading.</Typography>}
-			{groups.map(({ provider, rows: windows }) => {
+			{groups.length === 0 && <Typography sx={{ py: 3, color: "text.secondary" }}>No data. Waiting for a first reading.</Typography>}
+			{groups.map(({ provider, rows: windows }, groupIndex) => {
 				const stale = isDegraded(provider.health);
 				return (
 					<Box key={provider.provider} component="section" aria-label={`${providerLabel[provider.provider]} windows`}>
-						<Stack direction="row" spacing={1.25} sx={{ alignItems: "center", pt: 3 }}>
+						<Stack direction="row" spacing={1} sx={{ alignItems: "center", pt: groupIndex === 0 ? 1.5 : 2 }}>
 							<ProviderLogo provider={provider.provider} sx={{ fontSize: 18, color: stale ? "surface.muted" : providerColor[provider.provider] }} />
 							<Typography component="h3" sx={{ fontWeight: 700, fontSize: "1rem" }}>
 								{providerLabel[provider.provider]}
@@ -83,7 +84,7 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 							const left = validTiming ? position(validTiming.start) : 0;
 							const width = validTiming ? position(validTiming.end) - left : 0;
 							// A nested window is thinner and stays attached to its parent: no rule between them.
-							const bar = nested ? 10 : 16;
+							const bar = nested ? 8 : 14;
 							const hasChild = windows[index + 1]?.nested === true;
 							return (
 								<Box
@@ -91,16 +92,16 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 									sx={{
 										display: "grid",
 										gridTemplateColumns: { xs: "minmax(0, 1fr) auto", md: columns },
-										columnGap: 3,
-										rowGap: 2,
+										columnGap: 2,
+										rowGap: 1,
 										alignItems: "center",
-										pt: nested ? 0 : { xs: 2.5, md: 3 },
-										pb: hasChild ? 2 : { xs: 2.5, md: 3 },
+										pt: nested ? 0 : index === 0 ? 1 : 1.5,
+										pb: hasChild ? 1 : 1.5,
 										borderBottom: hasChild ? 0 : 1,
 										borderColor: "divider",
 									}}
 								>
-									<Box sx={{ display: "flex", pl: 3.5 }}>
+									<Box sx={{ display: "flex", pl: 3.25 }}>
 										{nested && (
 											<Box
 												aria-hidden="true"
@@ -117,15 +118,15 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 											/>
 										)}
 										<Box sx={{ minWidth: 0 }}>
-											<Typography sx={{ fontWeight: nested ? 500 : 600, fontSize: { xs: "0.9rem", lg: nested ? "0.9rem" : "1rem" } }}>
+											<Typography sx={{ fontWeight: nested ? 500 : 600, fontSize: { xs: "0.9rem", lg: nested ? "0.9rem" : "0.95rem" } }}>
 												{(nested && nestedWindowLabel[window.id]) || windowLabel(window)}
 											</Typography>
 											{nested ? (
-												<Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
+												<Typography variant="body2" sx={{ color: "text.secondary", mt: 0.25 }}>
 													Counts within the weekly limit
 												</Typography>
 											) : (
-												<Typography variant="body2" sx={{ ...mono, color: "text.secondary", mt: 0.75 }}>
+												<Typography variant="body2" sx={{ ...mono, color: "text.secondary", mt: 0.25 }}>
 													{validTiming
 														? `${fmtWhen(validTiming.start, now)} → ${fmtWhen(validTiming.end, now)}`
 														: window.resetsAt
@@ -140,8 +141,8 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 											)}
 										</Box>
 									</Box>
-									<Box sx={{ position: "relative", height: 38, gridColumn: { xs: "1 / -1", md: "auto" }, gridRow: { xs: 2, md: "auto" } }}>
-										<Box sx={{ position: "absolute", top: 14, height: 10, width: "100%", bgcolor: "background.default", borderRadius: 2 }} />
+									<Box sx={{ position: "relative", height: 28, gridColumn: { xs: "1 / -1", md: "auto" }, gridRow: { xs: 2, md: "auto" } }}>
+										<Box sx={{ position: "absolute", top: 10, height: 8, width: "100%", bgcolor: "background.default", borderRadius: 2 }} />
 										{validTiming ? (
 											<Box
 												component="progress"
@@ -153,7 +154,7 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 												aria-valuenow={Math.max(0, Math.min(100, window.usedPercent))}
 												sx={{
 													position: "absolute",
-													top: 19 - bar / 2,
+													top: 14 - bar / 2,
 													left: `${left}%`,
 													width: `${width}%`,
 													minWidth: 2,
@@ -182,10 +183,10 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 											<Box
 												key={monday}
 												aria-hidden="true"
-												sx={{ position: "absolute", top: 4, height: 30, width: 2, bgcolor: "surface.monday", left: `${position(monday)}%` }}
+												sx={{ position: "absolute", top: 2, height: 24, width: 2, bgcolor: "surface.monday", left: `${position(monday)}%` }}
 											/>
 										))}
-										<Box aria-hidden="true" sx={{ position: "absolute", top: 4, height: 30, width: 2, bgcolor: "surface.now", left: `${position(now)}%` }} />
+										<Box aria-hidden="true" sx={{ position: "absolute", top: 2, height: 24, width: 2, bgcolor: "surface.now", left: `${position(now)}%` }} />
 										{validTiming && width < 5 && !expired && (
 											<Typography variant="caption" sx={{ ...mono, position: "absolute", top: -13, right: 0, color: "text.secondary" }}>
 												reset {fmtIn(window.resetsAt!, now)}
@@ -197,7 +198,7 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 											...mono,
 											textAlign: "right",
 											color: remaining < 50 || stale || expired ? status : "text.primary",
-											fontSize: nested ? "1.15rem" : "1.45rem",
+											fontSize: nested ? "1.05rem" : "1.3rem",
 											gridColumn: { xs: 2, md: "auto" },
 											gridRow: { xs: 1, md: "auto" },
 										}}
@@ -210,7 +211,7 @@ export const UsageTimeline = ({ providers, now }: { providers: ProviderDashboard
 					</Box>
 				);
 			})}
-			<Stack direction="row" useFlexGap spacing={3} sx={{ flexWrap: "wrap", pt: 2, color: "text.secondary" }}>
+			<Stack direction="row" useFlexGap spacing={2} sx={{ flexWrap: "wrap", pt: 1.5, color: "text.secondary" }}>
 				<Typography variant="body2">
 					<Box
 						component="span"

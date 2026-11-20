@@ -14,11 +14,11 @@ export const ProviderColumn = ({ provider, serviceUser, now }: { provider: Provi
 	const error = failure ? errorInfo(failure.code, provider.provider, serviceUser) : null;
 
 	return (
-		<Paper component="section" aria-label={providerLabel[provider.provider]} variant="outlined" sx={{ p: { xs: 2, lg: 3 }, height: "100%" }}>
-			<Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: "flex-start", justifyContent: "space-between", mb: 3 }}>
+		<Paper component="section" aria-label={providerLabel[provider.provider]} variant="outlined" sx={{ p: 2, height: "100%" }}>
+			<Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ alignItems: "flex-start", justifyContent: "space-between", mb: 1.5 }}>
 				<Box sx={{ minWidth: 0 }}>
 					<Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-						<ProviderLogo provider={provider.provider} sx={{ color: providerColor[provider.provider], fontSize: 22, mr: 0.5 }} />
+						<ProviderLogo provider={provider.provider} sx={{ color: providerColor[provider.provider], fontSize: 20, mr: 0.25 }} />
 						<Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
 							{providerLabel[provider.provider]}
 						</Typography>
@@ -28,7 +28,7 @@ export const ProviderColumn = ({ provider, serviceUser, now }: { provider: Provi
 							<Chip size="small" variant="outlined" color={lastReading ? "success" : "default"} label={lastReading ? "OK" : "Waiting"} />
 						)}
 					</Stack>
-					<Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
+					<Typography variant="body2" sx={{ color: "text.secondary", mt: 0.25 }}>
 						{readingLine(provider, now)}
 					</Typography>
 				</Box>
@@ -36,7 +36,7 @@ export const ProviderColumn = ({ provider, serviceUser, now }: { provider: Provi
 			</Stack>
 
 			{error && failure && (
-				<Alert severity={error.severity} sx={{ mb: 2 }}>
+				<Alert severity={error.severity} sx={{ mb: 1.5 }}>
 					<AlertTitle>{error.title}</AlertTitle>
 					{error.action}
 					<Box sx={{ mt: 0.5 }}>

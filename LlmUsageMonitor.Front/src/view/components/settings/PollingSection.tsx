@@ -49,7 +49,7 @@ export function PollingSection({ settings }: { settings: PollingSettings }) {
 				<TableHead>
 					<TableRow>
 						<TableCell sx={{ pl: 0 }}>Provider</TableCell>
-						<TableCell sx={{ pr: 0, width: { xs: 140, sm: 200 } }}>Value</TableCell>
+						<TableCell sx={{ pr: 0, width: 120 }}>Value</TableCell>
 					</TableRow>
 				</TableHead>
 				<TableBody>

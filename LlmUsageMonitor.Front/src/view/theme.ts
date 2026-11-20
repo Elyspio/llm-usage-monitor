@@ -74,6 +74,7 @@ export const theme = createTheme({
 		MuiTableCell: {
 			styleOverrides: {
 				root: { borderColor: divider, padding: "14px 10px", fontSize: "0.75rem" },
+				sizeSmall: { padding: "6px 10px" },
 				head: { color: textSecondary, fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.08em" },
 			},
 		},

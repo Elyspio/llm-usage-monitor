@@ -12,7 +12,7 @@ export const DashboardPage = () => {
 	const { data } = dashboard;
 
 	return (
-		<Stack spacing={4}>
+		<Stack spacing={2}>
 			<PageHeader overline="01 / Dashboard" title="Dashboard" />
 			{dashboard.isPending ? (
 				<CircularProgress />
@@ -22,7 +22,7 @@ export const DashboardPage = () => {
 				<>
 					<QueryError query={dashboard} subject="the dashboard" />
 					<UsageTimeline providers={data.providers} now={now} />
-					<Grid container spacing={3}>
+					<Grid container spacing={2}>
 						{data.providers.map((provider) => (
 							<Grid key={provider.provider} size={{ xs: 12, md: 6 }}>
 								<ProviderColumn provider={provider} serviceUser={data.serviceUser} now={now} />

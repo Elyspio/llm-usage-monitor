@@ -20,7 +20,7 @@ export const HistoryPage = () => {
 	);
 
 	return (
-		<Stack spacing={3}>
+		<Stack spacing={2}>
 			<PageHeader overline="02 / History" title="History" />
 			{dashboard.isPending ? (
 				<CircularProgress />
@@ -29,7 +29,7 @@ export const HistoryPage = () => {
 			) : (
 				<>
 					<QueryError query={dashboard} subject="the trigger log" />
-					<Grid container spacing={3}>
+					<Grid container spacing={2}>
 						<Grid size={{ xs: 12, lg: 7 }}>
 							<HistoryCard durations={durations} />
 						</Grid>
