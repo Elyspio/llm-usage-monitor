@@ -18,11 +18,11 @@ export const SettingsSection = ({
 	children: ReactNode;
 	onSubmit: (event: FormEvent) => void;
 }) => (
-	<Paper component="form" aria-label={title} variant="outlined" noValidate onSubmit={onSubmit} sx={{ p: 2.5, height: "100%", display: "flex", flexDirection: "column" }}>
-		<Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mb: 2.5 }}>
+	<Paper component="form" aria-label={title} variant="outlined" noValidate onSubmit={onSubmit} sx={{ p: 2, height: "100%", display: "flex", flexDirection: "column" }}>
+		<Stack direction="row" spacing={1.25} sx={{ alignItems: "center", mb: 1.5 }}>
 			<Box
 				aria-hidden="true"
-				sx={{ width: 34, height: 34, flexShrink: 0, bgcolor: "surface.accent", color: "primary.main", borderRadius: "10px", display: "grid", placeItems: "center" }}
+				sx={{ width: 30, height: 30, flexShrink: 0, bgcolor: "surface.accent", color: "primary.main", borderRadius: "8px", display: "grid", placeItems: "center" }}
 			>
 				{icon}
 			</Box>
@@ -35,10 +35,10 @@ export const SettingsSection = ({
 				</Typography>
 			</Box>
 		</Stack>
-		<Stack spacing={2.5} sx={{ minWidth: 0, flex: 1 }}>
+		<Stack spacing={1.5} sx={{ minWidth: 0, flex: 1 }}>
 			{children}
 		</Stack>
-		<Box sx={{ mt: 2.5, pt: 2, borderTop: 1, borderColor: "divider" }}>{actions}</Box>
+		<Box sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: "divider" }}>{actions}</Box>
 	</Paper>
 );
 
@@ -60,7 +60,7 @@ export function useDraft<T>(server: T) {
 const saveErrorMessage = (error: unknown) => apiErrorMessage(error, { 400: "Save refused: see the fields." });
 
 export const SaveBar = ({ pending, saved, error, children }: { pending: boolean; saved: boolean; error: unknown; children?: ReactNode }) => (
-	<Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: { xs: "flex-start", sm: "center" } }}>
+	<Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ alignItems: { xs: "flex-start", sm: "center" } }}>
 		<Button type="submit" variant="outlined" color="inherit" loading={pending}>
 			Save
 		</Button>

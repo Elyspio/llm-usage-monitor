@@ -77,8 +77,8 @@ export function ResetCredits({ provider, now }: { provider: ProviderDashboard; n
 		consume.mutate({ path: { provider: provider.provider }, body: { creditId: selected.id, idempotencyKey: key } });
 	};
 	return (
-		<Box sx={{ mt: 3, pt: 2.5, borderTop: 1, borderColor: "divider" }}>
-			<Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1 }}>
+		<Box sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: "divider" }}>
+			<Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 0.5 }}>
 				<RestartAltIcon fontSize="small" />
 				<Typography component="h3" variant="subtitle2">
 					Earned resets
@@ -89,7 +89,7 @@ export function ResetCredits({ provider, now }: { provider: ProviderDashboard; n
 				{data?.settings.autoEnabled ? `Automatic use ${data.settings.beforeExpiryMinutes} min before expiry.` : "Automatic use disabled."}
 			</Typography>
 			{next && (
-				<Stack direction="row" spacing={2} sx={{ ...line, mt: 1.5, px: 1.5, py: 1.25, bgcolor: "background.default", borderRadius: "8px" }}>
+				<Stack direction="row" spacing={1.5} sx={{ ...line, mt: 1, px: 1.5, py: 1, bgcolor: "background.default", borderRadius: "8px" }}>
 					<Box sx={{ minWidth: 0 }}>
 						<Typography variant="body2" sx={{ fontWeight: 600 }}>
 							{next.title ?? "Reset"}
@@ -151,14 +151,14 @@ export function ResetCredits({ provider, now }: { provider: ProviderDashboard; n
 					Only some credit details are available. Automatic selection requires a known expiration.
 				</Typography>
 			)}
-			<Accordion disableGutters elevation={0} sx={{ mt: 1.5, bgcolor: "transparent", "&:before": { display: "none" } }}>
-				<AccordionSummary sx={{ px: 0, minHeight: 36 }}>
+			<Accordion disableGutters elevation={0} sx={{ mt: 1, bgcolor: "transparent", "&:before": { display: "none" } }}>
+				<AccordionSummary sx={{ px: 0, minHeight: 32, "& .MuiAccordionSummary-content": { my: 0.75 } }}>
 					<Typography variant="body2">Reset details and history</Typography>
 				</AccordionSummary>
-				<AccordionDetails sx={{ px: 0 }}>
-					<Stack spacing={2}>
+				<AccordionDetails sx={{ px: 0, pt: 0.5, pb: 0 }}>
+					<Stack spacing={1.25}>
 						{credits.map((credit, index) => (
-							<Stack key={credit.id} direction="row" spacing={2} sx={line}>
+							<Stack key={credit.id} direction="row" spacing={1.5} sx={line}>
 								<Box sx={{ minWidth: 0 }}>
 									<Typography variant="body2" sx={{ fontWeight: 600 }}>
 										{credit.title ?? `Reset ${index + 1}`} · {credit.remainingUses} remaining{credit.id === data?.nextCreditId ? " · next selected" : ""}

@@ -10,7 +10,7 @@ import { useNow } from "@hooks/useNow";
 export const TriggerJournal = ({ runs }: { runs: TriggerRun[] }) => {
 	const now = useNow();
 	return (
-		<Paper component="section" aria-label="Trigger log" variant="outlined" sx={{ p: 2.5, height: "100%" }}>
+		<Paper component="section" aria-label="Trigger log" variant="outlined" sx={{ p: 2, height: "100%" }}>
 			<Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
 				<Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
 					Trigger log
@@ -22,7 +22,7 @@ export const TriggerJournal = ({ runs }: { runs: TriggerRun[] }) => {
 				)}
 			</Stack>
 			{runs.length === 0 ? (
-				<Typography sx={{ color: "text.secondary", py: 4, textAlign: "center" }}>No trigger yet.</Typography>
+				<Typography sx={{ color: "text.secondary", py: 3, textAlign: "center" }}>No trigger yet.</Typography>
 			) : (
 				<Box sx={{ overflowX: "auto" }}>
 					<Table size="small">
@@ -72,11 +72,11 @@ const Outcome = ({ run }: { run: TriggerRun }) => {
 	return (
 		<>
 			<Chip size="small" color={run.status === "succeeded" ? "success" : "error"} variant="outlined" label={run.status === "succeeded" ? "succeeded" : "failed"} />
-			<Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
+			<Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.25 }}>
 				{[run.model, run.effort, duration, attempts, retry].filter(Boolean).join(" · ")}
 			</Typography>
 			{run.error && (
-				<Box component="details" sx={{ typography: "caption", mt: 0.5 }}>
+				<Box component="details" sx={{ typography: "caption", mt: 0.25 }}>
 					<summary>{run.errorCode ?? "error"}</summary>
 					<code>{run.error}</code>
 				</Box>

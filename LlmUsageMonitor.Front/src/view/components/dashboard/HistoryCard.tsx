@@ -75,7 +75,7 @@ export const HistoryCard = ({ durations }: { durations: Record<string, number | 
 	const toggle = (key: string) => setHidden((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
 
 	return (
-		<Paper component="section" aria-label="History" variant="outlined" sx={{ p: 2.5, height: "100%", opacity: history.isPlaceholderData ? 0.7 : 1 }}>
+		<Paper component="section" aria-label="History" variant="outlined" sx={{ p: 2, height: "100%", opacity: history.isPlaceholderData ? 0.7 : 1 }}>
 			<Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
 				<Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
 					History · % remaining
@@ -95,10 +95,10 @@ export const HistoryCard = ({ durations }: { durations: Record<string, number | 
 			) : !data || !chart ? (
 				<QueryError query={history} subject="the history" />
 			) : chart.series.length === 0 ? (
-				<Typography sx={{ color: "text.secondary", py: 8, textAlign: "center" }}>No reading over the period.</Typography>
+				<Typography sx={{ color: "text.secondary", py: 4, textAlign: "center" }}>No reading over the period.</Typography>
 			) : (
 				<>
-					<Stack component="fieldset" direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", border: 0, p: 0, mx: 0, mt: 0, mb: 1, minWidth: 0 }}>
+					<Stack component="fieldset" direction="row" spacing={0.75} useFlexGap sx={{ flexWrap: "wrap", border: 0, p: 0, mx: 0, mt: 0, mb: 1, minWidth: 0 }}>
 						<Box component="legend" sx={visuallyHidden}>
 							Series shown on the chart
 						</Box>
@@ -119,7 +119,7 @@ export const HistoryCard = ({ durations }: { durations: Record<string, number | 
 							<li key={line}>{line}</li>
 						))}
 					</Box>
-					<LineChart height={300} skipAnimation hideLegend grid={{ horizontal: true }} xAxis={xAxis} yAxis={yAxis} series={series}>
+					<LineChart height={280} skipAnimation hideLegend grid={{ horizontal: true }} xAxis={xAxis} yAxis={yAxis} series={series}>
 						{data.triggerRuns.map((run) => (
 							<ChartsReferenceLine
 								key={run.id}

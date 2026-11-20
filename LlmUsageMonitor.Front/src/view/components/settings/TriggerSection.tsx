@@ -43,11 +43,11 @@ export function TriggerSection({ settings }: { settings: TriggerSettings }) {
 			actions={<SaveBar pending={save.isPending} saved={save.isSuccess} error={save.error} />}
 		>
 			<Box sx={{ overflowX: "auto" }}>
-				<Table size="small" aria-label="Trigger per provider" sx={{ minWidth: 560 }}>
+				<Table size="small" aria-label="Trigger per provider" sx={{ minWidth: 440 }}>
 					<TableHead>
 						<TableRow>
 							<TableCell sx={{ pl: 0 }}>Provider</TableCell>
-							<TableCell align="center" sx={{ width: 130, whiteSpace: "normal" }}>
+							<TableCell align="center" sx={{ width: 100, whiteSpace: "normal" }}>
 								Automatic after reset
 							</TableCell>
 							<TableCell>Model</TableCell>
@@ -72,7 +72,7 @@ export function TriggerSection({ settings }: { settings: TriggerSettings }) {
 										freeSolo
 										autoSelect
 										size="small"
-										sx={{ width: 240, maxWidth: "100%" }}
+										sx={{ minWidth: 165, width: "100%", maxWidth: 240 }}
 										options={modelSuggestions[provider]}
 										inputValue={values[provider].model}
 										onInputChange={(_, model) => setValues({ ...values, [provider]: { ...values[provider], model } })}
@@ -93,7 +93,7 @@ export function TriggerSection({ settings }: { settings: TriggerSettings }) {
 									<TextField
 										select
 										size="small"
-										sx={{ width: 110 }}
+										sx={{ width: 96 }}
 										value={values[provider].effort}
 										onChange={(event) => setValues({ ...values, [provider]: { ...values[provider], effort: event.target.value as ReasoningEffort } })}
 										error={Boolean(errors[`${provider}.effort`])}

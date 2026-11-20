@@ -47,29 +47,28 @@ export function ResetCreditSection({ settings }: { settings: ResetCreditSettings
 				<Table size="small" aria-label="Earned resets per provider">
 					<TableHead>
 						<TableRow>
-							<TableCell>Provider</TableCell>
-							<TableCell>Automatic use</TableCell>
-							<TableCell>Before expiry</TableCell>
+							<TableCell sx={{ pl: 0 }}>Provider</TableCell>
+							<TableCell align="center">Automatic use</TableCell>
+							<TableCell sx={{ pr: 0, width: 130 }}>Before expiry (min)</TableCell>
 						</TableRow>
 					</TableHead>
 					<TableBody>
 						{providers.map((provider) => (
 							<TableRow key={provider}>
-								<TableCell component="th" scope="row">
+								<TableCell component="th" scope="row" sx={{ pl: 0, fontWeight: 600 }}>
 									{providerLabel[provider]}
 								</TableCell>
-								<TableCell>
+								<TableCell align="center">
 									<Switch
 										checked={values[provider].autoEnabled}
 										onChange={(event) => change({ ...values, [provider]: { ...values[provider], autoEnabled: event.target.checked } })}
 										slotProps={{ input: { "aria-label": `${providerLabel[provider]} automatic earned resets` } }}
 									/>
 								</TableCell>
-								<TableCell>
+								<TableCell sx={{ pr: 0 }}>
 									<TextField
-										sx={{ width: 180 }}
+										sx={{ width: 100 }}
 										type="number"
-										label="Minutes before expiry"
 										value={values[provider].beforeExpiryMinutes}
 										onChange={(event) => change({ ...values, [provider]: { ...values[provider], beforeExpiryMinutes: Number(event.target.value) } })}
 										error={Boolean(errors[`${provider}.beforeExpiryMinutes`])}

@@ -21,7 +21,7 @@ export const SettingsPage = () => {
 	const queries = [polling, triggers, notifications, resetCredits];
 
 	return (
-		<Stack spacing={3}>
+		<Stack spacing={2}>
 			<PageHeader overline="04 / Configuration" title="Settings" />
 			{queries.some((query) => query.isPending) ? (
 				<CircularProgress />
@@ -33,15 +33,15 @@ export const SettingsPage = () => {
 					<QueryError query={triggers} subject="the trigger settings" />
 					<QueryError query={notifications} subject="the notification settings" />
 					<QueryError query={resetCredits} subject="the earned reset settings" />
-					<Grid container spacing={3}>
-						<Grid size={{ xs: 12, lg: 6 }}>
+					<Grid container spacing={2}>
+						<Grid size={{ xs: 12, sm: 6, lg: 5, xl: 3 }}>
 							<PollingSection settings={polling.data} />
 						</Grid>
-						<Grid size={{ xs: 12, lg: 6 }}>
-							<TriggerSection settings={triggers.data} />
-						</Grid>
-						<Grid size={12}>
+						<Grid size={{ xs: 12, sm: 6, lg: 7, xl: 4 }}>
 							<ResetCreditSection settings={resetCredits.data} />
+						</Grid>
+						<Grid size={{ xs: 12, lg: 12, xl: 5 }}>
+							<TriggerSection settings={triggers.data} />
 						</Grid>
 						<Grid size={12}>
 							<NotificationSection settings={notifications.data} />
