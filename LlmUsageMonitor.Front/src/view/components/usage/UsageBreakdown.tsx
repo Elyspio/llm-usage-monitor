@@ -51,8 +51,11 @@ const SortableCell = ({
 				aria-label={`Sort by ${label}`}
 				sx={column === "label" ? undefined : { flexDirection: "row-reverse" }}
 			>
-				{marker}
-				{label}
+				{/* One box, so the reversed row moves only the arrow to the left and the marker stays before its label. */}
+				<Box component="span" sx={{ display: "inline-flex", alignItems: "center" }}>
+					{marker}
+					{label}
+				</Box>
 			</TableSortLabel>
 		</TableCell>
 	);
