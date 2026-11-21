@@ -6,7 +6,7 @@ namespace LlmUsageMonitor.Adapters.Copilot;
 /// <summary>
 ///     The GitHub token of the Copilot CLI, with the CLI precedence: <c>COPILOT_GITHUB_TOKEN</c>, <c>GH_TOKEN</c>,
 ///     <c>GITHUB_TOKEN</c>, then the login stored by <c>copilot login</c>. Without a system keyring (a Linux service), the
-///     CLI stores it in <c>config.json</c>, under <c>authTokens</c> keyed by <c>host:login</c>.
+///     CLI stores it in <c>config.json</c>, under <c>authTokens["host:login"].token</c>.
 /// </summary>
 internal static class CopilotCredentials
 {
@@ -52,9 +52,14 @@ internal static class CopilotCredentials
 			}
 
 			var host = Text(user, "host") ?? "https://github.com";
-			return tokens.TryGetProperty($"{host}:{login}", out var token) && token.ValueKind == JsonValueKind.String && token.GetString() is { Length: > 0 } value
-				? value
-				: null;
+			if (!tokens.TryGetProperty($"{host}:{login}", out var entry)) return null;
+			// CLI 1.0.114 writes { "token": "..." }; a bare string is accepted too.
+			return entry.ValueKind switch
+			{
+				JsonValueKind.String when entry.GetString() is { Length: > 0 } value => value,
+				JsonValueKind.Object => Text(entry, "token"),
+				_ => null
+			};
 		}
 		catch (JsonException exception)
 		{

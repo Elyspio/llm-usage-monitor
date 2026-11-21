@@ -71,7 +71,7 @@ public sealed class CopilotAdapterTests : IDisposable
 	                                       // User settings belong in settings.json.
 	                                       // This file is managed automatically.
 	                                       {
-	                                         "authTokens": { "https://github.com:octocat": "stored-token", "https://github.com:other": "other-token" },
+	                                         "authTokens": { "https://github.com:octocat:github": { "token": "github-token" }, "https://github.com:octocat": { "token": "stored-token" }, "https://github.com:other": { "token": "other-token" } },
 	                                         "loggedInUsers": [{ "host": "https://github.com", "login": "octocat" }],
 	                                         "lastLoggedInUser": { "host": "https://github.com", "login": "octocat" }
 	                                       }
@@ -88,6 +88,7 @@ public sealed class CopilotAdapterTests : IDisposable
 	{
 		CopilotCredentials.Parse(ConfigWithLogin).ShouldBe("stored-token");
 		CopilotCredentials.Parse("""{ "loggedInUsers": [] }""").ShouldBeNull();
+		CopilotCredentials.Parse("""{ "authTokens": { "https://github.com:octocat": "bare-token" }, "lastLoggedInUser": { "login": "octocat" } }""").ShouldBe("bare-token");
 	}
 
 	[Fact]
