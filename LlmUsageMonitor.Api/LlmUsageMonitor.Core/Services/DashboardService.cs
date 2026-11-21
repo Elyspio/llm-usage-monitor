@@ -42,7 +42,9 @@ public sealed class DashboardService(
 					state.TokenExpiresAt,
 					state.RefreshTokenExpiresAt))
 			{
-				ResetCredits = await CreditDashboard(state, settings.ResetCredits.For(provider), now, cancellationToken)
+				ResetCredits = await CreditDashboard(state, settings.ResetCredits.For(provider), now, cancellationToken),
+				Quota = state.Quota,
+				Triggerable = provider.IsTriggerable()
 			});
 		}
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { bucketKey, emptyCodexFileState, emptyState, parseBucketKey, prune, readClaudeLine, readCodexLine, splitLines } from "./parser";
+import { bucketKey, emptyCodexFileState, emptyState, parseBucketKey, prune, readClaudeLine, readCodexLine, readCopilotLine, splitLines } from "./parser";
 
 const hour = Date.parse("2026-09-25T14:00:00.000Z");
 
@@ -117,5 +117,46 @@ describe("state", () => {
 
 		expect(lines).toEqual(['{"a":1}', '{"b":2}']);
 		expect(consumed).toBe(16);
+	});
+});
+
+const copilotRecord = (usageId: string, timestamp: string, usage: Record<string, unknown> = {}) =>
+	JSON.stringify({
+		type: "session.usage_record",
+		id: `event-${usageId}`,
+		timestamp,
+		data: {
+			usage: {
+				model: "claude-opus-5.5",
+				inputTokens: 1000,
+				cacheReadTokens: 700,
+				cacheWriteTokens: 200,
+				outputTokens: 40,
+				isByok: false,
+				accounting: { usageId },
+				...usage,
+			},
+		},
+	});
+
+describe("Copilot CLI logs", () => {
+	it("counts each model call once, the cached input apart", () => {
+		const state = emptyState();
+
+		readCopilotLine(state, "file", copilotRecord("call_1", "2026-09-25T14:10:00.000Z"));
+		readCopilotLine(state, "file", copilotRecord("call_1", "2026-09-25T14:10:00.000Z"));
+		readCopilotLine(state, "file", copilotRecord("call_2", "2026-09-25T14:20:00.000Z", { model: "gpt-6-luna" }));
+
+		expect(state.buckets[bucketKey("copilot", "claude-opus-5.5", hour)]).toEqual({ input: 100, cacheRead: 700, cacheWrite: 200, output: 40 });
+		expect(state.buckets[bucketKey("copilot", "gpt-6-luna", hour)]).toEqual({ input: 100, cacheRead: 700, cacheWrite: 200, output: 40 });
+	});
+
+	it("leaves out the calls to the user's own models and the other events", () => {
+		const state = emptyState();
+
+		readCopilotLine(state, "file", copilotRecord("call_1", "2026-09-25T14:10:00.000Z", { isByok: true, model: "local-model" }));
+		readCopilotLine(state, "file", JSON.stringify({ type: "session.usage_checkpoint", timestamp: "2026-09-25T14:10:00.000Z", data: { totalPremiumRequests: 3 } }));
+
+		expect(state.buckets).toEqual({});
 	});
 });

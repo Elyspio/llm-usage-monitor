@@ -52,7 +52,8 @@ internal sealed class SettingsRepository(IMongoDatabase database) : ISettingsRep
 	{
 		return Update(Builders<SettingsDocument>.Update
 			.Set(settings => settings.ClaudeIntervalMinutes, polling.ClaudeIntervalMinutes)
-			.Set(settings => settings.CodexIntervalMinutes, polling.CodexIntervalMinutes), cancellationToken);
+			.Set(settings => settings.CodexIntervalMinutes, polling.CodexIntervalMinutes)
+			.Set(settings => settings.CopilotIntervalMinutes, polling.CopilotIntervalMinutes), cancellationToken);
 	}
 
 	public Task SaveTriggers(TriggerSettings triggers, CancellationToken cancellationToken)

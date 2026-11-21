@@ -10,6 +10,8 @@ import { SaveBar, SettingsSection, useDraft } from "./SettingsSection";
 
 const intervals = [1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 60];
 const intervalLabel = (minutes: number) => `${minutes} min`;
+const defaultCopilotInterval = 15;
+const intervalField = { claude: "claudeIntervalMinutes", codex: "codexIntervalMinutes", copilot: "copilotIntervalMinutes" } as const;
 
 export function PollingSection({ settings }: { settings: PollingSettings }) {
 	const queryClient = useQueryClient();
@@ -32,7 +34,11 @@ export function PollingSection({ settings }: { settings: PollingSettings }) {
 
 	const submit = (event: FormEvent) => {
 		event.preventDefault();
-		const local = collect({ claudeIntervalMinutes: validateInterval(values.claudeIntervalMinutes), codexIntervalMinutes: validateInterval(values.codexIntervalMinutes) });
+		const local = collect({
+			claudeIntervalMinutes: validateInterval(values.claudeIntervalMinutes),
+			codexIntervalMinutes: validateInterval(values.codexIntervalMinutes),
+			copilotIntervalMinutes: validateInterval(values.copilotIntervalMinutes ?? defaultCopilotInterval),
+		});
 		setErrors(local);
 		if (Object.keys(local).length === 0) save.mutate({ body: values });
 	};
@@ -54,7 +60,7 @@ export function PollingSection({ settings }: { settings: PollingSettings }) {
 				</TableHead>
 				<TableBody>
 					{providers.map((provider) => {
-						const field = provider === "claude" ? "claudeIntervalMinutes" : "codexIntervalMinutes";
+						const field = intervalField[provider];
 						return (
 							<TableRow key={provider}>
 								<TableCell component="th" scope="row" sx={{ pl: 0, fontWeight: 600 }}>
@@ -70,7 +76,7 @@ export function PollingSection({ settings }: { settings: PollingSettings }) {
 										options={intervals}
 										slotProps={{ listbox: { sx: { maxHeight: "min(480px, 50vh)" } } }}
 										getOptionLabel={intervalLabel}
-										value={values[field]}
+										value={values[field] ?? defaultCopilotInterval}
 										onChange={(_, minutes) => setValues({ ...values, [field]: minutes })}
 										renderInput={(params) => (
 											<TextField

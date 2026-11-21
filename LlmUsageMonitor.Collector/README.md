@@ -1,6 +1,6 @@
 # @elyspio/llm-usage-collector
 
-Reads the Claude Code and Codex session logs of a workstation (`~/.claude/projects/**/*.jsonl`, `~/.codex/sessions/**/*.jsonl`) and uploads their hourly token usage to [LLM Usage Monitor](https://monitor.llm.elyspio.fr) (`POST /api/token-usage`).
+Reads the Claude Code, Codex and Copilot CLI session logs of a workstation (`~/.claude/projects/**/*.jsonl`, `~/.codex/sessions/**/*.jsonl`, `~/.copilot/session-state/*/events.jsonl`) and uploads their hourly token usage to [LLM Usage Monitor](https://monitor.llm.elyspio.fr) (`POST /api/token-usage`).
 
 One package, two uses:
 

@@ -6,7 +6,10 @@ namespace LlmUsageMonitor.Abstractions.Data;
 public enum Provider
 {
 	Claude,
-	Codex
+	Codex,
+
+	/// <summary>GitHub Copilot: monitored only, its monthly allowance has no window to open.</summary>
+	Copilot
 }
 
 /// <summary>
@@ -39,4 +42,10 @@ public sealed record ProviderDashboard(
 	ProviderHealth Health)
 {
 	public ResetCreditDashboard? ResetCredits { get; init; }
+
+	/// <summary>The monthly request allowance, for the providers that have one.</summary>
+	public MonthlyQuota? Quota { get; init; }
+
+	/// <summary>Whether a prompt can open a window of the provider: false for a monitored-only provider.</summary>
+	public bool Triggerable { get; init; } = true;
 }

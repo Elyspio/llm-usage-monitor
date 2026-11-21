@@ -18,7 +18,8 @@
             "schema": {
               "enum": [
                 "claude",
-                "codex"
+                "codex",
+                "copilot"
               ]
             }
           },
@@ -75,7 +76,8 @@
             "schema": {
               "enum": [
                 "claude",
-                "codex"
+                "codex",
+                "copilot"
               ]
             }
           }
@@ -415,7 +417,8 @@
             "schema": {
               "enum": [
                 "claude",
-                "codex"
+                "codex",
+                "copilot"
               ]
             }
           }
@@ -696,6 +699,51 @@
           }
         }
       },
+      "MonthlyQuota": {
+        "required": [
+          "plan",
+          "entitlement",
+          "remaining",
+          "overageCount",
+          "overagePermitted",
+          "unlimited",
+          "resetsAt"
+        ],
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "entitlement": {
+            "type": "number",
+            "format": "double"
+          },
+          "remaining": {
+            "type": "number",
+            "format": "double"
+          },
+          "overageCount": {
+            "type": "number",
+            "format": "double"
+          },
+          "overagePermitted": {
+            "type": "boolean"
+          },
+          "unlimited": {
+            "type": "boolean"
+          },
+          "resetsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
       "NotificationEvents": {
         "required": [
           "triggerFailed",
@@ -747,6 +795,16 @@
           },
           "codex": {
             "$ref": "#/components/schemas/NotificationEvents"
+          },
+          "copilot": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NotificationEvents"
+              }
+            ]
           }
         }
       },
@@ -879,6 +937,11 @@
           "codexIntervalMinutes": {
             "type": "integer",
             "format": "int32"
+          },
+          "copilotIntervalMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "default": 15
           }
         }
       },
@@ -921,7 +984,8 @@
       "Provider": {
         "enum": [
           "claude",
-          "codex"
+          "codex",
+          "copilot"
         ]
       },
       "ProviderDashboard": {
@@ -992,6 +1056,19 @@
                 "$ref": "#/components/schemas/ResetCreditDashboard"
               }
             ]
+          },
+          "quota": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MonthlyQuota"
+              }
+            ]
+          },
+          "triggerable": {
+            "type": "boolean"
           }
         }
       },

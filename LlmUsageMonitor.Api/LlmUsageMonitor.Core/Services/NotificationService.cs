@@ -84,7 +84,7 @@ public sealed class NotificationService(
 
 	private NotificationMessage Build(NotificationKind kind, Provider provider, string detail)
 	{
-		var name = provider == Provider.Claude ? "Claude" : "Codex";
+		var name = provider.Label();
 		var (title, priority, tag) = kind switch
 		{
 			NotificationKind.TriggerFailed => ($"{name} : déclenchement échoué", NotificationPriority.High, "x"),

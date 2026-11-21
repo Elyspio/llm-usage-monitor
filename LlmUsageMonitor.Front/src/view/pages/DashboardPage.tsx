@@ -24,7 +24,7 @@ export const DashboardPage = () => {
 					<UsageTimeline providers={data.providers} now={now} />
 					<Grid container spacing={2}>
 						{data.providers.map((provider) => (
-							<Grid key={provider.provider} size={{ xs: 12, md: 6 }}>
+							<Grid key={provider.provider} size={{ xs: 12, md: 6, xl: 4 }}>
 								<ProviderColumn provider={provider} serviceUser={data.serviceUser} now={now} />
 							</Grid>
 						))}

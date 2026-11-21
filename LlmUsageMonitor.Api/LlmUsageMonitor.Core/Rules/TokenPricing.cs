@@ -10,12 +10,14 @@ public static partial class TokenPricing
 {
 	/// <summary>
 	///     The price table keys a model name may match, by order of preference: the exact name, then the name without its
-	///     release date (<c>claude-haiku-4-5-20251001</c> → <c>claude-haiku-4-5</c>).
+	///     release date (<c>claude-haiku-4-5-20251001</c> → <c>claude-haiku-4-5</c>), then the Claude name with its version
+	///     dots written as dashes, as GitHub Copilot names them (<c>claude-sonnet-4.5</c> → <c>claude-sonnet-4-5</c>).
 	/// </summary>
 	public static IReadOnlyList<string> Candidates(string model)
 	{
 		var undated = DateSuffix().Replace(model, "");
-		return undated == model ? [model] : [model, undated];
+		var dashed = model.StartsWith("claude-", StringComparison.Ordinal) ? undated.Replace('.', '-') : undated;
+		return new[] { model, undated, dashed }.Distinct(StringComparer.Ordinal).ToList();
 	}
 
 	/// <summary>

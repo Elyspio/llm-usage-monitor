@@ -297,3 +297,15 @@ internal sealed class StaticPriceSource(IReadOnlyList<ModelPrice> prices) : IMod
 		return Task.FromResult(prices);
 	}
 }
+
+public sealed class TokenPricingTests
+{
+	[Theory]
+	[InlineData("gpt-5.1", new[] { "gpt-5.1" })]
+	[InlineData("claude-haiku-4-5-20251001", new[] { "claude-haiku-4-5-20251001", "claude-haiku-4-5" })]
+	[InlineData("claude-sonnet-4.5", new[] { "claude-sonnet-4.5", "claude-sonnet-4-5" })]
+	public void A_model_matches_its_dated_and_copilot_spellings(string model, string[] expected)
+	{
+		LlmUsageMonitor.Core.Rules.TokenPricing.Candidates(model).ShouldBe(expected);
+	}
+}

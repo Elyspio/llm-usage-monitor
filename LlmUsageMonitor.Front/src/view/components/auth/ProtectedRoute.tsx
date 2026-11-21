@@ -34,7 +34,7 @@ export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
 					LLM Monitor
 				</Typography>
 				{sessionExpired && <Alert severity="info">Your session has expired. Sign in again to go back to the page you were on.</Alert>}
-				<Typography sx={{ color: "text.secondary" }}>See your Claude and Codex quotas, follow the resets and drive the restarts.</Typography>
+				<Typography sx={{ color: "text.secondary" }}>See your Claude, Codex and Copilot quotas, follow the resets and drive the restarts.</Typography>
 				<Button variant="contained" onClick={signIn} size="large">
 					Sign in
 				</Button>

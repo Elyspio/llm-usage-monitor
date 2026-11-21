@@ -15,6 +15,16 @@ export type DashboardSnapshot = {
     serviceUser: string;
 };
 
+export type MonthlyQuota = {
+    plan: null | string;
+    entitlement: number;
+    remaining: number;
+    overageCount: number;
+    overagePermitted: boolean;
+    unlimited: boolean;
+    resetsAt: null | string;
+};
+
 export type NotificationEvents = {
     triggerFailed: boolean;
     authExpired: boolean;
@@ -29,6 +39,7 @@ export type NotificationEvents = {
 export type NotificationEventsByProvider = {
     claude: NotificationEvents;
     codex: NotificationEvents;
+    copilot?: null | NotificationEvents;
 };
 
 export type NotificationKind = 'triggerFailed' | 'authExpired' | 'readFailed' | 'reset' | 'triggerSucceeded' | 'recovered' | 'authExpiring' | 'resetCreditSucceeded' | 'resetCreditFailed';
@@ -60,6 +71,7 @@ export type NotificationSettingsView = {
 export type PollingSettings = {
     claudeIntervalMinutes: number;
     codexIntervalMinutes: number;
+    copilotIntervalMinutes?: number;
 };
 
 export type ProblemDetails = {
@@ -70,7 +82,7 @@ export type ProblemDetails = {
     instance?: null | string;
 };
 
-export type Provider = 'claude' | 'codex';
+export type Provider = 'claude' | 'codex' | 'copilot';
 
 export type ProviderDashboard = {
     provider: Provider;
@@ -82,6 +94,8 @@ export type ProviderDashboard = {
     runningTrigger: null | TriggerRun;
     health: ProviderHealth;
     resetCredits?: null | ResetCreditDashboard;
+    quota?: null | MonthlyQuota;
+    triggerable?: boolean;
 };
 
 export type ProviderErrorCode = 'authExpired' | 'authRequired' | 'credentialsUnavailable' | 'accessDenied' | 'rateLimited' | 'usageLimit' | 'httpError' | 'timeout' | 'fetchFailed' | 'invalidResponse' | 'noUsageData' | 'cliUnavailable' | 'cliExited' | 'cliBusy' | 'triggerFailed' | 'interrupted' | 'overloaded' | 'cancelled' | 'unexpectedError' | 'cliUnsupportedOption' | 'notificationFailed';
@@ -297,7 +311,7 @@ export type GetHistoryData = {
     body?: never;
     path?: never;
     query?: {
-        provider?: 'claude' | 'codex';
+        provider?: 'claude' | 'codex' | 'copilot';
         windowId?: string;
         range?: string;
     };
@@ -325,7 +339,7 @@ export type GetHistoryResponse = GetHistoryResponses[keyof GetHistoryResponses];
 export type TriggerProviderData = {
     body?: never;
     path: {
-        provider: 'claude' | 'codex';
+        provider: 'claude' | 'codex' | 'copilot';
     };
     query?: never;
     url: '/api/providers/{provider}/trigger';
@@ -547,7 +561,7 @@ export type GetDashboardResponse = GetDashboardResponses[keyof GetDashboardRespo
 export type ConsumeResetCreditData = {
     body: ConsumeResetCreditRequest;
     path: {
-        provider: 'claude' | 'codex';
+        provider: 'claude' | 'codex' | 'copilot';
     };
     query?: never;
     url: '/api/providers/{provider}/reset-credits/consume';

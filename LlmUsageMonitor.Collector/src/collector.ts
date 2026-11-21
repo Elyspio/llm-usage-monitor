@@ -4,7 +4,7 @@ import path from "node:path";
 import { setImmediate } from "node:timers/promises";
 import { readJson, readOrCreateMachineId, writeJsonAtomic } from "./files";
 import { acquireLock } from "./lock";
-import { type CodexFileState, emptyCodexFileState, emptyState, parseBucketKey, prune, readClaudeLine, readCodexLine, splitLines, type UsageState } from "./parser";
+import { type CodexFileState, emptyCodexFileState, emptyState, parseBucketKey, prune, readClaudeLine, readCodexLine, readCopilotLine, splitLines, type UsageState } from "./parser";
 import { defaultDataDir, defaultLogSources } from "./paths";
 import type { CollectorLogger, CollectorSettings, CollectorStatus, LogSource, PersistedStatus, SyncResult } from "./types";
 
@@ -138,7 +138,11 @@ export class LlmUsageCollector {
 				seen.add(file);
 				const fileState = (state.files[file] ??= { offset: 0 });
 				if (source.kind === "codex") fileState.codex ??= emptyCodexFileState();
-				const read = (line: string) => (source.kind === "claude" ? readClaudeLine(state.usage, line) : readCodexLine(state.usage, fileState.codex!, file, line));
+				const read = (line: string) => {
+					if (source.kind === "claude") readClaudeLine(state.usage, line);
+					else if (source.kind === "codex") readCodexLine(state.usage, fileState.codex!, file, line);
+					else readCopilotLine(state.usage, file, line);
+				};
 				try {
 					fileState.offset = await this.readFrom(file, fileState.offset, read);
 				} catch (error) {

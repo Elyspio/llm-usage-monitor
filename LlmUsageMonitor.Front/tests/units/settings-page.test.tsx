@@ -168,7 +168,7 @@ describe("SettingsPage", () => {
 			within(table)
 				.getAllByRole("columnheader")
 				.map((header) => header.textContent)
-		).toEqual(["Event", "Claude", "Codex"]);
+		).toEqual(["Event", "Claude", "Codex", "Copilot"]);
 		const triggerFailed = within(table).getByRole("row", { name: /Automatic trigger failed/ });
 		expect((within(triggerFailed).getByRole("switch", { name: "Automatic trigger failed — Claude" }) as HTMLInputElement).checked).toBe(true);
 		expect((within(triggerFailed).getByRole("switch", { name: "Automatic trigger failed — Codex" }) as HTMLInputElement).checked).toBe(false);

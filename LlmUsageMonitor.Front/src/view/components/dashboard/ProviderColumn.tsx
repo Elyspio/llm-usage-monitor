@@ -1,17 +1,19 @@
 import BoltIcon from "@mui/icons-material/Bolt";
 import { Alert, AlertTitle, Box, Chip, Paper, Stack, Typography } from "@mui/material";
 import type { ProviderDashboard } from "@/core/apis/generated/types.gen";
-import { errorInfo, isDegraded, providerColor, providerLabel } from "@/core/dashboard";
+import { errorInfo, isDegraded, premiumWindowId, providerColor, providerLabel } from "@/core/dashboard";
 import { fmtAgo, fmtIn, fmtWhen } from "@/core/format";
 import { ProviderLogo } from "./ProviderLogo";
 import { TriggerButton } from "./TriggerButton";
 import { ResetCredits } from "./ResetCredits";
+import { MonthlyQuotaGauge } from "./MonthlyQuotaGauge";
 
 export const ProviderColumn = ({ provider, serviceUser, now }: { provider: ProviderDashboard; serviceUser: string; now: number }) => {
 	const { health, lastReading } = provider;
 	const degraded = isDegraded(health);
 	const failure = degraded ? health.lastFailure : null;
 	const error = failure ? errorInfo(failure.code, provider.provider, serviceUser) : null;
+	const triggerable = provider.triggerable !== false;
 
 	return (
 		<Paper component="section" aria-label={providerLabel[provider.provider]} variant="outlined" sx={{ p: 2, height: "100%" }}>
@@ -32,7 +34,7 @@ export const ProviderColumn = ({ provider, serviceUser, now }: { provider: Provi
 						{readingLine(provider, now)}
 					</Typography>
 				</Box>
-				<TriggerButton provider={provider.provider} runningTrigger={provider.runningTrigger ?? null} />
+				{triggerable && <TriggerButton provider={provider.provider} runningTrigger={provider.runningTrigger ?? null} />}
 			</Stack>
 
 			{error && failure && (
@@ -51,11 +53,26 @@ export const ProviderColumn = ({ provider, serviceUser, now }: { provider: Provi
 				</Alert>
 			)}
 
-			<Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 0, p: 0, borderRadius: 2, bgcolor: "transparent", color: "text.secondary" }}>
-				<BoltIcon fontSize="small" />
-				<Typography variant="body2">{autoLine(provider, now)}</Typography>
-			</Stack>
-			<ResetCredits provider={provider} now={now} />
+			{triggerable ? (
+				<>
+					<Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 0, p: 0, borderRadius: 2, bgcolor: "transparent", color: "text.secondary" }}>
+						<BoltIcon fontSize="small" />
+						<Typography variant="body2">{autoLine(provider, now)}</Typography>
+					</Stack>
+					<ResetCredits provider={provider} now={now} />
+				</>
+			) : provider.quota ? (
+				<MonthlyQuotaGauge
+					quota={provider.quota}
+					window={lastReading?.windows.find((window) => window.id === premiumWindowId)}
+					color={providerColor[provider.provider]}
+					now={now}
+				/>
+			) : (
+				<Typography variant="body2" sx={{ color: "text.secondary" }}>
+					Monitored only: no window to restart.
+				</Typography>
+			)}
 		</Paper>
 	);
 };

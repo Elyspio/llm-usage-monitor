@@ -80,6 +80,7 @@ internal sealed class ProviderStateDocument
 
 	public ReadingDocument? LastReading { get; set; }
 	public ResetCreditBalanceDocument? ResetCredits { get; set; }
+	[BsonIgnoreIfNull] public MonthlyQuotaDocument? Quota { get; set; }
 	public JobDocument? PendingCreditCheck { get; set; }
 	public bool CreditResetSuppressesTrigger { get; set; }
 	public bool CreditResetRefreshPending { get; set; }
@@ -104,6 +105,7 @@ internal sealed class ProviderStateDocument
 		{
 			Provider = state.Provider,
 			ResetCredits = ResetCreditBalanceDocument.FromDomain(state.ResetCredits),
+			Quota = MonthlyQuotaDocument.FromDomain(state.Quota),
 			PendingCreditCheck = JobDocument.FromDomain(state.PendingCreditCheck),
 			CreditResetSuppressesTrigger = state.CreditResetSuppressesTrigger,
 			CreditResetRefreshPending = state.CreditResetRefreshPending,
@@ -130,6 +132,7 @@ internal sealed class ProviderStateDocument
 		return new(Provider)
 		{
 			ResetCredits = ResetCredits?.ToDomain(),
+			Quota = Quota?.ToDomain(),
 			PendingCreditCheck = PendingCreditCheck?.ToDomain(),
 			CreditResetSuppressesTrigger = CreditResetSuppressesTrigger,
 			CreditResetRefreshPending = CreditResetRefreshPending,
@@ -149,6 +152,38 @@ internal sealed class ProviderStateDocument
 			RefreshTokenExpiresAt = RefreshTokenExpiresAt.ToOffset(),
 			CredentialExpiryAlertedFor = CredentialExpiryAlertedFor.ToOffset()
 		};
+	}
+}
+
+internal sealed class MonthlyQuotaDocument
+{
+	public string? Plan { get; set; }
+	public double Entitlement { get; set; }
+	public double Remaining { get; set; }
+	public double OverageCount { get; set; }
+	public bool OveragePermitted { get; set; }
+	public bool Unlimited { get; set; }
+	public DateTime? ResetsAt { get; set; }
+
+	public static MonthlyQuotaDocument? FromDomain(MonthlyQuota? quota)
+	{
+		return quota is null
+			? null
+			: new()
+			{
+				Plan = quota.Plan,
+				Entitlement = quota.Entitlement,
+				Remaining = quota.Remaining,
+				OverageCount = quota.OverageCount,
+				OveragePermitted = quota.OveragePermitted,
+				Unlimited = quota.Unlimited,
+				ResetsAt = quota.ResetsAt.ToUtc()
+			};
+	}
+
+	public MonthlyQuota ToDomain()
+	{
+		return new(Plan, Entitlement, Remaining, OverageCount, OveragePermitted, Unlimited, ResetsAt.ToOffset());
 	}
 }
 
@@ -221,6 +256,10 @@ internal sealed class SettingsDocument
 	public string Id { get; set; } = GlobalId;
 	public int ClaudeIntervalMinutes { get; set; }
 	public int CodexIntervalMinutes { get; set; }
+
+	/// <summary>Absent from the settings saved before Copilot: the default applies.</summary>
+	public int? CopilotIntervalMinutes { get; set; }
+
 	public ProviderTriggerDocument ClaudeTrigger { get; set; } = null!;
 	public ProviderTriggerDocument CodexTrigger { get; set; } = null!;
 	public NotificationsDocument Notifications { get; set; } = null!;
@@ -233,6 +272,7 @@ internal sealed class SettingsDocument
 		{
 			ClaudeIntervalMinutes = settings.Polling.ClaudeIntervalMinutes,
 			CodexIntervalMinutes = settings.Polling.CodexIntervalMinutes,
+			CopilotIntervalMinutes = settings.Polling.CopilotIntervalMinutes,
 			ClaudeTrigger = ProviderTriggerDocument.FromDomain(settings.Triggers.Claude),
 			CodexTrigger = ProviderTriggerDocument.FromDomain(settings.Triggers.Codex),
 			Notifications = NotificationsDocument.FromDomain(settings.Notifications),
@@ -244,7 +284,7 @@ internal sealed class SettingsDocument
 	public AppSettings ToDomain()
 	{
 		return new(
-			new(ClaudeIntervalMinutes, CodexIntervalMinutes),
+			new(ClaudeIntervalMinutes, CodexIntervalMinutes, CopilotIntervalMinutes ?? PollingSettings.DefaultCopilotIntervalMinutes),
 			new(ClaudeTrigger.ToDomain(), CodexTrigger.ToDomain()),
 			Notifications.ToDomain())
 		{

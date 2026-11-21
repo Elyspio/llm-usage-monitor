@@ -1,4 +1,4 @@
-export type LlmProvider = "claude" | "codex";
+export type LlmProvider = "claude" | "codex" | "copilot";
 
 /**
  * Token counts of an hour, in the LLM Usage Monitor contract: input excludes the cached input.
