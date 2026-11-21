@@ -11,6 +11,7 @@ public sealed record ProviderState(Provider Provider)
 	public UsageReading? LastReading { get; init; }
 
 	public ResetCreditBalance? ResetCredits { get; init; }
+	public MonthlyQuota? Quota { get; init; }
 	public ScheduledJob? PendingCreditCheck { get; init; }
 	/// <summary>Do not wake a cycle opened by a purchased/earned reset. Cleared by genuine usage or another reset date.</summary>
 	public bool CreditResetSuppressesTrigger { get; init; }

@@ -1,9 +1,10 @@
 import type { ProviderDashboard } from "./apis/generated/types.gen";
-import { parentWindowId, sortWindows, windowTiming } from "./dashboard";
+import { hasTimelineWindows, parentWindowId, sortWindows, windowTiming } from "./dashboard";
 
 /** One group per provider with a reading; `nested` marks a window drawn under its parent. */
 export function toTimeline(providers: ProviderDashboard[], now: number) {
 	const groups = providers
+		.filter((provider) => hasTimelineWindows(provider.provider))
 		.map((provider) => {
 			const windows = sortWindows(provider.lastReading?.windows ?? [], provider.triggerWindowId);
 			return {

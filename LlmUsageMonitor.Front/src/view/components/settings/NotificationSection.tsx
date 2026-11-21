@@ -3,7 +3,7 @@ import { Alert, Box, Button, FormControlLabel, Grid, Stack, Switch, Table, Table
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { getNotificationSettingsQueryKey, sendTestNotificationMutation, updateNotificationSettingsMutation } from "@/core/apis/generated/@tanstack/react-query.gen";
-import type { NotificationEvents, NotificationSettingsView } from "@/core/apis/generated/types.gen";
+import type { NotificationEvents, NotificationSettingsView, Provider } from "@/core/apis/generated/types.gen";
 import { providerLabel, providers } from "@/core/dashboard";
 import { fmtWhen } from "@/core/format";
 import {
@@ -20,7 +20,26 @@ import { useNow } from "@hooks/useNow";
 import { SaveBar, SettingsSection, useDraft } from "./SettingsSection";
 
 /** The editable fields; the token is apart, never read back from the server. */
-type NotificationForm = Pick<NotificationSettingsView, "url" | "events" | "readFailureThreshold" | "credentialExpiryAlertDays"> & { topic: string };
+type NotificationForm = Pick<NotificationSettingsView, "url" | "readFailureThreshold" | "credentialExpiryAlertDays"> & {
+	topic: string;
+	events: Record<Provider, NotificationEvents>;
+};
+
+/** The server defaults, for the Copilot events of settings saved before Copilot. */
+const defaultEvents: NotificationEvents = {
+	triggerFailed: true,
+	authExpired: true,
+	readFailed: true,
+	reset: false,
+	triggerSucceeded: true,
+	recovered: true,
+	resetCreditSucceeded: true,
+	resetCreditFailed: true,
+};
+
+/** Copilot is monitored only: it is never triggered and has no earned resets. */
+const appliesTo = (event: keyof NotificationEvents, provider: Provider) =>
+	provider !== "copilot" || !["triggerFailed", "triggerSucceeded", "resetCreditSucceeded", "resetCreditFailed"].includes(event);
 
 const eventLabels: Record<keyof NotificationEvents, string> = {
 	triggerFailed: "Automatic trigger failed",
@@ -38,7 +57,7 @@ export function NotificationSection({ settings }: { settings: NotificationSettin
 	const { values, edit, settle } = useDraft<NotificationForm>({
 		url: settings.url,
 		topic: settings.topic ?? "",
-		events: settings.events,
+		events: { ...settings.events, copilot: settings.events.copilot ?? defaultEvents },
 		readFailureThreshold: settings.readFailureThreshold,
 		credentialExpiryAlertDays: settings.credentialExpiryAlertDays,
 	});
@@ -193,16 +212,26 @@ export function NotificationSection({ settings }: { settings: NotificationSettin
 											</TableCell>
 											{providers.map((provider) => (
 												<TableCell key={provider} align="center">
-													<Switch
-														checked={values.events[provider][event]}
-														onChange={(change) =>
-															setValues({
-																...values,
-																events: { ...values.events, [provider]: { ...values.events[provider], [event]: change.target.checked } },
-															})
-														}
-														slotProps={{ input: { "aria-label": `${eventLabels[event]} — ${providerLabel[provider]}` } }}
-													/>
+													{!appliesTo(event, provider) ? (
+														<Typography
+															component="span"
+															aria-label={`${eventLabels[event]} — not applicable to ${providerLabel[provider]}`}
+															sx={{ color: "text.disabled" }}
+														>
+															—
+														</Typography>
+													) : (
+														<Switch
+															checked={values.events[provider][event]}
+															onChange={(change) =>
+																setValues({
+																	...values,
+																	events: { ...values.events, [provider]: { ...values.events[provider], [event]: change.target.checked } },
+																})
+															}
+															slotProps={{ input: { "aria-label": `${eventLabels[event]} — ${providerLabel[provider]}` } }}
+														/>
+													)}
 												</TableCell>
 											))}
 										</TableRow>

@@ -41,7 +41,7 @@ public sealed class DashboardEndpointTests(ApiFactory factory) : IClassFixture<A
 
 		var body = await GetJson(client, "/api/dashboard");
 
-		body.GetProperty("providers").EnumerateArray().Select(provider => provider.GetProperty("provider").GetString()).ShouldBe(["claude", "codex"]);
+		body.GetProperty("providers").EnumerateArray().Select(provider => provider.GetProperty("provider").GetString()).ShouldBe(["claude", "codex", "copilot"]);
 		body.GetProperty("providers")[0].GetProperty("pollIntervalMinutes").GetInt32().ShouldBe(3);
 	}
 

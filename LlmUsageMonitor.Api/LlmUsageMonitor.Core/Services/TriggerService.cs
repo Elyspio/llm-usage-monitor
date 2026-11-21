@@ -43,6 +43,7 @@ public sealed class TriggerService(
 
 	public async Task Run(Provider provider, string cycleKey, CancellationToken cancellationToken)
 	{
+		if (!_runners.ContainsKey(provider)) return;
 		var settings = await settingsService.Get(cancellationToken);
 		var run = await runs.TryStartAutomatic(provider, cycleKey, settings.Triggers.For(provider), time.GetUtcNow(), cancellationToken);
 		if (run is null)
@@ -75,6 +76,11 @@ public sealed class TriggerService(
 		await gate.WaitAsync(cancellationToken);
 		try
 		{
+			if (!provider.IsTriggerable() || !_runners.ContainsKey(provider))
+			{
+				return new RequestInvalid("provider", $"{provider.Label()} is monitored only: it has no window to open.");
+			}
+
 			if (locks.IsBusy(provider) || await runs.GetRunning(provider, cancellationToken) is { })
 			{
 				return new ProviderError(ProviderErrorCode.CliBusy, "A CLI process is already running for this provider.");

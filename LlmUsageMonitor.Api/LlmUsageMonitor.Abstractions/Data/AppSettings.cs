@@ -9,14 +9,17 @@ public sealed record AppSettings(PollingSettings Polling, TriggerSettings Trigge
 	public static AppSettings CreateDefault(bool autoTriggerEnabled)
 	{
 		return new(
-			new(3, 3),
+			new(3, 3, PollingSettings.DefaultCopilotIntervalMinutes),
 			new(new(autoTriggerEnabled, "haiku", ReasoningEffort.None), new(autoTriggerEnabled, "gpt-5.6-luna", ReasoningEffort.None)),
 			new("https://ntfy.sh", null, null, NotificationEventsByProvider.Default, 3, null, NotificationSettings.DefaultCredentialExpiryAlertDays));
 	}
 }
 
-public sealed record PollingSettings(int ClaudeIntervalMinutes, int CodexIntervalMinutes)
+/// <param name="CopilotIntervalMinutes">Absent from the settings saved before Copilot: its monthly allowance moves slowly.</param>
+public sealed record PollingSettings(int ClaudeIntervalMinutes, int CodexIntervalMinutes, int CopilotIntervalMinutes = PollingSettings.DefaultCopilotIntervalMinutes)
 {
+	public const int DefaultCopilotIntervalMinutes = 15;
+
 	public const int MinIntervalMinutes = 1;
 	public const int MaxIntervalMinutes = 60;
 
@@ -39,15 +42,28 @@ public sealed record PollingSettings(int ClaudeIntervalMinutes, int CodexInterva
 
 	public int For(Provider provider)
 	{
-		return provider == Provider.Claude ? ClaudeIntervalMinutes : CodexIntervalMinutes;
+		return provider switch
+		{
+			Provider.Claude => ClaudeIntervalMinutes,
+			Provider.Codex => CodexIntervalMinutes,
+			_ => CopilotIntervalMinutes
+		};
 	}
 }
 
 public sealed record TriggerSettings(ProviderTriggerSettings Claude, ProviderTriggerSettings Codex)
 {
+	/// <summary>A monitored-only provider: never triggered.</summary>
+	public static readonly ProviderTriggerSettings Unsupported = new(false, "", ReasoningEffort.None);
+
 	public ProviderTriggerSettings For(Provider provider)
 	{
-		return provider == Provider.Claude ? Claude : Codex;
+		return provider switch
+		{
+			Provider.Claude => Claude,
+			Provider.Codex => Codex,
+			_ => Unsupported
+		};
 	}
 }
 
@@ -133,13 +149,19 @@ public sealed record NotificationEvents(bool TriggerFailed, bool AuthExpired, bo
 	}
 }
 
-public sealed record NotificationEventsByProvider(NotificationEvents Claude, NotificationEvents Codex)
+/// <param name="Copilot">Absent from the settings saved before Copilot: the default events apply.</param>
+public sealed record NotificationEventsByProvider(NotificationEvents Claude, NotificationEvents Codex, NotificationEvents? Copilot = null)
 {
-	public static NotificationEventsByProvider Default => new(NotificationEvents.Default, NotificationEvents.Default);
+	public static NotificationEventsByProvider Default => new(NotificationEvents.Default, NotificationEvents.Default, NotificationEvents.Default);
 
 	public NotificationEvents For(Provider provider)
 	{
-		return provider == Provider.Claude ? Claude : Codex;
+		return provider switch
+		{
+			Provider.Claude => Claude,
+			Provider.Codex => Codex,
+			_ => Copilot ?? NotificationEvents.Default
+		};
 	}
 }
 

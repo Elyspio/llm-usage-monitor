@@ -116,6 +116,7 @@ public sealed class UsageMonitor(
 		{
 			LastReading = reading,
 			ResetCredits = account.ResetCredits,
+			Quota = account.Quota,
 			LastSuccessAt = readAt,
 			CurrentCycleKey = cycleKey
 		};

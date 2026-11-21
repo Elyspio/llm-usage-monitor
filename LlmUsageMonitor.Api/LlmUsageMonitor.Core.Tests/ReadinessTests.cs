@@ -18,6 +18,8 @@ public sealed class ReadinessTests
 		var check = new PollingHealthCheck(harness.States, harness.Settings, harness.Time);
 		await harness.States.Save(new(Provider.Claude) { LastSuccessAt = Start }, Token);
 		await harness.States.Save(new(Provider.Codex) { LastSuccessAt = Start.AddMinutes(5) }, Token);
+		// Read every 15 minutes: stale past 45, between the two checks below.
+		await harness.States.Save(new(Provider.Copilot) { LastSuccessAt = Start.AddMinutes(-33) }, Token);
 
 		harness.Time.SetUtcNow(Start.AddMinutes(9));
 		(await check.CheckHealthAsync(new(), Token)).Status.ShouldBe(HealthStatus.Healthy);

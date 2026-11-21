@@ -33,6 +33,8 @@ Prérequis hors de ce repo, voir « Infra prod » (#21) : client Keycloak de pro
    # Codex : même installation que pour root, sous le compte llm-monitor.
    sudo -u llm-monitor -H bash -lc 'claude auth login'
    sudo -u llm-monitor -H bash -lc 'codex login --device-auth'
+   # Copilot : suivi seul (quota premium mensuel). Le service lit le token stocké par le CLI dans ~/.copilot/config.json.
+   sudo -u llm-monitor -H bash -lc 'copilot login'
    ```
 2. Configuration : remplir une copie locale de `appsettings.Production.example.json` (mot de passe Mongo, IP de HAProxy dans `ForwardedHeaders:KnownProxies` — `10.0.0.20` = `proxy.elylan`, sans quoi les redirections OIDC partent en `http`), puis l'installer depuis le poste :
    ```powershell

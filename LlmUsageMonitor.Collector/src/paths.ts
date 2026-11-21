@@ -24,14 +24,16 @@ export function legacyElytoolsDirs(): string[] {
 	return [...new Set(roots)].map((root) => path.join(root, "elytools", "llm-usage"));
 }
 
-/** The session logs of Claude Code and Codex, with the same environment overrides as the CLIs. */
+/** The session logs of Claude Code, Codex and the Copilot CLI, with the same environment overrides as the CLIs. */
 export function defaultLogSources(): LogSource[] {
 	const home = os.homedir();
 	const claudeRoots = [env("CLAUDE_CONFIG_DIR") ?? path.join(home, ".claude"), path.join(home, ".config", "claude")];
 	const codexHome = env("CODEX_HOME") ?? path.join(home, ".codex");
+	const copilotHome = env("COPILOT_HOME") ?? path.join(home, ".copilot");
 	return [
 		...[...new Set(claudeRoots)].map((root) => ({ kind: "claude" as const, root: path.join(root, "projects") })),
 		{ kind: "codex", root: path.join(codexHome, "sessions") },
 		{ kind: "codex", root: path.join(codexHome, "archived_sessions") },
+		{ kind: "copilot", root: path.join(copilotHome, "session-state") },
 	];
 }

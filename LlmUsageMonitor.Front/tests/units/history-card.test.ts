@@ -50,10 +50,14 @@ describe("history chart", () => {
 
 	it("describes the usage chart with the total and the busiest step of each provider", () => {
 		const points = [
-			{ start: new Date(2026, 8, 21).getTime(), claude: 10, codex: 0 },
-			{ start: new Date(2026, 8, 22).getTime(), claude: 30, codex: 0 },
+			{ start: new Date(2026, 8, 21).getTime(), claude: 10, codex: 0, copilot: 5 },
+			{ start: new Date(2026, 8, 22).getTime(), claude: 30, codex: 0, copilot: 0 },
 		];
 
-		expect(describeUsageChart(points, "day", "cost")).toEqual(["Claude: $40.00 over the period, at most $30.00 (22 Sept).", "Codex: $0.00 over the period."]);
+		expect(describeUsageChart(points, "day", "cost")).toEqual([
+			"Claude: $40.00 over the period, at most $30.00 (22 Sept).",
+			"Codex: $0.00 over the period.",
+			"Copilot: $5.00 over the period, at most $5.00 (21 Sept).",
+		]);
 	});
 });

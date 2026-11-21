@@ -73,7 +73,7 @@ export const UsagePage = () => {
 				<QueryError query={usage} subject="the usage" />
 			) : summary.total.tokens === 0 ? (
 				<Paper variant="outlined" sx={{ p: 3, textAlign: "center", color: "text.secondary" }}>
-					No usage received over the period. Workstations upload their Claude Code and Codex logs through the collector of the media-tools app.
+					No usage received over the period. Workstations upload their Claude Code, Codex and Copilot CLI logs through the collector of the media-tools app.
 				</Paper>
 			) : (
 				<>

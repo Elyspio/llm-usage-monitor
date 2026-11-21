@@ -46,6 +46,7 @@ public sealed partial class SettingsService(
 		var errors = new Dictionary<string, string[]>();
 		ValidateInterval(errors, "claudeIntervalMinutes", polling.ClaudeIntervalMinutes);
 		ValidateInterval(errors, "codexIntervalMinutes", polling.CodexIntervalMinutes);
+		ValidateInterval(errors, "copilotIntervalMinutes", polling.CopilotIntervalMinutes);
 		if (errors.Count > 0) return new RequestInvalid(errors);
 
 		await Get(cancellationToken);

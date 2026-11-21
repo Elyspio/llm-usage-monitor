@@ -107,7 +107,7 @@ export function summarize(report: TokenUsageReport, metric: UsageMetric): UsageS
 	const byProvider = new Map<Provider, Amounts>(providers.map((provider) => [provider, emptyAmounts()]));
 	const byModel = new Map<string, { provider: Provider; model: string; amounts: Amounts }>();
 	const byStep = new Map<string, { start: number; amounts: Amounts; perProvider: Record<Provider, number> }>();
-	for (const start of steps(report)) byStep.set(stepKey(start), { start, amounts: emptyAmounts(), perProvider: { claude: 0, codex: 0 } });
+	for (const start of steps(report)) byStep.set(stepKey(start), { start, amounts: emptyAmounts(), perProvider: { claude: 0, codex: 0, copilot: 0 } });
 
 	for (const row of report.rows) {
 		byProvider.set(row.provider, add(byProvider.get(row.provider)!, row));
@@ -117,7 +117,7 @@ export function summarize(report: TokenUsageReport, metric: UsageMetric): UsageS
 		byModel.set(modelKey, { ...model, amounts: add(model.amounts, row) });
 
 		const start = Date.parse(row.start);
-		const step = byStep.get(stepKey(start)) ?? { start, amounts: emptyAmounts(), perProvider: { claude: 0, codex: 0 } };
+		const step = byStep.get(stepKey(start)) ?? { start, amounts: emptyAmounts(), perProvider: { claude: 0, codex: 0, copilot: 0 } };
 		step.amounts = add(step.amounts, row);
 		step.perProvider[row.provider] += metric === "cost" ? (row.costUsd ?? 0) : totalTokens(row.tokens);
 		byStep.set(stepKey(start), step);

@@ -1,7 +1,10 @@
 namespace LlmUsageMonitor.Abstractions.Data;
 
 /// <summary>A provider reading, including the earned reset credits when exposed by the provider.</summary>
-public sealed record ProviderUsage(IReadOnlyList<UsageWindow> Windows, ResetCreditBalance? ResetCredits);
+public sealed record ProviderUsage(IReadOnlyList<UsageWindow> Windows, ResetCreditBalance? ResetCredits)
+{
+	public MonthlyQuota? Quota { get; init; }
+}
 
 /// <summary>The authoritative count may exceed the details returned by the provider; null means unknown.</summary>
 public sealed record ResetCreditBalance(int? AvailableCount, IReadOnlyList<ResetCredit>? Credits, string? UnavailableReason = null);
@@ -27,7 +30,15 @@ public sealed record ConsumeResetCreditRequest(string CreditId, string Idempoten
 public sealed record ResetCreditSettings(ProviderResetCreditSettings Claude, ProviderResetCreditSettings Codex)
 {
 	public static ResetCreditSettings Default => new(new(false, 60), new(false, 60));
-	public ProviderResetCreditSettings For(Provider provider) => provider == Provider.Claude ? Claude : Codex;
+	public ProviderResetCreditSettings For(Provider provider) => provider switch
+	{
+		Provider.Claude => Claude,
+		Provider.Codex => Codex,
+		_ => Unsupported
+	};
+
+	/// <summary>A provider without earned resets.</summary>
+	public static readonly ProviderResetCreditSettings Unsupported = new(false, 60);
 }
 
 public sealed record ProviderResetCreditSettings(bool AutoEnabled, int BeforeExpiryMinutes);

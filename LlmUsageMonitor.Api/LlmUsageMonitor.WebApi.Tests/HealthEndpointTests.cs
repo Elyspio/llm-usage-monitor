@@ -35,6 +35,7 @@ public sealed class HealthEndpointTests(ApiFactory factory) : IClassFixture<ApiF
 	{
 		await SetLastSuccess(Provider.Claude, TimeSpan.FromMinutes(1));
 		await SetLastSuccess(Provider.Codex, TimeSpan.FromMinutes(2));
+		await SetLastSuccess(Provider.Copilot, TimeSpan.FromMinutes(10));
 
 		var (status, body) = await GetReady();
 

@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vite-plus/test";
 import { DashboardPage } from "@pages/DashboardPage";
-import { apiUrl, claude, codex, dashboard, degradedClaude, hour, iso, run } from "./fixtures";
+import { apiUrl, claude, codex, copilot, dashboard, degradedClaude, hour, iso, run } from "./fixtures";
 import { mockApi, renderPage as render, testQueryClient } from "./render";
 
 const runningRun = run();
@@ -27,6 +27,18 @@ describe("DashboardPage", () => {
 		expect(screen.getByText("Automatic trigger disabled in the settings.")).toBeTruthy();
 		expect(screen.queryByRole("region", { name: "History" })).toBeNull();
 		expect(screen.queryByRole("region", { name: "Trigger log" })).toBeNull();
+	});
+
+	it("shows the Copilot monthly allowance in its card, off the timeline and without trigger", async () => {
+		server.use(http.get(`${apiUrl}/api/dashboard`, () => HttpResponse.json({ ...dashboard, providers: [claude, codex, copilot] })));
+		renderPage();
+
+		const card = await screen.findByRole("region", { name: "Copilot" });
+		expect(within(card).getByText("15%")).toBeTruthy();
+		expect(within(card).getByText("45 / 300 left · business plan")).toBeTruthy();
+		expect(within(card).getByText(/ahead of an even pace/)).toBeTruthy();
+		expect(within(card).queryByRole("button")).toBeNull();
+		expect(within(screen.getByRole("region", { name: "Quota timeline" })).queryByRole("region", { name: "Copilot windows" })).toBeNull();
 	});
 
 	it("keeps the last valid values greyed out with the error and the raw detail", async () => {

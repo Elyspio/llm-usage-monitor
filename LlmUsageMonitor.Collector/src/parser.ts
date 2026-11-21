@@ -1,7 +1,7 @@
 import type { LlmProvider, LlmTokenCounts } from "./types";
 
 /**
- * Pure parsing of the Claude Code and Codex session logs into hourly buckets.
+ * Pure parsing of the Claude Code, Codex and Copilot CLI session logs into hourly buckets.
  * The state is plain JSON: it is persisted between runs so each file is read only once, from where the previous run stopped.
  */
 
@@ -149,6 +149,28 @@ export function readCodexLine(state: UsageState, file: CodexFileState, fileId: s
 		file.lastTotal = total;
 		record(state, `codex:${fileId}:${total}`, "codex", file.model, entry.timestamp, codexCounts(info.last_token_usage));
 	}
+}
+
+/**
+ * A Copilot CLI line (`session-state/<session>/events.jsonl`): one session.usage_record per model call. Its inputTokens
+ * include the cached input. The calls to the user's own models (BYOK, local models) never touch the Copilot quota and are
+ * left out.
+ */
+export function readCopilotLine(state: UsageState, fileId: string, line: string): void {
+	if (!line.includes('"session.usage_record"')) return;
+	const entry = parse(line);
+	const usage = entry?.data?.usage;
+	if (entry?.type !== "session.usage_record" || !usage || usage.isByok === true || typeof usage.model !== "string" || !usage.model) return;
+
+	const cacheRead = toNumber(usage.cacheReadTokens);
+	const cacheWrite = toNumber(usage.cacheWriteTokens);
+	const id = usage.accounting?.usageId ?? usage.apiCallId ?? `${fileId}:${entry.id ?? entry.timestamp}`;
+	record(state, `copilot:${id}`, "copilot", usage.model, entry.timestamp, {
+		input: Math.max(0, toNumber(usage.inputTokens) - cacheRead - cacheWrite),
+		cacheRead,
+		cacheWrite,
+		output: toNumber(usage.outputTokens),
+	});
 }
 
 /** Forgets the responses older than the retention: their session files are gone, so they cannot come back. */

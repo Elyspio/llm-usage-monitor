@@ -44,6 +44,23 @@ export const codex: ProviderDashboard = {
 	health,
 };
 
+/** Monitored only: a monthly allowance, no trigger window. */
+export const copilot: ProviderDashboard = {
+	provider: "copilot",
+	lastReading: {
+		fetchedAt: iso(-60_000),
+		windows: [{ id: "premium_interactions", usedPercent: 85, remainingPercent: 15, resetsAt: "2026-10-01T00:00:00Z", windowDurationMinutes: null }],
+	},
+	triggerWindowId: null,
+	autoTriggerEnabled: false,
+	pollIntervalMinutes: 15,
+	nextAutoTriggerAt: null,
+	runningTrigger: null,
+	health,
+	triggerable: false,
+	quota: { plan: "business", entitlement: 300, remaining: 45, overageCount: 0, overagePermitted: false, unlimited: false, resetsAt: "2026-10-01T00:00:00Z" },
+};
+
 export const dashboard: DashboardSnapshot = { providers: [claude, codex], recentTriggerRuns: [], serviceUser: "llm-monitor" };
 
 export const emptyHistory: UsageHistory = { from: iso(-24 * hour), to: iso(0), series: [], triggerRuns: [] };

@@ -30,8 +30,8 @@ public sealed class LifecycleTests
 		var interrupted = harness.Runs.All.ShouldHaveSingleItem();
 		interrupted.Status.ShouldBe(TriggerStatus.Failed);
 		interrupted.ErrorCode.ShouldBe(ProviderErrorCode.Interrupted.ToStoredCode());
-		harness.Scheduler.PollIntervals.ShouldBe(new Dictionary<Provider, int> { [Provider.Claude] = 3, [Provider.Codex] = 3 });
-		harness.Scheduler.EnqueuedPolls.ShouldBe([Provider.Claude, Provider.Codex]);
+		harness.Scheduler.PollIntervals.ShouldBe(new Dictionary<Provider, int> { [Provider.Claude] = 3, [Provider.Codex] = 3, [Provider.Copilot] = 15 });
+		harness.Scheduler.EnqueuedPolls.ShouldBe([Provider.Claude, Provider.Codex, Provider.Copilot]);
 		harness.Scheduler.PriceRefreshScheduled.ShouldBeTrue();
 		harness.Scheduler.JobPurgeScheduled.ShouldBeTrue();
 		// No price yet: they are downloaded at once instead of waiting for the daily refresh.

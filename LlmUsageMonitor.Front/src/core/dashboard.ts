@@ -1,9 +1,19 @@
 import type { Provider, ProviderErrorCode, ProviderHealth, ReasoningEffort, UsageWindow } from "@/core/apis/generated/types.gen";
 
-export const providers: Provider[] = ["claude", "codex"];
+export const providers: Provider[] = ["claude", "codex", "copilot"];
 
-export const providerLabel: Record<Provider, string> = { claude: "Claude", codex: "Codex" };
-export const providerColor: Record<Provider, string> = { claude: "#d97757", codex: "#10a37f" };
+/** The providers whose windows a prompt opens; Copilot is monitored only. */
+export type TriggerProvider = Exclude<Provider, "copilot">;
+export const triggerProviders: TriggerProvider[] = ["claude", "codex"];
+
+export const providerLabel: Record<Provider, string> = { claude: "Claude", codex: "Codex", copilot: "Copilot" };
+export const providerColor: Record<Provider, string> = { claude: "#d97757", codex: "#10a37f", copilot: "#8957e5" };
+
+/** The Copilot premium requests, renewed each month. */
+export const premiumWindowId = "premium_interactions";
+
+/** Providers shown on the window timeline: a calendar month would squeeze the 5 h and weekly windows. */
+export const hasTimelineWindows = (provider: Provider) => provider !== "copilot";
 
 /** The Fable weekly limit of Claude, under the id the earned resets give it. */
 export const fableWindowId = "seven_day_overage_included";
@@ -23,13 +33,13 @@ export const nestedWindowLabel: Record<string, string> = { [fableWindowId]: "Fab
  * Models offered for the trigger prompt: the model ids from the providers' documentation, never the family aliases.
  * The field stays free: the installed CLI is the reference, this list is only a shortcut.
  */
-export const modelSuggestions: Record<Provider, string[]> = {
+export const modelSuggestions: Record<TriggerProvider, string[]> = {
 	claude: ["claude-haiku-5-5"],
 	codex: ["gpt-6-luna"],
 };
 
 /** Reasoning efforts of the trigger prompt, lowest first; ultra is Codex only. */
-export const effortOptions: Record<Provider, ReasoningEffort[]> = {
+export const effortOptions: Record<TriggerProvider, ReasoningEffort[]> = {
 	claude: ["none", "low", "medium", "high", "xhigh", "max"],
 	codex: ["none", "low", "medium", "high", "xhigh", "max", "ultra"],
 };
@@ -40,6 +50,7 @@ const windowLabels: Record<string, string> = {
 	seven_day_opus: "Weekly · Opus",
 	seven_day_sonnet: "Weekly · Sonnet",
 	[fableWindowId]: "Weekly · Fable only",
+	[premiumWindowId]: "Monthly · premium requests",
 };
 
 /** Known Claude windows by id; the others (Codex slots) by duration. */
@@ -57,11 +68,13 @@ export function isDegraded(health: ProviderHealth): boolean {
 	return !health.lastSuccessAt || Date.parse(failure.at) >= Date.parse(health.lastSuccessAt);
 }
 
+const loginCommand: Record<Provider, string> = { claude: "claude auth login", codex: "codex login --device-auth", copilot: "copilot login" };
+
 export type ErrorInfo = { title: string; action: string; severity: "error" | "warning" };
 
 /** `serviceUser`: the OS account running the service, whose CLI logins are read. */
 export function errorInfo(code: ProviderErrorCode, provider: Provider, serviceUser: string): ErrorInfo {
-	const login = provider === "claude" ? "claude auth login" : "codex login --device-auth";
+	const login = loginCommand[provider];
 	switch (code) {
 		case "authExpired":
 		case "authRequired":
@@ -114,4 +127,18 @@ export function sortWindows(windows: UsageWindow[], triggerWindowId: string | nu
 	});
 	const isNested = (window: UsageWindow) => sorted.some((parent) => parent.id === parentWindowId[window.id]);
 	return sorted.filter((window) => !isNested(window)).flatMap((window) => [window, ...sorted.filter((child) => parentWindowId[child.id] === window.id)]);
+}
+
+/**
+ * Share of a monthly allowance an even use would have consumed by now, from 0 to 100: the month starts one calendar month
+ * before its reset. Null when the reset is unknown.
+ */
+export function monthPace(resetsAt: string | null | undefined, now: number): number | null {
+	if (!resetsAt) return null;
+	const end = Date.parse(resetsAt);
+	if (!Number.isFinite(end)) return null;
+	const start = new Date(end);
+	start.setUTCMonth(start.getUTCMonth() - 1);
+	const span = end - start.getTime();
+	return span > 0 ? Math.max(0, Math.min(100, ((now - start.getTime()) / span) * 100)) : null;
 }

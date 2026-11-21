@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { getDashboardQueryKey, getResetCreditSettingsQueryKey, updateResetCreditSettingsMutation } from "@/core/apis/generated/@tanstack/react-query.gen";
 import type { ResetCreditSettings } from "@/core/apis/generated/types.gen";
-import { providerLabel, providers } from "@/core/dashboard";
+import { providerLabel, triggerProviders } from "@/core/dashboard";
 import { type FieldErrors, serverFieldErrors } from "@/core/settings.validation";
 import { SaveBar, SettingsSection, useDraft } from "./SettingsSection";
 
@@ -28,7 +28,7 @@ export function ResetCreditSection({ settings }: { settings: ResetCreditSettings
 	const submit = (event: FormEvent) => {
 		event.preventDefault();
 		const local: FieldErrors = {};
-		for (const provider of providers) {
+		for (const provider of triggerProviders) {
 			const minutes = values[provider].beforeExpiryMinutes;
 			if (!Number.isInteger(minutes) || minutes < 1 || minutes > 10080) local[`${provider}.beforeExpiryMinutes`] = "Between 1 and 10080 minutes.";
 		}
@@ -53,7 +53,7 @@ export function ResetCreditSection({ settings }: { settings: ResetCreditSettings
 						</TableRow>
 					</TableHead>
 					<TableBody>
-						{providers.map((provider) => (
+						{triggerProviders.map((provider) => (
 							<TableRow key={provider}>
 								<TableCell component="th" scope="row" sx={{ pl: 0, fontWeight: 600 }}>
 									{providerLabel[provider]}

@@ -293,6 +293,18 @@ public sealed class TriggerServiceTests
 	}
 
 	[Fact]
+	public async Task A_monitored_only_provider_is_never_triggered()
+	{
+		var harness = new TestHarness();
+
+		var error = (await harness.Triggers.RequestManual(Provider.Copilot, Token)).ShouldFail().ShouldBeOfType<RequestInvalid>();
+		await harness.Triggers.Run(Provider.Copilot, "cycle", Token);
+
+		error.ShouldNotBeNull();
+		harness.Runs.All.ShouldBeEmpty();
+	}
+
+	[Fact]
 	public async Task The_dashboard_shows_every_provider_with_its_settings_and_recent_runs()
 	{
 		var harness = new TestHarness();
@@ -301,9 +313,12 @@ public sealed class TriggerServiceTests
 
 		var snapshot = await dashboard.GetDashboard(Token);
 
-		snapshot.Providers.Select(provider => provider.Provider).ShouldBe([Provider.Claude, Provider.Codex]);
+		snapshot.Providers.Select(provider => provider.Provider).ShouldBe([Provider.Claude, Provider.Codex, Provider.Copilot]);
 		snapshot.Providers[1].RunningTrigger.ShouldNotBeNull();
 		snapshot.Providers[0].PollIntervalMinutes.ShouldBe(3);
+		snapshot.Providers[2].PollIntervalMinutes.ShouldBe(PollingSettings.DefaultCopilotIntervalMinutes);
+		snapshot.Providers.Select(provider => provider.Triggerable).ShouldBe([true, true, false]);
+		snapshot.Providers[2].AutoTriggerEnabled.ShouldBeFalse();
 		snapshot.RecentTriggerRuns.ShouldHaveSingleItem();
 		snapshot.ServiceUser.ShouldBe(Environment.UserName);
 	}

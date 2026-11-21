@@ -310,12 +310,13 @@ public sealed class MongoRepositoryTests(MongoFixture mongo) : IClassFixture<Mon
 			ActiveAlerts = [NotificationKind.AuthExpired],
 			CurrentCycleKey = "reset:1",
 			PendingResetCheck = new("42", Now.AddHours(1)),
-			TokenExpiresAt = Now.AddHours(8)
+			TokenExpiresAt = Now.AddHours(8),
+			Quota = new("business", 300, 120.5, 2, true, false, Now.AddDays(9))
 		};
 		var defaults = AppSettings.CreateDefault(false);
 		var settings = defaults with
 		{
-			Polling = new(5, 7),
+			Polling = new(5, 7, 30),
 			Notifications = defaults.Notifications with
 			{
 				Events = new(NotificationEvents.Default, NotificationEvents.Default with { Reset = true })

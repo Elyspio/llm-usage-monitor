@@ -45,6 +45,7 @@ describe("usage report", () => {
 		expect(summary.providers.map((provider) => [provider.provider, provider.cost, provider.share])).toEqual([
 			["claude", 80, 80 / 90],
 			["codex", 10, 10 / 90],
+			["copilot", 0, 0],
 		]);
 	});
 

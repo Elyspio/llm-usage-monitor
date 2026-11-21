@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { getDashboardQueryKey, getTriggerSettingsQueryKey, updateTriggerSettingsMutation } from "@/core/apis/generated/@tanstack/react-query.gen";
 import type { ReasoningEffort, TriggerSettings } from "@/core/apis/generated/types.gen";
-import { effortOptions, modelSuggestions, providerLabel, providers } from "@/core/dashboard";
+import { effortOptions, modelSuggestions, providerLabel, triggerProviders } from "@/core/dashboard";
 import { collect, type FieldErrors, serverFieldErrors, validateModel } from "@/core/settings.validation";
 import { SaveBar, SettingsSection, useDraft } from "./SettingsSection";
 
@@ -55,7 +55,7 @@ export function TriggerSection({ settings }: { settings: TriggerSettings }) {
 						</TableRow>
 					</TableHead>
 					<TableBody>
-						{providers.map((provider) => (
+						{triggerProviders.map((provider) => (
 							<TableRow key={provider}>
 								<TableCell component="th" scope="row" sx={{ pl: 0, fontWeight: 600 }}>
 									{providerLabel[provider]}

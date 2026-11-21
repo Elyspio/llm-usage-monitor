@@ -27,6 +27,9 @@ public sealed class HangfireApiFactory : ApiFactory
 
 	public FakeProvider Codex { get; } = new(Provider.Codex);
 
+	/// <summary>Monitored only: a reader, no prompt runner.</summary>
+	public FakeProvider Copilot { get; } = new(Provider.Copilot);
+
 	protected override bool HangfireEnabled => true;
 
 	protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -42,6 +45,7 @@ public sealed class HangfireApiFactory : ApiFactory
 				services.AddSingleton<IPromptRunner>(provider);
 			}
 
+			services.AddSingleton<IUsageReader>(Copilot);
 			services.RemoveAll<IClaudeSession>();
 			services.AddSingleton<IClaudeSession>(Claude);
 			services.RemoveAll<IModelPriceSource>();
@@ -69,10 +73,12 @@ public sealed class HangfireIntegrationTests(HangfireApiFactory factory) : IClas
 
 		factory.Claude.Reads.ShouldBeGreaterThan(0);
 		factory.Codex.Reads.ShouldBeGreaterThan(0);
+		factory.Copilot.Reads.ShouldBeGreaterThan(0);
 		using var connection = factory.Services.GetRequiredService<JobStorage>().GetConnection();
 		var recurring = connection.GetRecurringJobs().ToDictionary(job => job.Id, job => job.Cron);
 		recurring["poll-claude"].ShouldBe("*/3 * * * *");
 		recurring["poll-codex"].ShouldBe("*/3 * * * *");
+		recurring["poll-copilot"].ShouldBe("*/15 * * * *");
 		recurring.ShouldContainKey("refresh-model-prices");
 		recurring.ShouldContainKey("purge-failed-jobs");
 		// The keep-alive of the Claude login is a scheduled job, four minutes before the token expiry.
