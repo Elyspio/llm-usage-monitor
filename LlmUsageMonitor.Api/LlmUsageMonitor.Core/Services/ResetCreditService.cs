@@ -25,6 +25,8 @@ public sealed class ResetCreditService(IEnumerable<IUsageReader> readers, IEnume
 
 		if (!Enum.IsDefined(provider) || string.IsNullOrWhiteSpace(request.CreditId) || request.CreditId.Length > 200 || !Guid.TryParse(request.IdempotencyKey, out var key))
 			return trace.Fail(new RequestInvalid("request", "A known provider, a credit ID and a UUID idempotency key are required."));
+		if (!_consumers.ContainsKey(provider))
+			return trace.Fail(new RequestInvalid("provider", $"{provider.Label()} has no earned resets."));
 		using var providerLock = await locks.TryAcquire(provider, ProviderLocks.PollWait, cancellationToken);
 		if (providerLock is null) return trace.Fail(new ProviderError(ProviderErrorCode.CliBusy, "Another operation is running for this provider."));
 		var id = key.ToString();

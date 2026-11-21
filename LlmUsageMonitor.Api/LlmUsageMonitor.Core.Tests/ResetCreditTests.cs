@@ -56,6 +56,15 @@ public sealed class ResetCreditTests
 	}
 
 	[Fact]
+	public async Task A_provider_without_earned_resets_is_refused_before_any_reading()
+	{
+		var h = Harness(false);
+
+		(await h.Credits.ConsumeManual(Provider.Copilot, new("credit", Guid.NewGuid().ToString()), Token)).ShouldFail().ShouldBeOfType<RequestInvalid>();
+		(await h.States.Get(Provider.Copilot, Token)).LastReading.ShouldBeNull();
+	}
+
+	[Fact]
 	public async Task Manual_redemption_is_available_with_automation_off_and_http_replays_do_not_consume_twice()
 	{
 		var h = Harness(false);
