@@ -7,12 +7,12 @@ const mono = { fontFamily: "IBM Plex Mono, monospace" };
 const count = (value: number) => Math.round(value).toLocaleString(locale);
 
 /**
- * The monthly allowance of a monitored-only provider: share left, requests left, reset date and the pace of the month
+ * The monthly allowance of a monitored-only provider: share left, credits left, reset date and the pace of the month
  * (the share an even use would have consumed by now, drawn as a marker on the bar).
  */
 export const MonthlyQuotaGauge = ({ quota, window, color, now }: { quota: MonthlyQuota; window: UsageWindow | undefined; color: string; now: number }) => {
 	if (quota.unlimited) {
-		return <Typography variant="body2">Unlimited premium requests on this plan.</Typography>;
+		return <Typography variant="body2">Unlimited AI credits on this plan.</Typography>;
 	}
 
 	const used = Math.max(0, Math.min(100, window?.usedPercent ?? (quota.entitlement > 0 ? 100 - (quota.remaining / quota.entitlement) * 100 : 100)));
@@ -24,14 +24,14 @@ export const MonthlyQuotaGauge = ({ quota, window, color, now }: { quota: Monthl
 	return (
 		<Stack spacing={0.75}>
 			<Stack direction="row" spacing={1} sx={{ alignItems: "baseline", justifyContent: "space-between" }}>
-				<Typography sx={{ fontWeight: 600 }}>Premium requests this month</Typography>
+				<Typography sx={{ fontWeight: 600 }}>AI credits this month</Typography>
 				<Typography sx={{ ...mono, fontSize: "1.3rem", color: remaining < 50 ? status : "text.primary" }}>{fmtPercent(remaining)}</Typography>
 			</Stack>
 			<Box sx={{ position: "relative" }}>
 				<LinearProgress
 					variant="determinate"
 					value={used}
-					aria-label="Premium requests used this month"
+					aria-label="AI credits used this month"
 					sx={{ height: 10, borderRadius: 2, bgcolor: "surface.track", "& .MuiLinearProgress-bar": { bgcolor: color, borderRadius: 2 } }}
 				/>
 				{pace !== null && (
@@ -43,7 +43,7 @@ export const MonthlyQuotaGauge = ({ quota, window, color, now }: { quota: Monthl
 				)}
 			</Box>
 			<Typography variant="body2" sx={{ ...mono, color: "text.secondary" }}>
-				{count(quota.remaining)} / {count(quota.entitlement)} left
+				{count(quota.remaining)} / {count(quota.entitlement)} credits left
 				{quota.plan ? ` · ${quota.plan} plan` : ""}
 			</Typography>
 			{quota.resetsAt && (
@@ -59,7 +59,7 @@ export const MonthlyQuotaGauge = ({ quota, window, color, now }: { quota: Monthl
 			)}
 			{quota.overageCount > 0 && (
 				<Typography variant="body2" sx={{ color: "warning.main" }}>
-					{count(quota.overageCount)} requests beyond the allowance{quota.overagePermitted ? " (billed)" : ""}.
+					{count(quota.overageCount)} credits beyond the allowance{quota.overagePermitted ? " (billed)" : ""}.
 				</Typography>
 			)}
 		</Stack>

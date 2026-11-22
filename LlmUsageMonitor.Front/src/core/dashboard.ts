@@ -9,7 +9,7 @@ export const triggerProviders: TriggerProvider[] = ["claude", "codex"];
 export const providerLabel: Record<Provider, string> = { claude: "Claude", codex: "Codex", copilot: "Copilot" };
 export const providerColor: Record<Provider, string> = { claude: "#d97757", codex: "#10a37f", copilot: "#8957e5" };
 
-/** The Copilot premium requests, renewed each month. */
+/** The Copilot AI credits, renewed each month (the endpoint still names them premium interactions). */
 export const premiumWindowId = "premium_interactions";
 
 /** Providers shown on the window timeline: a calendar month would squeeze the 5 h and weekly windows. */
@@ -50,7 +50,7 @@ const windowLabels: Record<string, string> = {
 	seven_day_opus: "Weekly · Opus",
 	seven_day_sonnet: "Weekly · Sonnet",
 	[fableWindowId]: "Weekly · Fable only",
-	[premiumWindowId]: "Monthly · premium requests",
+	[premiumWindowId]: "Monthly · AI credits",
 };
 
 /** Known Claude windows by id; the others (Codex slots) by duration. */
