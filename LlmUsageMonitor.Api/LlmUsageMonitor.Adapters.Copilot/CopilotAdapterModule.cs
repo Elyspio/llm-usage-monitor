@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 namespace LlmUsageMonitor.Adapters.Copilot;
 
 /// <summary>
-///     GitHub Copilot adapter: usage reader only (monthly premium requests, with the CLI login). Copilot has no rolling
+///     GitHub Copilot adapter: usage reader only (monthly AI credits, with the CLI login). Copilot has no rolling
 ///     window to open, hence no prompt runner.
 /// </summary>
 public sealed class CopilotAdapterModule : IModule

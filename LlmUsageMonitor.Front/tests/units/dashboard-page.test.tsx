@@ -35,7 +35,7 @@ describe("DashboardPage", () => {
 
 		const card = await screen.findByRole("region", { name: "Copilot" });
 		expect(within(card).getByText("15%")).toBeTruthy();
-		expect(within(card).getByText("45 / 300 left · business plan")).toBeTruthy();
+		expect(within(card).getByText("45 / 300 credits left · business plan")).toBeTruthy();
 		expect(within(card).getByText(/ahead of an even pace/)).toBeTruthy();
 		expect(within(card).queryByRole("button")).toBeNull();
 		expect(within(screen.getByRole("region", { name: "Quota timeline" })).queryByRole("region", { name: "Copilot windows" })).toBeNull();

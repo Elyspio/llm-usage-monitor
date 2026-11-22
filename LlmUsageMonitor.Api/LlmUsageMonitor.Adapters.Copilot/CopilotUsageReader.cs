@@ -80,8 +80,8 @@ internal sealed class CopilotUsageReader(IHttpClientFactory httpClients, IOption
 }
 
 /// <summary>
-///     Keeps the monthly premium requests (<c>quota_snapshots.premium_interactions</c>): one window without duration (a
-///     calendar month, never a trigger window) and the request counts. The chat and completion quotas of the Free plan are
+///     Keeps the monthly AI credits (<c>quota_snapshots.premium_interactions</c>, named after the former premium requests): one window without duration (a
+///     calendar month, never a trigger window) and the credit counts. The chat and completion quotas of the Free plan are
 ///     ignored.
 /// </summary>
 public static class CopilotUsageParser
@@ -98,7 +98,7 @@ public static class CopilotUsageParser
 		if (!root.TryGetProperty("quota_snapshots", out var snapshots) || snapshots.ValueKind != JsonValueKind.Object
 		    || !snapshots.TryGetProperty(PremiumWindowId, out var premium) || premium.ValueKind != JsonValueKind.Object)
 		{
-			throw new ProviderException(ProviderErrorCode.NoUsageData, "The Copilot account reports no premium request quota.");
+			throw new ProviderException(ProviderErrorCode.NoUsageData, "The Copilot account reports no AI credit quota.");
 		}
 
 		var resetsAt = root.TryGetProperty("quota_reset_date_utc", out var resetUtc) ? UsageWindowFactory.ParseReset(resetUtc, PremiumWindowId)
