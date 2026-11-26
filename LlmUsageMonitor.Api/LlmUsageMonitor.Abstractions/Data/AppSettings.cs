@@ -126,8 +126,10 @@ public sealed record NotificationSettings(
 	public const int MaxCredentialExpiryAlertDays = 60;
 }
 
+/// <param name="Reset">The reset of a window shorter than a day: the 5-hour session.</param>
+/// <param name="LongReset">The reset of a window of a day or more: weekly, monthly. Absent from the settings saved before it: notified.</param>
 public sealed record NotificationEvents(bool TriggerFailed, bool AuthExpired, bool ReadFailed, bool Reset, bool TriggerSucceeded, bool Recovered,
-	bool ResetCreditSucceeded = true, bool ResetCreditFailed = true)
+	bool ResetCreditSucceeded = true, bool ResetCreditFailed = true, bool LongReset = true)
 {
 	public static NotificationEvents Default => new(true, true, true, false, true, true);
 
@@ -140,6 +142,7 @@ public sealed record NotificationEvents(bool TriggerFailed, bool AuthExpired, bo
 			NotificationKind.AuthExpired or NotificationKind.AuthExpiring => AuthExpired,
 			NotificationKind.ReadFailed => ReadFailed,
 			NotificationKind.Reset => Reset,
+			NotificationKind.LongReset => LongReset,
 			NotificationKind.TriggerSucceeded => TriggerSucceeded,
 			NotificationKind.Recovered => Recovered,
 			NotificationKind.ResetCreditSucceeded => ResetCreditSucceeded,
@@ -188,7 +191,10 @@ public enum NotificationKind
 	Recovered,
 	AuthExpiring,
 	ResetCreditSucceeded,
-	ResetCreditFailed
+	ResetCreditFailed,
+
+	/// <summary>The reset of a window of a day or more; <see cref="Reset" /> covers the shorter ones.</summary>
+	LongReset
 }
 
 /// <summary>

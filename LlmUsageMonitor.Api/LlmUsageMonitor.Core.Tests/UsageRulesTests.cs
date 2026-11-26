@@ -47,9 +47,10 @@ public sealed class UsageRulesTests
 	}
 
 	[Fact]
-	public void Without_reset_time_nor_reset_no_cycle_is_known()
+	public void An_idle_window_without_reset_time_nor_reset_opens_a_cycle_at_the_reading()
 	{
-		UsageRules.CycleKey(new(Provider.Codex), new(Now, [Window("codex/primary", 0, null)]), null, Now).ShouldBeNull();
+		UsageRules.CycleKey(new(Provider.Codex), new(Now, [Window("codex/primary", 0, null)]), null, Now)
+			.ShouldBe($"idle:{Now.UtcDateTime:yyyy-MM-ddTHH:mm}Z");
 	}
 
 	[Fact]

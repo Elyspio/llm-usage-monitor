@@ -46,6 +46,7 @@ internal static class MongoConventions
 			// The driver does not apply optional constructor defaults to missing BSON members.
 			map.GetMemberMap(nameof(NotificationEvents.ResetCreditSucceeded)).SetDefaultValue(true);
 			map.GetMemberMap(nameof(NotificationEvents.ResetCreditFailed)).SetDefaultValue(true);
+			map.GetMemberMap(nameof(NotificationEvents.LongReset)).SetDefaultValue(true);
 		});
 	}
 

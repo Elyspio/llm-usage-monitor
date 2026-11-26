@@ -780,6 +780,10 @@
           "resetCreditFailed": {
             "type": "boolean",
             "default": true
+          },
+          "longReset": {
+            "type": "boolean",
+            "default": true
           }
         }
       },
@@ -818,7 +822,8 @@
           "recovered",
           "authExpiring",
           "resetCreditSucceeded",
-          "resetCreditFailed"
+          "resetCreditFailed",
+          "longReset"
         ]
       },
       "NotificationSendFailure": {

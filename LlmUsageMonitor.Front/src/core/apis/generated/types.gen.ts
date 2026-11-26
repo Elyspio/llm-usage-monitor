@@ -34,6 +34,7 @@ export type NotificationEvents = {
     recovered: boolean;
     resetCreditSucceeded?: boolean;
     resetCreditFailed?: boolean;
+    longReset?: boolean;
 };
 
 export type NotificationEventsByProvider = {
@@ -42,7 +43,7 @@ export type NotificationEventsByProvider = {
     copilot?: null | NotificationEvents;
 };
 
-export type NotificationKind = 'triggerFailed' | 'authExpired' | 'readFailed' | 'reset' | 'triggerSucceeded' | 'recovered' | 'authExpiring' | 'resetCreditSucceeded' | 'resetCreditFailed';
+export type NotificationKind = 'triggerFailed' | 'authExpired' | 'readFailed' | 'reset' | 'triggerSucceeded' | 'recovered' | 'authExpiring' | 'resetCreditSucceeded' | 'resetCreditFailed' | 'longReset';
 
 export type NotificationSendFailure = {
     at: string;

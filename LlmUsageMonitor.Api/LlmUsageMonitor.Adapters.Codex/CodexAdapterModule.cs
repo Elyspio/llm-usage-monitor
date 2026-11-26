@@ -2,6 +2,7 @@ using LlmUsageMonitor.Abstractions.Injections;
 using LlmUsageMonitor.Abstractions.Interfaces.Adapters;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace LlmUsageMonitor.Adapters.Codex;
 
@@ -13,6 +14,7 @@ public sealed class CodexAdapterModule : IModule
 	public void Load(IServiceCollection services, IConfiguration configuration)
 	{
 		services.Configure<CodexOptions>(configuration.GetSection(CodexOptions.Section));
+		services.TryAddSingleton(TimeProvider.System);
 		services.AddSingleton<IUsageReader, CodexUsageReader>();
 		services.AddSingleton<IResetCreditConsumer, CodexResetCreditConsumer>();
 		services.AddSingleton<IPromptRunner, CodexPromptRunner>();

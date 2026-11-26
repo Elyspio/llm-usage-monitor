@@ -12,7 +12,7 @@ namespace LlmUsageMonitor.Adapters.Codex;
 /// <summary>
 ///     Reads the Codex limits with <c>account/rateLimits/read</c>; never starts a thread or a model turn.
 /// </summary>
-internal sealed class CodexUsageReader(IOptions<CodexOptions> options, ILogger<CodexUsageReader> logger) : IUsageReader
+internal sealed class CodexUsageReader(IOptions<CodexOptions> options, TimeProvider time, ILogger<CodexUsageReader> logger) : IUsageReader
 {
 	public Provider Provider => Provider.Codex;
 
@@ -32,7 +32,7 @@ internal sealed class CodexUsageReader(IOptions<CodexOptions> options, ILogger<C
 			try
 			{
 				var result = await server.Request("account/rateLimits/read", new { }, timeout.Token);
-				return new(CodexUsageParser.Parse(result), CodexUsageParser.ParseCredits(result));
+				return new(CodexUsageParser.Parse(result, time.GetUtcNow()), CodexUsageParser.ParseCredits(result));
 			}
 			catch (CodexRpcException exception)
 			{
@@ -99,7 +99,17 @@ public static class CodexUsageParser
 	private static string? Text(JsonElement row, string name) => row.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
 	private static DateTimeOffset? Date(JsonElement row, string name) => row.TryGetProperty(name, out var value) ? UsageWindowFactory.ParseReset(value, name) : null;
 
-	public static IReadOnlyList<UsageWindow> Parse(JsonElement result)
+	/// <summary>
+	///     How far from a full window an announced reset may be and still mean "not started": Codex announces a reset one full
+	///     window after the request on an unused window, a time that moves with each reading.
+	/// </summary>
+	public static readonly TimeSpan UnstartedTolerance = TimeSpan.FromMinutes(1);
+
+	/// <param name="readAt">
+	///     The time of the request: an unused window whose reset falls one full window later has not started, and gets no reset
+	///     time. <c>null</c> keeps the announced times.
+	/// </param>
+	public static IReadOnlyList<UsageWindow> Parse(JsonElement result, DateTimeOffset? readAt = null)
 	{
 		if (result.ValueKind != JsonValueKind.Object)
 		{
@@ -136,6 +146,12 @@ public static class CodexUsageParser
 					window.TryGetProperty("windowDurationMins", out var duration) ? UsageWindowFactory.ReadNumber(duration) : null));
 			}
 
-		return windows;
+		return readAt is { } now ? windows.Select(window => IsUnstarted(window, now) ? window with { ResetsAt = null } : window).ToList() : windows;
+	}
+
+	private static bool IsUnstarted(UsageWindow window, DateTimeOffset now)
+	{
+		return window is { UsedPercent: 0, ResetsAt: { } resetsAt, WindowDurationMinutes: { } minutes }
+		       && (resetsAt - now - TimeSpan.FromMinutes(minutes)).Duration() <= UnstartedTolerance;
 	}
 }

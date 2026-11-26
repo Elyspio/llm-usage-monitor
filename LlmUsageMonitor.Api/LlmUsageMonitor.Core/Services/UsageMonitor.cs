@@ -165,7 +165,8 @@ public sealed class UsageMonitor(
 			}
 
 			var detail = string.Create(CultureInfo.InvariantCulture, $"{after.Id} : {before.UsedPercent:0.#} % → {after.UsedPercent:0.#} % consommé");
-			await notifications.Notify(NotificationKind.Reset, provider, detail, cancellationToken);
+			var kind = UsageRules.IsLongWindow(after) ? NotificationKind.LongReset : NotificationKind.Reset;
+			await notifications.Notify(kind, provider, detail, cancellationToken);
 		}
 	}
 

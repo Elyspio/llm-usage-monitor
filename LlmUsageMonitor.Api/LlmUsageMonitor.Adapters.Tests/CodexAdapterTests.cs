@@ -79,7 +79,7 @@ public sealed class CodexAdapterTests
 		using var cli = new FakeCli(Scenario());
 		var options = new CodexOptions { Executable = Path.Combine(cli.Directory, "missing-codex"), WorkingDirectory = cli.Directory };
 
-		var exception = (await new CodexUsageReader(Options.Create(options), NullLogger<CodexUsageReader>.Instance).Read(Token)).ShouldFail();
+		var exception = (await new CodexUsageReader(Options.Create(options), TimeProvider.System, NullLogger<CodexUsageReader>.Instance).Read(Token)).ShouldFail();
 
 		exception.ProviderCode.ShouldBe(ProviderErrorCode.CliUnavailable);
 		exception.Message.ShouldContain("Codex:Executable");
@@ -131,7 +131,7 @@ public sealed class CodexAdapterTests
 	private static CodexUsageReader Reader(FakeCli cli, int readTimeoutSeconds = 20)
 	{
 		var options = new CodexOptions { Executable = Executable, WorkingDirectory = cli.Directory, ReadTimeoutSeconds = readTimeoutSeconds };
-		return new(Options.Create(options), NullLogger<CodexUsageReader>.Instance);
+		return new(Options.Create(options), TimeProvider.System, NullLogger<CodexUsageReader>.Instance);
 	}
 
 	private static CodexPromptRunner Runner(FakeCli cli)
