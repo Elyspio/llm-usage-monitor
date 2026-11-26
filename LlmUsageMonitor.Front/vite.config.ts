@@ -1,7 +1,8 @@
 import { getDefaultConfig } from "@elyspio/vite-eslint-config";
 import { defineConfig } from "vite-plus";
 
-const config = getDefaultConfig({ basePath: import.meta.dirname, port: 3000 });
+// The local HTTPS certificate is for the dev server only: under the tests and in CI, its download (GitHub API, rate limited) is skipped.
+const config = getDefaultConfig({ basePath: import.meta.dirname, port: 3000, useMkcert: !process.env.VITEST && !process.env.CI });
 
 // Aspire injects the API endpoint; the fallback matches the WebApi launch profile.
 const apiUrl = process.env.services__api__https__0 ?? "https://localhost:7231";
