@@ -31,21 +31,26 @@ const defaultEvents: NotificationEvents = {
 	authExpired: true,
 	readFailed: true,
 	reset: false,
+	longReset: true,
 	triggerSucceeded: true,
 	recovered: true,
 	resetCreditSucceeded: true,
 	resetCreditFailed: true,
 };
 
-/** Copilot is monitored only: it is never triggered and has no earned resets. */
+/** Copilot is monitored only: it is never triggered, has no earned resets and no 5 h window. */
 const appliesTo = (event: keyof NotificationEvents, provider: Provider) =>
-	provider !== "copilot" || !["triggerFailed", "triggerSucceeded", "resetCreditSucceeded", "resetCreditFailed"].includes(event);
+	provider !== "copilot" || !["reset", "triggerFailed", "triggerSucceeded", "resetCreditSucceeded", "resetCreditFailed"].includes(event);
+
+/** Settings saved before the weekly reset event notify it, as the server does. */
+const withDefaults = (events: NotificationEvents): NotificationEvents => ({ ...events, longReset: events.longReset ?? true });
 
 const eventLabels: Record<keyof NotificationEvents, string> = {
 	triggerFailed: "Automatic trigger failed",
 	authExpired: "Login expired",
 	readFailed: "Readings failing",
-	reset: "Reset detected",
+	reset: "Reset · 5 h window",
+	longReset: "Reset · weekly or monthly",
 	triggerSucceeded: "Automatic trigger succeeded",
 	recovered: "Back to normal",
 	resetCreditSucceeded: "Earned reset consumed",
@@ -57,7 +62,11 @@ export function NotificationSection({ settings }: { settings: NotificationSettin
 	const { values, edit, settle } = useDraft<NotificationForm>({
 		url: settings.url,
 		topic: settings.topic ?? "",
-		events: { ...settings.events, copilot: settings.events.copilot ?? defaultEvents },
+		events: {
+			claude: withDefaults(settings.events.claude),
+			codex: withDefaults(settings.events.codex),
+			copilot: withDefaults(settings.events.copilot ?? defaultEvents),
+		},
 		readFailureThreshold: settings.readFailureThreshold,
 		credentialExpiryAlertDays: settings.credentialExpiryAlertDays,
 	});
@@ -222,7 +231,7 @@ export function NotificationSection({ settings }: { settings: NotificationSettin
 														</Typography>
 													) : (
 														<Switch
-															checked={values.events[provider][event]}
+															checked={values.events[provider][event] ?? false}
 															onChange={(change) =>
 																setValues({
 																	...values,

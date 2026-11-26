@@ -12,6 +12,15 @@ public static class UsageRules
 	public static readonly IReadOnlyList<TimeSpan> BackoffSteps = [TimeSpan.FromMinutes(15), TimeSpan.FromMinutes(30), TimeSpan.FromMinutes(60)];
 
 	/// <summary>
+	///     A window of a day or more (weekly, monthly), or of unknown length: its reset is notified apart from the 5-hour
+	///     session's.
+	/// </summary>
+	public static bool IsLongWindow(UsageWindow window)
+	{
+		return window.WindowDurationMinutes is not { } minutes || minutes >= 24 * 60;
+	}
+
+	/// <summary>
 	///     A reset is a drop of the used share of a window between two readings.
 	/// </summary>
 	public static IReadOnlyList<(UsageWindow Previous, UsageWindow Current)> DetectResets(UsageReading? previous, UsageReading current)
@@ -30,8 +39,9 @@ public static class UsageRules
 	/// <summary>
 	///     Returns the cycle of the trigger window when it waits for its first message (0 % used and no reset time ahead), or
 	///     <c>null</c> otherwise. The cycle is, by order of preference: the one already recorded while waiting, the reset
-	///     time that just expired (truncated to the minute), then the last detected reset. Without any of them, no automatic
-	///     trigger: the manual button covers that case.
+	///     time that just expired (truncated to the minute), the last detected reset, then the reading itself: a window that
+	///     sits idle with no known reset (a window the provider brings back, a first reading) is started too. The key is kept
+	///     while the window waits, so each idle period is triggered once.
 	/// </summary>
 	public static string? CycleKey(ProviderState state, UsageReading current, ResetEvent? lastReset, DateTimeOffset now)
 	{
@@ -43,7 +53,14 @@ public static class UsageRules
 
 		return state.CurrentCycleKey
 		       ?? ExpiredResetsAt(state.LastReading, window.Id, now)
-		       ?? (lastReset is null ? null : $"reset:{lastReset.Id}");
+		       ?? (lastReset is null ? null : $"reset:{lastReset.Id}")
+		       ?? $"idle:{Minute(now)}";
+	}
+
+	private static string Minute(DateTimeOffset date)
+	{
+		var utc = date.UtcDateTime;
+		return new DateTimeOffset(utc.Year, utc.Month, utc.Day, utc.Hour, utc.Minute, 0, TimeSpan.Zero).ToString("yyyy-MM-ddTHH:mm'Z'", CultureInfo.InvariantCulture);
 	}
 
 	private static string? ExpiredResetsAt(UsageReading? previous, string windowId, DateTimeOffset now)
@@ -54,7 +71,6 @@ public static class UsageRules
 			return null;
 		}
 
-		var minute = new DateTimeOffset(expired.UtcDateTime.Year, expired.UtcDateTime.Month, expired.UtcDateTime.Day, expired.UtcDateTime.Hour, expired.UtcDateTime.Minute, 0, TimeSpan.Zero);
-		return $"resets:{minute.ToString("yyyy-MM-ddTHH:mm'Z'", CultureInfo.InvariantCulture)}";
+		return $"resets:{Minute(expired)}";
 	}
 }

@@ -185,6 +185,24 @@ describe("SettingsPage", () => {
 		await expect.poll(() => lastNotificationBody).toMatchObject({ events: { claude: { triggerFailed: true }, codex: { triggerFailed: true } } });
 	});
 
+	it("notifies weekly resets apart from the 5 h ones, on by default for older settings", async () => {
+		renderPage();
+		const form = await screen.findByRole("form", { name: "Notifications ntfy" });
+		const table = within(form).getByRole("table", { name: "Notified events per provider" });
+		const switchOf = (name: string) => within(table).getByRole("switch", { name }) as HTMLInputElement;
+
+		expect(switchOf("Reset · 5 h window — Codex").checked).toBe(false);
+		expect(switchOf("Reset · weekly or monthly — Codex").checked).toBe(true);
+		expect(within(table).queryByRole("switch", { name: "Reset · 5 h window — Copilot" })).toBeNull();
+
+		fireEvent.click(switchOf("Reset · weekly or monthly — Claude"));
+		fireEvent.click(within(form).getByRole("button", { name: "Save" }));
+
+		await expect
+			.poll(() => lastNotificationBody)
+			.toMatchObject({ events: { claude: { reset: false, longReset: false }, codex: { reset: false, longReset: true }, copilot: { longReset: true } } });
+	});
+
 	it("shows the saved values when coming back to the page", async () => {
 		polling = { claudeIntervalMinutes: 3, codexIntervalMinutes: 3 };
 		const queryClient = testQueryClient();

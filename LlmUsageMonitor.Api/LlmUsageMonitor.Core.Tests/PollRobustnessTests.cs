@@ -26,7 +26,7 @@ public sealed class PollRobustnessTests
 		await harness.Monitor.Poll(Provider.Codex, Token);
 
 		harness.Resets.Added.ShouldHaveSingleItem();
-		harness.Sender.Sent.Count(message => message.Title == "Codex : reset détecté").ShouldBe(1);
+		harness.Sender.Sent.Count(message => message.Title == "Codex : reset 5 h détecté").ShouldBe(1);
 		harness.States.Stored[Provider.Codex].LastReading!.Windows.ShouldHaveSingleItem().UsedPercent.ShouldBe(5);
 	}
 

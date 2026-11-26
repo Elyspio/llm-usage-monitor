@@ -92,7 +92,8 @@ public sealed class NotificationService(
 			NotificationKind.ResetCreditFailed => ($"{name} : crédit de reset non utilisé", NotificationPriority.High, "warning"),
 			NotificationKind.AuthExpired => ($"{name} : connexion expirée", NotificationPriority.High, "key"),
 			NotificationKind.ReadFailed => ($"{name} : lectures en échec", NotificationPriority.High, "warning"),
-			NotificationKind.Reset => ($"{name} : reset détecté", NotificationPriority.Default, "arrows_counterclockwise"),
+			NotificationKind.Reset => ($"{name} : reset 5 h détecté", NotificationPriority.Default, "arrows_counterclockwise"),
+			NotificationKind.LongReset => ($"{name} : reset détecté", NotificationPriority.Default, "arrows_counterclockwise"),
 			NotificationKind.TriggerSucceeded => ($"{name} : nouveau cycle ouvert", NotificationPriority.Default, "white_check_mark"),
 			NotificationKind.AuthExpiring => ($"{name} : connexion bientôt expirée", NotificationPriority.High, "hourglass_flowing_sand"),
 			_ => ($"{name} : rétabli", NotificationPriority.Default, "green_heart")

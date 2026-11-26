@@ -98,14 +98,18 @@ public sealed class UsageMonitorTests
 	}
 
 	[Fact]
-	public async Task Starting_on_an_unused_window_does_not_trigger_on_its_own()
+	public async Task An_unused_window_with_no_known_reset_is_triggered_once()
 	{
 		var harness = new TestHarness();
-		harness.CodexReader.Respond = () => [Window("codex/primary", 0, null)];
+		harness.CodexReader.Respond = () => [Window("codex/primary", 0, null), Window("codex/secondary", 20, Start.AddDays(3), 10_080)];
 
 		await harness.Monitor.Poll(Provider.Codex, Token);
+		harness.Time.SetUtcNow(Start.AddMinutes(3));
+		await harness.Monitor.Poll(Provider.Codex, Token);
 
-		harness.Runs.All.ShouldBeEmpty();
+		var run = harness.Runs.All.ShouldHaveSingleItem();
+		run.Manual.ShouldBeFalse();
+		run.CycleKey.ShouldBe($"idle:{Start:yyyy-MM-ddTHH:mm}Z");
 	}
 
 	[Fact]
@@ -135,7 +139,27 @@ public sealed class UsageMonitorTests
 
 		var reset = harness.Resets.Added.ShouldHaveSingleItem();
 		(reset.UsedPercentBefore, reset.UsedPercentAfter).ShouldBe((40, 5));
-		harness.Sender.Sent.ShouldContain(message => message.Title == "Codex : reset détecté");
+		harness.Sender.Sent.ShouldContain(message => message.Title == "Codex : reset 5 h détecté");
+	}
+
+	[Fact]
+	public async Task Weekly_resets_are_notified_apart_from_the_5_hour_ones()
+	{
+		var harness = new TestHarness();
+		var settings = harness.SettingsRepository.Stored!;
+		harness.SettingsRepository.Stored = settings with
+		{
+			Notifications = settings.Notifications with { Events = new(NotificationEvents.Default, NotificationEvents.Default with { Reset = false, LongReset = true }) }
+		};
+		harness.CodexReader.Respond = () => [Window("codex/primary", 40, Start.AddMinutes(10)), Window("codex/secondary", 60, Start.AddMinutes(10), 10_080)];
+		await harness.Monitor.Poll(Provider.Codex, Token);
+		harness.CodexReader.Respond = () => [Window("codex/primary", 5, Start.AddHours(5)), Window("codex/secondary", 1, Start.AddDays(7), 10_080)];
+
+		await harness.Monitor.Poll(Provider.Codex, Token);
+
+		harness.Resets.Added.Count.ShouldBe(2);
+		harness.Sender.Sent.Select(message => message.Title).Where(title => title.Contains("reset")).ShouldBe(["Codex : reset détecté"]);
+		harness.Sender.Sent.ShouldContain(message => message.Title == "Codex : reset détecté" && message.Body.Contains("codex/secondary"));
 	}
 
 	[Fact]

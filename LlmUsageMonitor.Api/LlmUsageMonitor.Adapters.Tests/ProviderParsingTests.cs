@@ -108,6 +108,21 @@ public sealed class CodexUsageParserTests
 	}
 
 	[Fact]
+	public void An_unused_window_whose_reset_is_one_full_window_away_has_not_started()
+	{
+		var readAt = DateTimeOffset.FromUnixTimeSeconds(1795706292);
+		var windows = CodexUsageParser.Parse(Json($$"""
+		                                            { "rateLimitsByLimitId": { "codex": {
+		                                              "primary": { "usedPercent": 0, "windowDurationMins": 300, "resetsAt": {{readAt.AddMinutes(300).AddSeconds(20).ToUnixTimeSeconds()}} },
+		                                              "secondary": { "usedPercent": 0, "windowDurationMins": 10080, "resetsAt": {{readAt.AddDays(3).ToUnixTimeSeconds()}} } } } }
+		                                            """), readAt);
+
+		windows[0].ResetsAt.ShouldBeNull();
+		// Started by a prompt that cost less than 1 %: its reset no longer follows the reading.
+		windows[1].ResetsAt.ShouldBe(readAt.AddDays(3));
+	}
+
+	[Fact]
 	public void No_bucket_means_no_window()
 	{
 		CodexUsageParser.Parse(Json("""{ "rateLimitsByLimitId": {}, "rateLimits": null }""")).ShouldBeEmpty();
